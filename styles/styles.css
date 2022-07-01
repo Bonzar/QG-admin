@@ -1,0 +1,44 @@
+html {
+    font-size: 10px; /* px значит 'пиксели': базовый шрифт будет 10 пикселей в высоту  */
+    /*font-family: 'HERMAN(RUS BY LYAJKA)', sans-serif;*/
+    font-family: 'HERMAN(RUS BY LYAJKA)', serif;
+    font-style: normal;
+    font-weight: 400;
+    background-color: rgba(225, 167, 255, 0.2);
+}
+body {
+    width: 600px;
+    margin: 0 auto;
+    background-color: rgba(153, 0, 255, 0.31);
+    padding: 0 20px 20px 20px;
+    border: 2px solid rgba(153, 0, 255, 0.78);
+    border-radius: 25px;
+}
+h1 {
+    margin: 0;
+    padding: 20px 0;
+    color: #081150;
+    font-size: 40px;
+    text-align: center;
+}
+
+p, li {
+    font-size: 26px;
+    line-height: 2;
+    letter-spacing: 1px;
+}
+
+img {
+    height: 200px;
+    display: block;
+    margin: 0 auto;
+}
+
+button.change_user--button {
+    background-color: cornflowerblue;
+    /*border: 1px solid lightseagreen;*/
+    border: 0;
+    color: #fff;
+    border-radius: 50px;
+    box-shadow: 2px 2px 5px 0 black;
+}
