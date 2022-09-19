@@ -1,18 +1,22 @@
 html {
-    font-size: 20px; /* px значит 'пиксели': базовый шрифт будет 10 пикселей в высоту  */
-    /*font-family: 'HERMAN(RUS BY LYAJKA)', sans-serif;*/
-    /*font-family: 'HERMAN(RUS BY LYAJKA)', serif;*/
+    box-sizing: border-box;
+}
+
+*, *::before, *::after {
+    box-sizing: inherit;
+}
+
+html {
+    font-size: 10px; /* px значит 'пиксели': базовый шрифт будет 10 пикселей в высоту  */
     font-style: normal;
     font-weight: 400;
     background-color: rgba(225, 167, 255, 0.2);
 }
+
 body {
     max-width: 800px;
     margin: 0 auto;
-    background-color: rgba(153, 0, 255, 0.31);
-    padding: 0 20px 20px 20px;
-    border: 2px solid rgba(153, 0, 255, 0.78);
-    border-radius: 25px;
+    padding: 0 10px 20px;
 }
 
 main {
@@ -23,12 +27,15 @@ h1 {
     margin: 0;
     padding: 20px 0;
     color: #081150;
-    font-size: 40px;
+    font-size: 2.6rem;
     text-align: center;
 }
 
+p, li, a {
+    font-size: 1.6rem;
+}
+
 p, li {
-    font-size: 26px;
     line-height: 2;
     letter-spacing: 1px;
 }
@@ -41,7 +48,6 @@ img {
 
 button.change_user--button {
     background-color: cornflowerblue;
-    /*border: 1px solid lightseagreen;*/
     border: 0;
     color: #fff;
     border-radius: 50px;
@@ -52,14 +58,22 @@ button.change_user--button {
 /* Ozon Table */
 table {
     border-collapse: collapse;
+    background-color: rgba(225, 167, 255, 0.2);
+    border-radius: 25px;
+    overflow: hidden;
+    table-layout: fixed;
+    max-width: 100%;
+    font-size: 1.6rem;
+    margin: 0 5vw;
 }
 th {
     background: #ccc;
+    text-align: center;
 }
 
 th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
+    padding: 9px;
+    overflow: hidden;
 }
 
 tr:nth-child(even) {
@@ -67,5 +81,44 @@ tr:nth-child(even) {
 }
 
 tr:hover {
-    background: #d1d1d1;
+    background: #d1d1d155;
 }
+
+
+@media screen and (max-width: 420px) {
+    .storage-table--id {
+        width: 0;
+        padding: 0;
+        visibility: collapse;
+    }
+}
+
+.storage-table--article {
+    min-width: 300px;
+    width: 30%;
+}
+
+.storage-table--stocks-fbo,
+.storage-table--stocks-fbs {
+    width: 15%;
+    min-width: 40px;
+    text-align: center;
+}
+
+
+/* DESKTOP LAYOUT */
+
+/* Font */
+@media screen and (min-width: 421px) {
+    html {
+        font-size: 12px;
+    }
+    .storage-table--id {
+        width: 20%
+    }
+    table {
+        text-align: center;
+    }
+}
+
+/* Ozon table */

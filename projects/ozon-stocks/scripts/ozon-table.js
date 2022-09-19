@@ -1,5 +1,6 @@
 import {getApiKey, getClientId} from './login.js';
 
+
 function fillTable(products) {
     const storageTableBody = document.querySelector('#storage-table');
 
@@ -37,3 +38,4 @@ resetLoginBtn.addEventListener('click', () => {
     getApiKey(true);
     getOzonData().then(data => fillTable(data));
 });
+

@@ -9,11 +9,11 @@ export function getClientId(isNewId = false) {
 }
 
 export function getApiKey(isNewKey = false) {
-    let ApiKey = localStorage.getItem('ApiKey');
-    if (!ApiKey || isNewKey) {
-        ApiKey = prompt('Enter API key: ');
-        localStorage.setItem('ApiKey', ApiKey);
+    let apiKey = localStorage.getItem('ApiKey');
+    if (!apiKey || isNewKey) {
+        apiKey = prompt('Enter API key: ');
+        localStorage.setItem('ApiKey', apiKey);
     }
 
-    return ApiKey;
+    return apiKey;
 }

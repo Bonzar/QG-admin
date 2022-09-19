@@ -10,25 +10,32 @@
     <script type="module" src="scripts/ozon-table.js" defer></script>
 </head>
 <body>
-    <nav>
-        <a href="../../projects.html">Back to projects</a>
-    </nav>
-    <header>
-        <h1>Наличие товаров на Ozon</h1>
-    </header>
-    <main>
-        <table id="storage-table">
-            <thead>
-                <tr>
-                    <th>Product id</th>
-                    <th>Article</th>
-                    <th>Остатки FBO</th>
-                    <th>Остатки FBS</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        <a class="btn" id="resetOzonData">Reset login data</a>
-    </main>
+<nav>
+    <a href="../../projects.html">Back to projects</a>
+</nav>
+<header>
+    <h1>Наличие товаров на Ozon</h1>
+</header>
+<main style="">
+    <table id="storage-table">
+        <colgroup>
+            <col class="storage-table--id">
+            <col class="storage-table--article">
+            <col class="storage-table--stocks-fbo">
+            <col class="storage-table--stocks-fbs">
+        </colgroup>
+        <thead>
+            <tr>
+                <th class="storage-table--id">SKU</th>
+                <th class="storage-table--article">Article</th>
+                <th class="storage-table--stocks-fbo">FBO</th>
+                <th class="storage-table--stocks-fbs">FBS</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <a class="btn" id="resetOzonData">Reset login data</a>
+</main>
+
 </body>
 </html>
