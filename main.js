@@ -16,8 +16,8 @@ myImage.onclick = function () {
         myImage.setAttribute('src', 'images/vlad-wide-landscape.jpeg');
     }
 }
-var myButton = document.querySelector('button');
-var myHeading = document.querySelector('h1');
+const myButton = document.querySelector('button');
+const myHeading = document.querySelector('h1');
 
 function setUserName() {
     var myName = prompt('Please enter your name.');

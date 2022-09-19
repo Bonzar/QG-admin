@@ -1,19 +1,24 @@
 html {
-    font-size: 10px; /* px значит 'пиксели': базовый шрифт будет 10 пикселей в высоту  */
+    font-size: 20px; /* px значит 'пиксели': базовый шрифт будет 10 пикселей в высоту  */
     /*font-family: 'HERMAN(RUS BY LYAJKA)', sans-serif;*/
-    font-family: 'HERMAN(RUS BY LYAJKA)', serif;
+    /*font-family: 'HERMAN(RUS BY LYAJKA)', serif;*/
     font-style: normal;
     font-weight: 400;
     background-color: rgba(225, 167, 255, 0.2);
 }
 body {
-    width: 600px;
+    max-width: 800px;
     margin: 0 auto;
     background-color: rgba(153, 0, 255, 0.31);
     padding: 0 20px 20px 20px;
     border: 2px solid rgba(153, 0, 255, 0.78);
     border-radius: 25px;
 }
+
+main {
+    overflow: auto;
+}
+
 h1 {
     margin: 0;
     padding: 20px 0;
@@ -41,4 +46,26 @@ button.change_user--button {
     color: #fff;
     border-radius: 50px;
     box-shadow: 2px 2px 5px 0 black;
+}
+
+
+/* Ozon Table */
+table {
+    border-collapse: collapse;
+}
+th {
+    background: #ccc;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background: #efefef;
+}
+
+tr:hover {
+    background: #d1d1d1;
 }
