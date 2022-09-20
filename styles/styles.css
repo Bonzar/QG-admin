@@ -7,7 +7,7 @@ html {
 }
 
 html {
-    font-size: 10px; /* px значит 'пиксели': базовый шрифт будет 10 пикселей в высоту  */
+    font-size: 10px;
     font-style: normal;
     font-weight: 400;
     background-color: rgba(225, 167, 255, 0.2);
@@ -16,11 +16,7 @@ html {
 body {
     max-width: 800px;
     margin: 0 auto;
-    padding: 0 10px 20px;
-}
-
-main {
-    overflow: auto;
+    padding: 0 2vw 20px;
 }
 
 h1 {
@@ -46,79 +42,109 @@ img {
     margin: 0 auto;
 }
 
-button.change_user--button {
-    background-color: cornflowerblue;
-    border: 0;
-    color: #fff;
-    border-radius: 50px;
-    box-shadow: 2px 2px 5px 0 black;
+.btn {
+    padding: 5px 10px;
+    margin: 8px 0;
+    background-color: lightgray;
+    border-radius: 25px;
+    display: inline-block;
+    text-decoration: none;
+    color: white;
+    box-shadow: 2px 4px 11px -3px rgba(0, 0, 0, 0.28);
 }
 
-
-/* Ozon Table */
-table {
+/* Stocks Table */
+.stocks-table {
     border-collapse: collapse;
     background-color: rgba(225, 167, 255, 0.2);
     border-radius: 25px;
-    overflow: hidden;
     table-layout: fixed;
-    max-width: 100%;
+    width: 100%;
     font-size: 1.6rem;
-    margin: 0 5vw;
+    position: relative;
+    margin: 0 0 0.75rem;
 }
-th {
+
+/* table shadow */
+.stocks-table::before {
+    content: "";
+    display: block;
+    height: 100%;
+    width: 100%;
+    box-shadow: 0 0 10px -3px rgb(0, 0, 0, 0.3);
+    position: absolute;
+    border-radius: 25px;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+
+/* table border radius */
+.stocks-table tr:first-child th:first-child {
+    border-top-left-radius: 25px;
+}
+.stocks-table tr:first-child th:last-child {
+    border-top-right-radius: 25px;
+}
+.stocks-table tr:last-child td:first-child {
+    border-bottom-left-radius: 25px;
+}
+.stocks-table tr:last-child td:last-child {
+    border-bottom-right-radius: 25px;
+}
+
+
+/* table cells */
+.stocks-table th {
     background: #ccc;
     text-align: center;
 }
 
-th, td {
-    padding: 9px;
+.stocks-table th,
+.stocks-table td {
+    padding: 7px;
     overflow: hidden;
 }
 
-tr:nth-child(even) {
+.stocks-table tr:nth-child(even) {
     background: #efefef;
 }
 
-tr:hover {
+.stocks-table tr:hover {
     background: #d1d1d155;
 }
 
-
-@media screen and (max-width: 420px) {
-    .storage-table--id {
-        width: 0;
-        padding: 0;
-        visibility: collapse;
-    }
-}
-
-.storage-table--article {
-    min-width: 300px;
-    width: 30%;
-}
-
-.storage-table--stocks-fbo,
-.storage-table--stocks-fbs {
-    width: 15%;
-    min-width: 40px;
+/* MOBILE LAYOUT */
+.col--stocks-fbm,
+.col--stocks-fbs {
+    width: 60px;
     text-align: center;
 }
 
-
-/* DESKTOP LAYOUT */
-
-/* Font */
-@media screen and (min-width: 421px) {
-    html {
-        font-size: 12px;
-    }
-    .storage-table--id {
-        width: 20%
-    }
-    table {
-        text-align: center;
+@media screen and (max-width: 420px) {
+    .stocks-table tr td:nth-child(1),
+    .stocks-table tr th:nth-child(1) {
+        display: none;
     }
 }
 
-/* Ozon table */
+/* DESKTOP LAYOUT */
+@media screen and (min-width: 421px) {
+    /* Font */
+    html {
+        font-size: 12px;
+    }
+
+    /* Stocks table */
+    .stocks-table {
+        text-align: center;
+    }
+    .col--id {
+        width: 120px;
+    }
+    .col--stocks-fbm,
+    .col--stocks-fbs {
+        width: 60px;
+    }
+}

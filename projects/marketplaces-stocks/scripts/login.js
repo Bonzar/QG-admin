@@ -1,4 +1,4 @@
-export function getClientId(isNewId = false) {
+export function getOzonClientId(isNewId = false) {
     let clientId = localStorage.getItem('clientId');
     if (!clientId || isNewId) {
         clientId = prompt('Enter client id: ');
@@ -8,7 +8,7 @@ export function getClientId(isNewId = false) {
     return clientId;
 }
 
-export function getApiKey(isNewKey = false) {
+export function getOzonApiKey(isNewKey = false) {
     let apiKey = localStorage.getItem('ApiKey');
     if (!apiKey || isNewKey) {
         apiKey = prompt('Enter API key: ');
