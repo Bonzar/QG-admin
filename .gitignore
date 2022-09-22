@@ -1,1 +1,5 @@
 /mdn-tasks/
+node_modules/
+.cache
+dist
+.parcel-cache/

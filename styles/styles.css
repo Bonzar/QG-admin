@@ -81,19 +81,18 @@ img {
 
 
 /* table border radius */
-.stocks-table tr:first-child th:first-child {
+.stocks-table tr:first-of-type th:first-of-type {
     border-top-left-radius: 25px;
 }
-.stocks-table tr:first-child th:last-child {
+.stocks-table tr:first-of-type th:last-of-type {
     border-top-right-radius: 25px;
 }
-.stocks-table tr:last-child td:first-child {
+.stocks-table tr:last-of-type td:first-of-type {
     border-bottom-left-radius: 25px;
 }
-.stocks-table tr:last-child td:last-child {
+.stocks-table tr:last-of-type td:last-of-type {
     border-bottom-right-radius: 25px;
 }
-
 
 /* table cells */
 .stocks-table th {
@@ -126,6 +125,12 @@ img {
     .stocks-table tr td:nth-child(1),
     .stocks-table tr th:nth-child(1) {
         display: none;
+    }
+    .stocks-table tr:first-of-type th:nth-of-type(2) {
+        border-top-left-radius: 25px;
+    }
+    .stocks-table tr:last-of-type td:nth-of-type(2) {
+        border-bottom-left-radius: 25px;
     }
 }
 

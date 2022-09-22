@@ -1,0 +1,28 @@
+{
+  "name": "my-first-website",
+  "version": "1.0.0",
+  "description": "first web project to learn",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "parcel serve index.html",
+    "build": "npx parcel build index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bonzar/bonzar.github.io.git"
+  },
+  "author": "Vlad Navoyan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Bonzar/bonzar.github.io/issues"
+  },
+  "homepage": "https://github.com/Bonzar/bonzar.github.io#readme",
+  "dependencies": {
+    "parcel": "^2.7.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.1.0",
+    "eslint": "^8.23.1",
+    "prettier": "2.7.1"
+  }
+}
