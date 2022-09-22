@@ -17,12 +17,9 @@
     "url": "https://github.com/Bonzar/bonzar.github.io/issues"
   },
   "homepage": "https://github.com/Bonzar/bonzar.github.io#readme",
-  "dependencies": {
-    "parcel": "^2.7.0"
-  },
   "devDependencies": {
-    "babel-eslint": "^10.1.0",
     "eslint": "^8.23.1",
+    "parcel": "^2.7.0",
     "prettier": "2.7.1"
   }
 }
