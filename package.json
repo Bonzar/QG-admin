@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "parcel serve index.html",
     "devstart": "parcel serve index.html && (cd server && npm run start)",
-    "build": "npx parcel build index.html",
+    "build": "npx parcel build index.html && (cd server && npm install)",
     "start": "cd server && npm run start"
   },
   "repository": {
