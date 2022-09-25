@@ -3,7 +3,7 @@ const axios = require("axios");
 const express = require("express");
 const app = express();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 const buildPath = path.join(__dirname, "..", "dist");
 app.use(express.static(buildPath));
@@ -12,11 +12,7 @@ app.get("/yandex-stocks", async (req, res) => {
   try {
     const headersRequire = {
       "Content-Type": "application/json",
-      Authorization: `OAuth oauth_token="${
-        process.env.YANDEX_OAUTHTOKEN ?? prompt("Enter oauth_token: ")
-      }", oauth_client_id="${
-        process.env.YANDEX_CLIENTID ?? prompt("Enter oauth_client_id: ")
-      }"`,
+      Authorization: `OAuth oauth_token="${process.env.YANDEX_OAUTHTOKEN}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
     };
 
     const shopSkus = await axios
