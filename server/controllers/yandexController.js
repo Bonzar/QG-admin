@@ -1,22 +1,18 @@
-const path = require("path");
 const axios = require("axios");
-const express = require("express");
-if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
-}
 
-const app = express();
-
-const PORT = process.env.PORT || 3000;
-
-const buildPath = path.join(__dirname, "..", "dist");
-app.use(express.static(buildPath));
-
-app.get("/yandex-stocks", async (req, res) => {
+exports.product_list = async (req, res) => {
   try {
+    if (!req.query.access_token) {
+      res.send({
+        isAuthorize: false,
+        clientId: process.env.YANDEX_CLIENTID,
+      });
+      return;
+    }
+
     const headersRequire = {
       "Content-Type": "application/json",
-      Authorization: `OAuth oauth_token="${process.env.YANDEX_OAUTHTOKEN}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
+      Authorization: `OAuth oauth_token="${req.query.access_token}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
     };
 
     const shopSkus = await axios
@@ -57,7 +53,7 @@ app.get("/yandex-stocks", async (req, res) => {
       });
 
     const productsToPrint = products.map((product) => {
-      const productStock =
+      const productStocks =
         product.warehouses?.[0].stocks.find(
           (stockType) => stockType.type === "AVAILABLE"
         )?.count ?? 0;
@@ -73,16 +69,19 @@ app.get("/yandex-stocks", async (req, res) => {
       return {
         productSku: product.shopSku,
         productName,
-        productStock,
+        productStock: productStocks,
       };
     });
 
-    res.send(JSON.stringify(productsToPrint));
+    res.send(
+      JSON.stringify({
+        isAuthorize: true,
+        products: productsToPrint,
+      })
+    );
   } catch (error) {
-    res.status(400).send("Error while getting list of jobs. Try again later.");
+    res
+      .status(400)
+      .send("Error while getting list of products. Try again later.");
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`server started on port ${PORT}`);
-});
+};

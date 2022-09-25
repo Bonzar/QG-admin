@@ -17,19 +17,7 @@ function fillTable(products) {
 }
 
 function getOzonData() {
-  return fetch(`https://api-seller.ozon.ru/v3/product/info/stocks`, {
-    method: "POST",
-    headers: {
-      "Client-Id": getOzonClientId(),
-      "Api-Key": getOzonApiKey(),
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      filter: {},
-      last_id: "",
-      limit: 200,
-    }),
-  }).then((response) => response.json());
+  return fetch(`/api/ozon`).then((response) => response.json());
 }
 
 getOzonData().then((data) => fillTable(data));

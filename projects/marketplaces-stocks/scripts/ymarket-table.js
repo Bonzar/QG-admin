@@ -1,5 +1,3 @@
-// import {getOzonApiKey, getOzonClientId} from './login.js';
-
 /**
  * @param {object} products
  * @param {string} products.productSku
@@ -23,7 +21,25 @@ function fillYandexTable(products) {
 }
 
 function getYandexData() {
-  return fetch(`/yandex-stocks`).then((response) => response.json());
+  let access_token = localStorage.getItem("yandex_access_token");
+  if (!access_token) {
+    const urlParams = new URLSearchParams(window.location.hash.slice(1));
+    access_token = urlParams.get("access_token");
+    if (access_token) {
+      localStorage.setItem("yandex_access_token", access_token);
+    }
+  }
+
+  return fetch(`/api/yandex?access_token=${access_token ?? ""}`).then(
+    (response) => response.json()
+  );
 }
 
-getYandexData().then((data) => fillYandexTable(data));
+getYandexData().then((data) => {
+  if (!data.isAuthorize) {
+    const mainHtml = document.querySelector("main");
+    mainHtml.innerHTML = `<a id="YandexLogin" href="https://oauth.yandex.ru/authorize?response_type=token&client_id=${data.clientId}"></a>`;
+    return;
+  }
+  fillYandexTable(data.products);
+});
