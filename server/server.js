@@ -3,17 +3,20 @@ const axios = require("axios");
 const express = require("express");
 const app = express();
 
-const PORT = process.env.PORT || 1234;
+const PORT = process.env.PORT || 5000;
 
 const buildPath = path.join(__dirname, "..", "dist");
 app.use(express.static(buildPath));
 
 app.get("/yandex-stocks", async (req, res) => {
   try {
-    const authorization = {
-      Authorization:
-        'OAuth oauth_token="y0_AgAAAAAS1CmNAAhtsAAAAADPYoE0sFOwF-gGQq2gjR8AqiIGxQBAR04", oauth_client_id="111ace45a0254fec8d4550d496bb10b3"',
+    const headersRequire = {
       "Content-Type": "application/json",
+      Authorization: `OAuth oauth_token="${
+        process.env.YANDEX_OAUTHTOKEN ?? prompt("Enter oauth_token: ")
+      }", oauth_client_id="${
+        process.env.YANDEX_CLIENTID ?? prompt("Enter oauth_client_id: ")
+      }"`,
     };
 
     const shopSkus = await axios
@@ -21,7 +24,7 @@ app.get("/yandex-stocks", async (req, res) => {
         "https://api.partner.market.yandex.ru/v2/campaigns/21938028/offer-mapping-entries.json?limit=200",
         {
           headers: {
-            ...authorization,
+            ...headersRequire,
           },
         }
       )
@@ -36,7 +39,7 @@ app.get("/yandex-stocks", async (req, res) => {
       method: "post",
       url: "https://api.partner.market.yandex.ru/v2/campaigns/21938028/stats/skus.json",
       headers: {
-        ...authorization,
+        ...headersRequire,
       },
       data: {
         shopSkus: shopSkus.result.offerMappingEntries.map(
