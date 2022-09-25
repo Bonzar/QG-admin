@@ -1,6 +1,10 @@
 const path = require("path");
 const axios = require("axios");
 const express = require("express");
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
@@ -60,10 +64,10 @@ app.get("/yandex-stocks", async (req, res) => {
 
       const productName = product.name
         .replaceAll(
-          /[".]|(Queridos Gli[r]?tters)|(ГлиттерГель)|(Бл[её]стки для лица и тела)|(Цвета)|(Цвет)|(Глиттер)|(Набора)|(для блёсток)|(Блестки для глаз)/g,
+          /[".:]|(Queridos Glir?tters)|(ГлиттерГель)|(Бл[её]стки для лица и тела)|(Цвета)|(Цвет)|(Глиттер)|(набора)|(для блёсток)|(Блестки для глаз)/g,
           ""
         )
-        .replace("набор ", "Набор")
+        .replace("набор", "Набор:")
         .replace("ГЕЛЬ-ЗАПРАВКА", "ГЗ");
 
       return {

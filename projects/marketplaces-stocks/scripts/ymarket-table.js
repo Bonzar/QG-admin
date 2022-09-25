@@ -13,7 +13,9 @@ function fillYandexTable(products) {
     .map((product) => {
       return `<tr><td>${product.productSku}</td><td>${
         product.productName
-      }</td><td>${0}</td><td>${product.productStock}</td></tr>`;
+      }</td><td class=".col--stocks-fbm">${0}</td><td class=".col--stocks-fbs">${
+        product.productStock
+      }</td></tr>`;
     })
     .join("");
 
