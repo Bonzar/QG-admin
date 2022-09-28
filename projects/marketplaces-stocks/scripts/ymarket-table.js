@@ -46,9 +46,9 @@ getYandexData().then((data) => {
 // Script start
 const fbsCells = document.querySelector("#yandex-stocks-table");
 
-fbsCells.addEventListener("click", (e) => {
+const updateStockListener = function (e) {
+  e.stopPropagation();
   const cell = e.target;
-
   if (
     cell.classList.value.includes("col--stocks-fbs") &&
     cell.nodeName === "TD"
@@ -61,10 +61,10 @@ fbsCells.addEventListener("click", (e) => {
     const form = cell.querySelector(".change-stock--form");
     form.addEventListener(
       "submit",
-      function (event) {
-        event.preventDefault();
+      function (e) {
+        e.stopPropagation();
 
-        const newStockValue = event.target.querySelector(
+        const newStockValue = e.target.querySelector(
           ".change-stock--input-number"
         ).value;
 
@@ -73,6 +73,7 @@ fbsCells.addEventListener("click", (e) => {
 
         cell.innerHTML = newStockValue;
         form.removeEventListener("submit", this);
+        fbsCells.removeEventListener("click", exitUpdateStockListener);
 
         fetch(
           `/api/yandex/update_stock?access_token=${localStorage.getItem(
@@ -83,14 +84,17 @@ fbsCells.addEventListener("click", (e) => {
       { once: true }
     );
 
-    fbsCells.addEventListener(
-      "click",
-      () => {
+    const exitUpdateStockListener = (e) => {
+      if (e.target.nodeName !== "INPUT") {
         cell.textContent = cell.querySelector(
           ".change-stock--input-number"
         ).value;
-      },
-      { once: true }
-    );
+        fbsCells.removeEventListener("click", exitUpdateStockListener);
+      }
+    };
+
+    fbsCells.addEventListener("click", exitUpdateStockListener);
   }
-});
+};
+
+fbsCells.addEventListener("click", updateStockListener);
