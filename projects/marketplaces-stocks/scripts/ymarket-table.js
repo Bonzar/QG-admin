@@ -12,9 +12,7 @@ function fillYandexTable(products) {
       product1.productName > product2.productName ? 1 : -1
     )
     .map((product) => {
-      return `<tr><td>${product.productSku}</td><td>${product.productName}</td>
-<!--<td class=".col&#45;&#45;stocks-fbm">${0}</td>-->
-       <td class=".col--stocks-fbs">${product.productStock}</td></tr>`;
+      return `<tr><td>${product.productSku}</td><td>${product.productName}</td><td class="col--stocks-fbs">${product.productStock}</td></tr>`;
     })
     .join("");
 
@@ -35,6 +33,42 @@ function getYandexData() {
     (response) => response.json()
   );
 }
+
+const fbsCells = document.querySelector("#yandex-stocks-table");
+
+fbsCells.addEventListener("click", (e) => {
+  const cell = e.target;
+  if (
+    cell.classList.value.includes("col--stocks-fbs") &&
+    cell.nodeName === "TD"
+  ) {
+    cell.innerHTML = `<form class="change-stock--form">
+          <input class="change-stock--submit-button" type="submit" value="OK">
+          <input class="change-stock--input-number" name="stock" type="number" min="0" value="${cell.textContent}">
+        </form>`;
+
+    const form = cell.querySelector(".change-stock--form");
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const newStockValue = event.target.querySelector(
+        ".change-stock--input-number"
+      ).value;
+
+      const skuUpdate =
+        cell.parentElement.querySelector("td:first-of-type").textContent;
+
+      cell.innerHTML = newStockValue;
+      form.removeEventListener("submit", this);
+
+      fetch(
+        `/api/yandex/update_stock?access_token=${localStorage.getItem(
+          "yandex_access_token"
+        )}&sku=${skuUpdate}&stock=${newStockValue}`
+      ).catch((error) => console.log(error));
+    });
+  }
+});
 
 getYandexData().then((data) => {
   if (!data.isAuthorize) {

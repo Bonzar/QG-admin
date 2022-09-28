@@ -7,6 +7,8 @@ const yandex_controller = require("../controllers/yandexController");
 // Get request for list of all Yandex products
 router.get("/yandex", yandex_controller.product_list);
 
+router.get("/yandex/update_stock", yandex_controller.update_stock);
+
 // Get request for list of all Ozon products
 router.get("/ozon", ozon_controller.product_list);
 

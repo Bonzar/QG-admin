@@ -1,165 +1,186 @@
 html {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
-*, *::before, *::after {
-    box-sizing: inherit;
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
 }
 
 html {
-    font-size: 10px;
-    font-style: normal;
-    font-weight: 400;
-    background-color: rgba(225, 167, 255, 0.2);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  background-color: rgba(225, 167, 255, 0.2);
 }
 
 body {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 2vw 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 2vw 20px;
 }
 
 h1 {
-    margin: 0;
-    padding: 20px 0;
-    color: #081150;
-    font-size: 2.6rem;
-    text-align: center;
+  margin: 0;
+  padding: 20px 0;
+  color: #081150;
+  font-size: 2.6rem;
+  text-align: center;
 }
 
-p, li, a {
-    font-size: 1.6rem;
+p,
+li,
+a {
+  font-size: 1.6rem;
 }
 
-p, li {
-    line-height: 2;
-    letter-spacing: 1px;
+p,
+li {
+  line-height: 2;
+  letter-spacing: 1px;
 }
 
 img {
-    height: 200px;
-    display: block;
-    margin: 0 auto;
+  height: 200px;
+  display: block;
+  margin: 0 auto;
 }
 
 .btn {
-    padding: 5px 10px;
-    margin: 8px 0;
-    background-color: lightgray;
-    border-radius: 25px;
-    display: inline-block;
-    text-decoration: none;
-    color: white;
-    box-shadow: 2px 4px 11px -3px rgba(0, 0, 0, 0.28);
+  padding: 5px 10px;
+  margin: 8px 0;
+  background-color: lightgray;
+  border-radius: 25px;
+  display: inline-block;
+  text-decoration: none;
+  color: white;
+  box-shadow: 2px 4px 11px -3px rgba(0, 0, 0, 0.28);
 }
 
 /* Stocks Table */
 .stocks-table {
-    border-collapse: collapse;
-    background-color: rgba(225, 167, 255, 0.2);
-    border-radius: 25px;
-    table-layout: fixed;
-    width: 100%;
-    font-size: 1.6rem;
-    position: relative;
-    margin: 0 0 0.75rem;
+  border-collapse: collapse;
+  background-color: rgba(225, 167, 255, 0.2);
+  border-radius: 25px;
+  table-layout: fixed;
+  width: 100%;
+  font-size: 1.6rem;
+  position: relative;
+  margin: 0 0 0.75rem;
 }
 
 /* table shadow */
 .stocks-table::before {
-    content: "";
-    display: block;
-    height: 100%;
-    width: 100%;
-    box-shadow: 0 0 10px -3px rgb(0, 0, 0, 0.3);
-    position: absolute;
-    border-radius: 25px;
-    top: 0;
-    left: 0;
-    z-index: -1;
+  content: "";
+  display: block;
+  height: 100%;
+  width: 100%;
+  box-shadow: 0 0 10px -3px rgb(0, 0, 0, 0.3);
+  position: absolute;
+  border-radius: 25px;
+  top: 0;
+  left: 0;
+  z-index: -1;
 }
-
 
 /* table border radius */
 .stocks-table tr:first-of-type th:first-of-type {
-    border-top-left-radius: 25px;
+  border-top-left-radius: 25px;
 }
 .stocks-table tr:first-of-type th:last-of-type {
-    border-top-right-radius: 25px;
+  border-top-right-radius: 25px;
 }
 .stocks-table tr:last-of-type td:first-of-type {
-    border-bottom-left-radius: 25px;
+  border-bottom-left-radius: 25px;
 }
 .stocks-table tr:last-of-type td:last-of-type {
-    border-bottom-right-radius: 25px;
+  border-bottom-right-radius: 25px;
 }
 
 /* table cells */
 .stocks-table th {
-    background: #ccc;
-    text-align: center;
+  background: #ccc;
+  text-align: center;
 }
 
 .stocks-table th,
 .stocks-table td {
-    padding: 7px;
-    overflow: hidden;
+  padding: 7px;
+  /*overflow: hidden;*/
 }
 
 .stocks-table tr:nth-child(even) {
-    background: #efefef;
+  background: #efefef;
 }
 
 .stocks-table tr:hover {
-    background: #d1d1d155;
+  background: #d1d1d155;
+}
+
+/* Change stock form */
+.change-stock--form {
+  position: relative;
+}
+
+.change-stock--submit-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: -40px;
+}
+
+.change-stock--input-number {
+  width: 40px;
+  display: inline-block;
 }
 
 /* MOBILE LAYOUT */
 .col--stocks-fbm,
 .col--stocks-fbs {
-    width: 60px;
-    text-align: center;
+  width: 60px;
+  text-align: center;
 }
 
 @media screen and (max-width: 420px) {
-    .stocks-table tr td:nth-child(1),
-    .stocks-table tr th:nth-child(1) {
-        display: none;
-    }
-    .stocks-table tr:first-of-type th:nth-of-type(2) {
-        border-top-left-radius: 25px;
-    }
-    .stocks-table tr:last-of-type td:nth-of-type(2) {
-        border-bottom-left-radius: 25px;
-    }
+  .stocks-table tr td:nth-child(1),
+  .stocks-table tr th:nth-child(1) {
+    display: none;
+  }
+  .stocks-table tr:first-of-type th:nth-of-type(2) {
+    border-top-left-radius: 25px;
+  }
+  .stocks-table tr:last-of-type td:nth-of-type(2) {
+    border-bottom-left-radius: 25px;
+  }
 }
 
 /* DESKTOP LAYOUT */
 @media screen and (min-width: 421px) {
-    /* Font */
-    html {
-        font-size: 12px;
-    }
+  /* Font */
+  html {
+    font-size: 12px;
+  }
 
-    /* Stocks table */
-    .stocks-table {
-        text-align: center;
-    }
-    .col--id {
-        width: 120px;
-    }
-    .col--stocks-fbm,
-    .col--stocks-fbs {
-        width: 60px;
-    }
+  /* Stocks table */
+  .stocks-table {
+    text-align: center;
+  }
+  .col--id {
+    width: 120px;
+  }
+  .col--stocks-fbm,
+  .col--stocks-fbs {
+    width: 60px;
+  }
 }
 
 /* Yandex Login Button */
 #YandexLogin {
-    background: url("../images/yandex-login-light-L.svg");
-    width: 280px;
-    margin: 0 auto;
-    max-width: 100%;
-    height: 56px;
-    display: block;
+  background: url("../images/yandex-login-light-L.svg");
+  width: 280px;
+  margin: 0 auto;
+  max-width: 100%;
+  height: 56px;
+  display: block;
 }

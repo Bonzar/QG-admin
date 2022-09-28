@@ -1,5 +1,12 @@
 const axios = require("axios");
 
+const getHeadersRequire = (req) => {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `OAuth oauth_token="${req.query.access_token}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
+  };
+};
+
 exports.product_list = async (req, res) => {
   try {
     if (!req.query.access_token) {
@@ -10,17 +17,12 @@ exports.product_list = async (req, res) => {
       return;
     }
 
-    const headersRequire = {
-      "Content-Type": "application/json",
-      Authorization: `OAuth oauth_token="${req.query.access_token}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
-    };
-
     const shopSkus = await axios
       .get(
         "https://api.partner.market.yandex.ru/v2/campaigns/21938028/offer-mapping-entries.json?limit=200",
         {
           headers: {
-            ...headersRequire,
+            ...getHeadersRequire(req),
           },
         }
       )
@@ -35,7 +37,7 @@ exports.product_list = async (req, res) => {
       method: "post",
       url: "https://api.partner.market.yandex.ru/v2/campaigns/21938028/stats/skus.json",
       headers: {
-        ...headersRequire,
+        ...getHeadersRequire(req),
       },
       data: {
         shopSkus: shopSkus.result.offerMappingEntries.map(
@@ -83,5 +85,44 @@ exports.product_list = async (req, res) => {
     res
       .status(400)
       .send("Error while getting list of products. Try again later.");
+  }
+};
+
+exports.update_stock = (req, res) => {
+  try {
+    const config = {
+      method: "put",
+      url: "https://api.partner.market.yandex.ru/v2/campaigns/21938028/offers/stocks.json",
+      headers: {
+        ...getHeadersRequire(req),
+      },
+      data: {
+        skus: [
+          {
+            sku: req.query.sku,
+            warehouseId: 52301,
+            items: [
+              {
+                type: "FIT",
+                count: req.query.stock,
+                updatedAt: new Date().toISOString(),
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    axios(config)
+      .then((response) => {
+        res.send(JSON.stringify(response.data));
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  } catch (e) {
+    res
+      .status(400)
+      .send("Error while updating stock of product. Try again later.");
   }
 };
