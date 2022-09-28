@@ -1,5 +1,5 @@
 /**
- * @param {object} products
+ * @param {[{}]} products
  * @param {string} products.productSku
  * @param {string} products.productName
  * @param {number} products.productStock
@@ -8,12 +8,13 @@ function fillYandexTable(products) {
   const storageTableBody = document.querySelector("#yandex-stocks-table");
 
   const tableRowsHtml = products
+    .sort((product1, product2) =>
+      product1.productName > product2.productName ? 1 : -1
+    )
     .map((product) => {
-      return `<tr><td>${product.productSku}</td><td>${
-        product.productName
-      }</td><td class=".col--stocks-fbm">${0}</td><td class=".col--stocks-fbs">${
-        product.productStock
-      }</td></tr>`;
+      return `<tr><td>${product.productSku}</td><td>${product.productName}</td>
+<!--<td class=".col&#45;&#45;stocks-fbm">${0}</td>-->
+       <td class=".col--stocks-fbs">${product.productStock}</td></tr>`;
     })
     .join("");
 
