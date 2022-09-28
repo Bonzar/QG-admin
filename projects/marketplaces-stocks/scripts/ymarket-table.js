@@ -38,6 +38,7 @@ const fbsCells = document.querySelector("#yandex-stocks-table");
 
 fbsCells.addEventListener("click", (e) => {
   const cell = e.target;
+
   if (
     cell.classList.value.includes("col--stocks-fbs") &&
     cell.nodeName === "TD"
@@ -48,25 +49,39 @@ fbsCells.addEventListener("click", (e) => {
         </form>`;
 
     const form = cell.querySelector(".change-stock--form");
-    form.addEventListener("submit", function (event) {
-      event.preventDefault();
+    form.addEventListener(
+      "submit",
+      function (event) {
+        event.preventDefault();
 
-      const newStockValue = event.target.querySelector(
-        ".change-stock--input-number"
-      ).value;
+        const newStockValue = event.target.querySelector(
+          ".change-stock--input-number"
+        ).value;
 
-      const skuUpdate =
-        cell.parentElement.querySelector("td:first-of-type").textContent;
+        const skuUpdate =
+          cell.parentElement.querySelector("td:first-of-type").textContent;
 
-      cell.innerHTML = newStockValue;
-      form.removeEventListener("submit", this);
+        cell.innerHTML = newStockValue;
+        form.removeEventListener("submit", this);
 
-      fetch(
-        `/api/yandex/update_stock?access_token=${localStorage.getItem(
-          "yandex_access_token"
-        )}&sku=${skuUpdate}&stock=${newStockValue}`
-      ).catch((error) => console.log(error));
-    });
+        fetch(
+          `/api/yandex/update_stock?access_token=${localStorage.getItem(
+            "yandex_access_token"
+          )}&sku=${skuUpdate}&stock=${newStockValue}`
+        ).catch((error) => console.log(error));
+      },
+      { once: true }
+    );
+
+    fbsCells.addEventListener(
+      "click",
+      () => {
+        cell.textContent = cell.querySelector(
+          ".change-stock--input-number"
+        ).value;
+      },
+      { once: true }
+    );
   }
 });
 
