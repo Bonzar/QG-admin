@@ -34,6 +34,16 @@ function getYandexData() {
   );
 }
 
+getYandexData().then((data) => {
+  if (!data.isAuthorize) {
+    const mainHtml = document.querySelector("main");
+    mainHtml.innerHTML = `<a id="YandexLogin" href="https://oauth.yandex.ru/authorize?response_type=token&client_id=${data.clientId}"></a>`;
+    return;
+  }
+  fillYandexTable(data.products);
+});
+
+// Script start
 const fbsCells = document.querySelector("#yandex-stocks-table");
 
 fbsCells.addEventListener("click", (e) => {
@@ -83,13 +93,4 @@ fbsCells.addEventListener("click", (e) => {
       { once: true }
     );
   }
-});
-
-getYandexData().then((data) => {
-  if (!data.isAuthorize) {
-    const mainHtml = document.querySelector("main");
-    mainHtml.innerHTML = `<a id="YandexLogin" href="https://oauth.yandex.ru/authorize?response_type=token&client_id=${data.clientId}"></a>`;
-    return;
-  }
-  fillYandexTable(data.products);
 });

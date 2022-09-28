@@ -57,7 +57,7 @@ exports.product_list = async (req, res) => {
     const productsToPrint = products.map((product) => {
       const productStocks =
         product.warehouses?.[0].stocks.find(
-          (stockType) => stockType.type === "AVAILABLE"
+          (stockType) => stockType.type === "FIT"
         )?.count ?? 0;
 
       const productName = product.name
