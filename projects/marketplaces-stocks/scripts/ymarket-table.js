@@ -29,7 +29,7 @@ function getYandexData() {
     }
   }
 
-  return fetch(`/api/yandex?access_token=${access_token ?? ''}`).then(
+  return fetch(`/api/yandex?access_token=${access_token ?? ""}`).then(
     (response) => response.json()
   );
 }
@@ -47,7 +47,7 @@ getYandexData().then((data) => {
 const fbsCells = document.querySelector("#yandex-stocks-table");
 
 const updateStockListener = function (e) {
-  e.stopPropagation();
+  // e.stopPropagation();
   const cell = e.target;
   if (
     cell.classList.value.includes("col--stocks-fbs") &&
@@ -62,7 +62,7 @@ const updateStockListener = function (e) {
     form.addEventListener(
       "submit",
       function (e) {
-        e.stopPropagation();
+        // e.stopPropagation();
 
         const newStockValue = e.target.querySelector(
           ".change-stock--input-number"
@@ -85,15 +85,15 @@ const updateStockListener = function (e) {
     );
 
     const exitUpdateStockListener = (e) => {
-      if (e.target.nodeName !== "INPUT") {
+      if (e.target !== cell && e.target.nodeName !== "INPUT") {
         cell.textContent = cell.querySelector(
           ".change-stock--input-number"
         ).value;
-        fbsCells.removeEventListener("click", exitUpdateStockListener);
+        document.removeEventListener("click", exitUpdateStockListener);
       }
     };
 
-    fbsCells.addEventListener("click", exitUpdateStockListener);
+    document.addEventListener("click", exitUpdateStockListener);
   }
 };
 
