@@ -1,53 +1,20 @@
 const axios = require("axios");
-const app = require("../app");
 
-// eslint-disable-next-line no-unused-vars
-const getAuthToken = async (req) => {
-  return (
-    process.env.YANDEX_OAUTHTOKEN ?? (await app.redisClient.get("token_access"))
-  );
-};
-
-const getHeadersRequire = async (req) => {
+const getHeadersRequire = () => {
   return {
     "Content-Type": "application/json",
-    Authorization: `OAuth oauth_token="${await getAuthToken(
-      req
-    )}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
+    Authorization: `OAuth oauth_token="${process.env.YANDEX_OAUTHTOKEN}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
   };
 };
 
 exports.product_list = async (req, res) => {
   try {
-    if (!(await getAuthToken(req))) {
-      // Если в параметрах уже есть код, обмен его на токен и сохранение в redis
-      if (req.query.code) {
-        const newAccessToken = await axios
-          .post(
-            `https://oauth.yandex.ru/token`,
-            `grant_type=authorization_code&code=${req.query.code}&client_id=${process.env.YANDEX_CLIENTID}&client_secret=cde8bcd95507475ab0a04b07f091c5c8`
-          )
-          .then((response) => {
-            return response.data.access_token;
-          })
-          .catch((error) => {
-            console.log(error);
-          });
-        app.redisClient.set("token_access", newAccessToken);
-      }
-      // Параметра code нет в url -> показ страницы авторизации
-      res.render("Auth", {
-        title: "Авторизация",
-        clientId: process.env.YANDEX_CLIENTID,
-      });
-      return;
-    }
     const shopSkus = await axios
       .get(
         "https://api.partner.market.yandex.ru/v2/campaigns/21938028/offer-mapping-entries.json?limit=200",
         {
           headers: {
-            ...(await getHeadersRequire(req)),
+            ...getHeadersRequire(),
           },
         }
       )
@@ -62,7 +29,7 @@ exports.product_list = async (req, res) => {
       method: "post",
       url: "https://api.partner.market.yandex.ru/v2/campaigns/21938028/stats/skus.json",
       headers: {
-        ...(await getHeadersRequire(req)),
+        ...getHeadersRequire(),
       },
       data: {
         shopSkus: shopSkus.result.offerMappingEntries.map(
@@ -102,7 +69,7 @@ exports.product_list = async (req, res) => {
       };
     });
     res.render("stocks-table", {
-      token: getAuthToken(req),
+      token: process.env.YANDEX_OAUTHTOKEN,
       title: "Yandex Stocks",
       headers: {
         SKU: "productSku",
@@ -126,7 +93,7 @@ exports.update_stock = async (req, res) => {
       method: "put",
       url: "https://api.partner.market.yandex.ru/v2/campaigns/21938028/offers/stocks.json",
       headers: {
-        ...(await getHeadersRequire(req)),
+        ...getHeadersRequire(),
       },
       data: {
         skus: [
