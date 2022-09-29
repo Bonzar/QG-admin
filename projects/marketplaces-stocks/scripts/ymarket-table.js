@@ -51,30 +51,27 @@ const updateStockListener = function (e) {
   const cell = e.target;
   if (
     cell.classList.value.includes("col--stocks-fbs") &&
-    cell.nodeName === "TD"
+    cell.nodeName === "TD" &&
+    !cell.querySelector(".change-stock--form")
   ) {
     cell.innerHTML = `<form class="change-stock--form">
           <input class="change-stock--submit-button" type="submit" value="OK">
-          <input class="change-stock--input-number" name="stock" type="number" min="0" value="${cell.textContent}">
+          <input class="change-stock--input-number" name="stock" type="number" min="0" required value="${cell.textContent}">
         </form>`;
 
     const form = cell.querySelector(".change-stock--form");
     form.addEventListener(
       "submit",
       function (e) {
-        // e.stopPropagation();
-
         const newStockValue = e.target.querySelector(
           ".change-stock--input-number"
         ).value;
-
         const skuUpdate =
           cell.parentElement.querySelector("td:first-of-type").textContent;
 
-        cell.innerHTML = newStockValue;
-        form.removeEventListener("submit", this);
         fbsCells.removeEventListener("click", exitUpdateStockListener);
 
+        cell.innerHTML = newStockValue;
         fetch(
           `/api/yandex/update_stock?access_token=${localStorage.getItem(
             "yandex_access_token"
@@ -85,10 +82,10 @@ const updateStockListener = function (e) {
     );
 
     const exitUpdateStockListener = (e) => {
-      if (e.target !== cell && e.target.nodeName !== "INPUT") {
-        cell.textContent = cell.querySelector(
-          ".change-stock--input-number"
-        ).value;
+      const newValue = cell.querySelector(".change-stock--input-number").value;
+
+      if (e.target !== cell && e.target.nodeName !== "INPUT" && newValue) {
+        cell.textContent = newValue;
         document.removeEventListener("click", exitUpdateStockListener);
       }
     };

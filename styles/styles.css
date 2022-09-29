@@ -126,15 +126,14 @@ img {
 
 .change-stock--submit-button {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  right: 100%;
   font-size: 1.2rem;
+  transform: translateY(-50%);
+  top: 50%;
+  right: 100%;
 }
 
 .change-stock--input-number {
-  width: 50px;
-  display: inline-block;
+  width: 100%;
 }
 
 /* MOBILE LAYOUT */
@@ -142,6 +141,7 @@ img {
 .col--stocks-fbs {
   width: 60px;
   text-align: center;
+  position: relative;
 }
 
 @media screen and (max-width: 420px) {
