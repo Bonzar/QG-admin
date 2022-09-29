@@ -29,7 +29,7 @@ function getYandexData() {
     }
   }
 
-  return fetch(`/api/yandex?access_token=${access_token ?? ""}`).then(
+  return fetch(`/api/yandex?access_token=${access_token ?? ''}`).then(
     (response) => response.json()
   );
 }
