@@ -1,16 +1,36 @@
 const path = require("path");
 const express = require("express");
+
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
-const apiRouter = require("./routes/api"); //Import routes for "api" area of site
+const redis = require("redis");
+const redisClient = redis.createClient({
+  url: "redis://default:AFSvKK3cNgIw3E0jlxvaSC81wOQQuNBQ@redis-17048.c3.eu-west-1-2.ec2.cloud.redislabs.com:17048",
+});
+redisClient.on("error", (err) => console.log("Redis Client Error", err));
+(async () => {
+  // Connect to redis server
+  await redisClient.connect();
+})();
+
+const projectsRouter = require("./routes/projects");
+const indexRouter = require("./routes/index");
 
 const app = express();
 
-const buildPath = path.join(__dirname, "..", "dist");
-app.use(express.static(buildPath));
+app.set("view engine", "pug");
+app.set("views", "./views");
 
-app.use("/api", apiRouter);
+app.use(express.static(path.join(__dirname, "..", "public")));
 
+app.use("/", indexRouter);
+app.use("/projects", projectsRouter);
+
+module.exports.redisClient = redisClient;
 module.exports = app;
+// module.exports = redisClient;
+
+// redis://:
+// redis://default:AFSvKK3cNgIw3E0jlxvaSC81wOQQuNBQ@redis-17048.c3.eu-west-1-2.ec2.cloud.redislabs.com:17048/11243867

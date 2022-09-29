@@ -5,14 +5,14 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "startdev": "nodemon ./bin/www"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.27.2",
-    "cors": "^2.8.5"
+    "axios": "^0.27.2"
   },
   "devDependencies": {
     "dotenv": "^16.0.2"

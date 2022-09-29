@@ -1,4 +1,4 @@
-import { getOzonApiKey, getOzonClientId } from "./login.js";
+import { getOzonApiKey, getOzonClientId } from "./auth.js";
 
 function fillTable(products) {
   const storageTableBody = document.querySelector("#ozon-stocks-table");
@@ -17,7 +17,7 @@ function fillTable(products) {
 }
 
 function getOzonData() {
-  return fetch(`/api/ozon`).then((response) => response.json());
+  return fetch(`/projects/ozon`).then((response) => response.json());
 }
 
 getOzonData().then((data) => fillTable(data));

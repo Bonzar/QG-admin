@@ -137,8 +137,8 @@ img {
 }
 
 /* MOBILE LAYOUT */
-.col--stocks-fbm,
-.col--stocks-fbs {
+.col--fbm,
+.col--fbs {
   width: 60px;
   text-align: center;
   position: relative;
@@ -168,11 +168,11 @@ img {
   .stocks-table {
     text-align: center;
   }
-  .col--id {
+  .col--sku {
     width: 120px;
   }
-  .col--stocks-fbm,
-  .col--stocks-fbs {
+  .col--fbm,
+  .col--fbs {
     width: 60px;
   }
 }

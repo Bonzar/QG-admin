@@ -1,0 +1,24 @@
+extends layout
+
+append scripts
+    script(src="/scripts/ymarket-table.js" defer)
+    script.
+        localStorage.setItem("yandex_access_token", "#{token}");
+
+block navigate
+    a(class="btn" href="/projects") Back to projects
+
+block content
+    h1= title
+    table(id=title.toLowerCase().replace(" ", "-"), class="stocks-table")
+        thead
+            tr
+                block table-stock-body
+                  each header in Object.keys(headers)
+                      th(class=`col--${header.toLowerCase()}`) #{header}
+        tbody
+            block table-stock-headers
+              each product in products
+                  tr
+                    each prop in Object.entries(headers)
+                        td(class=`col--${prop[0].toLowerCase()}`) #{product[prop[1]]}

@@ -1,0 +1,12 @@
+extends stocks-table
+
+block table-stock-headers
+    each header in headers.keys
+      th(class=`col--${header.toLowerCase()}`) #{header.name}
+
+
+block table-stock-body
+    each product in products
+      tr
+        each prop in headers
+          td(class=`col--${prop.name.toLowerCase()}`) #{product[prop]}

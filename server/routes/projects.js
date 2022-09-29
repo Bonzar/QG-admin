@@ -4,6 +4,12 @@ const router = express.Router();
 const ozon_controller = require("../controllers/ozonController");
 const yandex_controller = require("../controllers/yandexController");
 
+router.get("/", (req, res) => {
+  res.render("projects", {
+    title: "Bonzars projects",
+  });
+});
+
 // Get request for list of all Yandex products
 router.get("/yandex", yandex_controller.product_list);
 
