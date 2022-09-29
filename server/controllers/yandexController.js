@@ -3,13 +3,13 @@ const axios = require("axios");
 const getHeadersRequire = (req) => {
   return {
     "Content-Type": "application/json",
-    Authorization: `OAuth oauth_token="${req.query.access_token}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
+  Authorization: `OAuth oauth_token="${req.query.access_token || process.env.YANDEX_OAUTHTOKEN}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
   };
 };
 
 exports.product_list = async (req, res) => {
   try {
-    if (!req.query.access_token) {
+    if (!req.query.access_token && !process.env.YANDEX_OAUTHTOKEN) {
       res.send({
         isAuthorize: false,
         clientId: process.env.YANDEX_CLIENTID,

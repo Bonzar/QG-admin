@@ -31,7 +31,8 @@ h1 {
 
 p,
 li,
-a {
+a,
+input {
   font-size: 1.6rem;
 }
 
@@ -127,7 +128,8 @@ img {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  left: -40px;
+  right: 100%;
+  font-size: 1.2rem;
 }
 
 .change-stock--input-number {
