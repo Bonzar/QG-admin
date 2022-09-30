@@ -137,7 +137,7 @@ exports.updateStock = (req, res) => {
             });
           break;
         default:
-        // throw new Error("Product_type not valid");
+          throw new Error("Product_type not valid");
       }
     });
   } catch (e) {
