@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "parcel serve index.html",
-    "build": "npx parcel build index.html && (cd server && npm install)",
+    "build": "cd server && npm install",
     "start": "cd server && npm run start",
     "startdev": "cd server && npm run startdev",
     "devstart": "npx parcel build index.html && (cd server && npm run start)"
