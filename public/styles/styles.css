@@ -108,7 +108,6 @@ img {
 .stocks-table th,
 .stocks-table td {
   padding: 7px;
-  /*overflow: hidden;*/
 }
 
 .stocks-table tr:nth-child(even) {
@@ -117,6 +116,13 @@ img {
 
 .stocks-table tr:hover {
   background: #d1d1d155;
+}
+
+.col--fbm,
+.col--fbs {
+  width: 60px;
+  text-align: center;
+  position: relative;
 }
 
 /* Change stock form */
@@ -136,14 +142,42 @@ img {
   width: 100%;
 }
 
-/* MOBILE LAYOUT */
-.col--fbm,
-.col--fbs {
-  width: 60px;
-  text-align: center;
-  position: relative;
+.change-stock--form label {
+  display: block;
 }
 
+.change-stock--input-number[disabled] {
+  background: #e8e8e8;
+}
+
+
+
+/* Change stock form – for Site */
+#site-stocks .change-stock--form {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  max-width: 88vw;
+}
+
+#site-stocks fieldset {
+  border: none;
+  background-color: rgba(237, 226, 255, 1);
+  border-radius: 10px;
+  box-shadow: 0 0 17px -3px rgba(0, 0, 0, 0.42);
+  position: relative;
+  padding: 1.8rem;
+  margin: 0 5px;
+  width: 190px;
+}
+#site-stocks fieldset legend {
+  transform: translateY(100%);
+}
+
+
+/* MOBILE LAYOUT */
 @media screen and (max-width: 420px) {
   .stocks-table tr td:nth-child(1),
   .stocks-table tr th:nth-child(1) {
@@ -154,6 +188,24 @@ img {
   }
   .stocks-table tr:last-of-type td:nth-of-type(2) {
     border-bottom-left-radius: 25px;
+  }
+
+  /* Change stock form – for Site */
+  #site-stocks .change-stock--form {
+    transform: translateX(50%);
+    top: unset;
+    right: 50%;
+    max-width: 95vw;
+  }
+
+  #site-stocks .change-stock--submit-button {
+    transform: translateX(50%);
+    top: 100%;
+    right: 50%;
+  }
+
+  #site-stocks .col--fbs {
+    position: static;
   }
 }
 

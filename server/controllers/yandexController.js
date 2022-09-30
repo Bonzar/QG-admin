@@ -68,7 +68,7 @@ exports.product_list = async (req, res) => {
         productStock: productStocks,
       };
     });
-    res.render("stocks-table", {
+    res.render("yandex-stocks", {
       token: process.env.YANDEX_OAUTHTOKEN,
       title: "Yandex Stocks",
       headers: {

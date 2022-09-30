@@ -1,10 +1,5 @@
 extends layout
 
-append scripts
-    script(src="/scripts/ymarket-table.js" defer)
-    script.
-        localStorage.setItem("yandex_access_token", "#{token}");
-
 block navigate
     a(class="btn" href="/projects") Back to projects
 
