@@ -32,9 +32,9 @@ exports.product_list = async (req, res) => {
         ...getHeadersRequire(),
       },
       data: {
-        shopSkus: shopSkus.result.offerMappingEntries.map(
-          (offer) => offer.offer.shopSku
-        ),
+        shopSkus: shopSkus.result.offerMappingEntries
+          .filter((offer) => offer.offer.processingState.status !== "OTHER")
+          .map((offer) => offer.offer.shopSku),
       },
     };
 

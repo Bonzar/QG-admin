@@ -1,15 +1,23 @@
 const WooCommerceAPI = require("woocommerce-api");
 
-const WooCommerce = new WooCommerceAPI({
-  url: "https://queridosglitters.ru/",
-  consumerKey: process.env.WOO_CLIENTID,
-  consumerSecret: process.env.WOO_APIKEY,
-  wpAPI: true,
-  version: "wc/v3",
-});
+const getWooCommerce = function () {
+  if (!this.woocommerce) {
+    this.woocommerce = new WooCommerceAPI({
+      url: "https://queridosglitters.ru/",
+      consumerKey: process.env.WOO_CLIENTID,
+      consumerSecret: process.env.WOO_APIKEY,
+      wpAPI: true,
+      version: "wc/v3",
+    });
+  }
+
+  return this.woocommerce;
+};
 
 exports.product_list = async (req, res) => {
   try {
+    const WooCommerce = getWooCommerce();
+
     let wooProducts = [];
     let currentPage = 0;
     let totalPages = 1;
@@ -58,6 +66,8 @@ exports.product_list = async (req, res) => {
 
 exports.getStockUpdateInfo = async (req, res) => {
   try {
+    const WooCommerce = getWooCommerce();
+
     const product = await WooCommerce.getAsync(`products/${req.params.id}`)
       .then((response) => {
         return JSON.parse(response.body);
@@ -92,6 +102,8 @@ exports.getStockUpdateInfo = async (req, res) => {
 
 exports.updateStock = (req, res) => {
   try {
+    const WooCommerce = getWooCommerce();
+
     Object.keys(req.body).forEach((id) => {
       const productType = req.body[id].find((prop) =>
         Object.keys(prop).includes("product_type")
