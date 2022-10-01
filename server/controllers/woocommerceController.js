@@ -1,4 +1,5 @@
 const WooCommerceAPI = require("woocommerce-api");
+const async = require("async");
 
 const getWooCommerce = function () {
   if (!this.woocommerce) {
@@ -14,48 +15,97 @@ const getWooCommerce = function () {
   return this.woocommerce;
 };
 
-exports.product_list = async (req, res) => {
+exports.product_list = (req, res, next) => {
   try {
     const WooCommerce = getWooCommerce();
 
-    let wooProducts = [];
-    let currentPage = 0;
-    let totalPages = 1;
-    do {
-      currentPage++;
-      const productOnPage = await WooCommerce.getAsync(
-        `products?per_page=100&page=${currentPage}&order=asc`
-      )
-        .then((response) => {
-          if (currentPage === 1) {
-            totalPages = +response.headers["x-wp-totalpages"];
-          }
-          return JSON.parse(response.body);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-      wooProducts.push(...productOnPage);
-    } while (currentPage <= totalPages);
+    const tableFilter = `${
+      req.query.stock_status ? `&stock_status=${req.query.stock_status}` : ""
+    }${req.query.category ? `&category=${req.query.category}` : ""}${
+      req.query.orderby &&
+      [
+        "date",
+        "id",
+        "include",
+        "title",
+        "slug",
+        "price",
+        "popularity",
+        "rating",
+      ].includes(req.query.orderby)
+        ? `&orderby=${req.query.orderby}`
+        : ""
+    }`;
 
-    res.render("site-stocks", {
-      title: "Site Stocks",
-      headers: {
-        SKU: "productSku",
-        Name: "productName",
-        FBS: "productStockFBS",
-      },
-      products: wooProducts.map((product) => {
-        return {
-          productSku: product["id"],
-          productName: product["name"],
-          productStockFBS:
-            product.stock_quantity ?? product.stock_status === "instock"
-              ? "Есть"
-              : "Нет",
-        };
-      }),
-    });
+    async.waterfall(
+      [
+        function (callback) {
+          WooCommerce.getAsync(
+            `products?per_page=7&page=1&order=asc${tableFilter}`
+          ).then((response) => {
+            const totalPages = +response.headers["x-wp-totalpages"];
+            const firstProducts = JSON.parse(response.body);
+
+            callback(null, firstProducts, totalPages);
+          });
+        },
+        (firstProducts, totalPages, callback) => {
+          const pages = [
+            ...Array.from({ length: totalPages + 1 }).keys(),
+          ].slice(2);
+          const requests = pages.map((page) => {
+            return async () => {
+              return await WooCommerce.getAsync(
+                `products?per_page=8&page=${page}&order=asc${tableFilter}`
+              )
+                .then((response) => {
+                  return JSON.parse(response.body);
+                })
+                .catch((e) => {
+                  if (e.name === "SyntaxError") {
+                    throw new Error(
+                      "Слишком много запросов к API, подождите немного"
+                    );
+                  }
+                });
+            };
+          });
+
+          async.parallel(requests, (err, results) => {
+            callback(err, [firstProducts, ...results]);
+          });
+        },
+      ],
+      (err, result) => {
+        if (err || result[0]?.data?.status === 400) {
+          return next(err || result[0].message);
+        }
+
+        const products = result.reduce((total, currentPack) => {
+          total.push(...currentPack);
+          return total;
+        }, []);
+
+        res.render("site-stocks", {
+          title: "Site Stocks",
+          headers: {
+            SKU: "productSku",
+            Name: "productName",
+            FBS: "productStockFBS",
+          },
+          products: products.map((product) => {
+            return {
+              productSku: product["id"],
+              productName: product["name"],
+              productStockFBS:
+                product.stock_quantity ?? product.stock_status === "instock"
+                  ? "Есть"
+                  : "Нет",
+            };
+          }),
+        });
+      }
+    );
   } catch (error) {
     console.log(error);
     res

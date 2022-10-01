@@ -1,5 +1,22 @@
-const fbsCells = document.querySelector("#site-stocks");
+// Обработка кнопок-фильтров
+const urlParams = new URLSearchParams(window.location.search.slice(1));
 
+const filterStockBtn = document.querySelector("#filter-stock_status");
+if (urlParams.get("stock_status") === "outofstock") {
+  urlParams.delete("stock_status");
+  filterStockBtn.classList.add("table-filter--btn-active");
+  filterStockBtn["href"] = urlParams.toString()
+    ? `?${urlParams.toString()}`
+    : window.location.pathname;
+  urlParams.set("stock_status", "outofstock");
+} else {
+  urlParams.set("stock_status", "outofstock");
+  filterStockBtn["href"] = `?${urlParams.toString()}`;
+  urlParams.delete("stock_status");
+}
+
+// Отображение окна обновления остатков при нажатии на статус товара
+const fbsCells = document.querySelector("#site-stocks");
 const updateStockListener = async function (e) {
   const cell = e.target;
   if (
@@ -158,5 +175,4 @@ const updateStockListener = async function (e) {
     document.addEventListener("click", exitUpdateStockListener);
   }
 };
-
 fbsCells.addEventListener("click", updateStockListener);

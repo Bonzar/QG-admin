@@ -51,12 +51,13 @@ img {
 .btn {
   padding: 5px 10px;
   margin: 8px 0;
-  background-color: lightgray;
+  background-color: #483a3a5e;
   border-radius: 25px;
   display: inline-block;
   text-decoration: none;
   color: white;
   box-shadow: 2px 4px 11px -3px rgba(0, 0, 0, 0.28);
+  border: solid 1px #7b7b7b3d;
 }
 
 /* Stocks Table */
@@ -123,6 +124,18 @@ img {
   width: 60px;
   text-align: center;
   position: relative;
+}
+.table-filter--btn {
+  box-shadow: 2px 4px 8px -4px rgba(0, 0, 0, 0.28);
+  background-color: rgba(135, 95, 95, 0.22);
+}
+
+.table-filter--btn:not(:last-of-type) {
+  margin-right: 10px;
+}
+
+.table-filter--btn-active {
+  background-color: #c60e0e8c;
 }
 
 /* Change stock form */
