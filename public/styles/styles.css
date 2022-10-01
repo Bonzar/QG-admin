@@ -268,13 +268,3 @@ td.col--fbs::after {
     width: 70px;
   }
 }
-
-/* Yandex Login Button */
-#YandexLogin {
-  background: url("../images/yandex-login-light-L.svg");
-  width: 280px;
-  margin: 0 auto;
-  max-width: 100%;
-  height: 56px;
-  display: block;
-}
