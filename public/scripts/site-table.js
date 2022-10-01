@@ -93,7 +93,7 @@ const updateStockListener = async function (e) {
     cell.innerHTML = `
         <form class="change-stock--form">
           ${fieldsHtml}
-          <input class="change-stock--submit-button" type="button" value="OK">
+          <input class="btn change-stock--submit-button" type="button" value="OK">
         </form>`;
 
     const form = cell.querySelector(".change-stock--form");

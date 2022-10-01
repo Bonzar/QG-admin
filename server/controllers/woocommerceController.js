@@ -82,6 +82,15 @@ exports.product_list = (req, res, next) => {
         }
 
         const products = result.reduce((total, currentPack) => {
+          currentPack.map((product) => {
+            product.name = product.name
+              .replace(/Глиттер-гель/i, "")
+              .replace(/Глиттер-набор/i, "Набор")
+              .replace(/Хайлайтер/i, "Хай")
+              .trim();
+            return product;
+          });
+
           total.push(...currentPack);
           return total;
         }, []);
@@ -93,16 +102,22 @@ exports.product_list = (req, res, next) => {
             Name: "productName",
             FBS: "productStockFBS",
           },
-          products: products.map((product) => {
-            return {
-              productSku: product["id"],
-              productName: product["name"],
-              productStockFBS:
-                product.stock_quantity ?? product.stock_status === "instock"
-                  ? "Есть"
-                  : "Нет",
-            };
-          }),
+          products: products
+            .sort((product1, product2) =>
+              product1.name
+                .replace(/Глиттер-гель/i, "")
+                .localeCompare(product2.name.replace(/Глиттер-гель/i, ""))
+            )
+            .map((product) => {
+              return {
+                productSku: product["id"],
+                productName: product["name"],
+                productStockFBS:
+                  product.stock_quantity ?? product.stock_status === "instock"
+                    ? "Есть"
+                    : "Нет",
+              };
+            }),
         });
       }
     );

@@ -122,12 +122,13 @@ img {
 .col--fbm,
 .col--fbs {
   width: 60px;
-  text-align: center;
+  text-align: right;
   position: relative;
 }
 .table-filter--btn {
   box-shadow: 2px 4px 8px -4px rgba(0, 0, 0, 0.28);
   background-color: rgba(135, 95, 95, 0.22);
+  float: right;
 }
 
 .table-filter--btn:not(:last-of-type) {
@@ -138,9 +139,23 @@ img {
   background-color: #c60e0e8c;
 }
 
+.stocks-table .col--fbs {
+  padding-right: 20px;
+}
+
+td.col--fbs::after {
+  content: '\2807';
+  position: absolute;
+  font-size: 1.5rem;
+  right: 2px;
+  top: calc(50% + 1px);
+  transform: translateY(-50%);
+}
+
 /* Change stock form */
 .change-stock--form {
   position: relative;
+  text-align: center;
 }
 
 .change-stock--submit-button {
@@ -165,14 +180,14 @@ img {
 
 
 
-/* Change stock form – for Site */
+/* Site table */
 #site-stocks .change-stock--form {
   position: absolute;
   top: 50%;
   right: 0;
   z-index: 1;
   display: flex;
-  max-width: 88vw;
+  max-width: 84vw;
 }
 
 #site-stocks fieldset {
@@ -187,6 +202,17 @@ img {
 }
 #site-stocks fieldset legend {
   transform: translateY(100%);
+}
+
+#site-stocks .col--fbs {
+  padding-right: 12px;
+}
+
+#site-stocks td.col--fbs::after {
+  position: relative;
+  right: -8px;
+  top: unset;
+  transform: unset;
 }
 
 
@@ -236,9 +262,10 @@ img {
   .col--sku {
     width: 120px;
   }
+
   .col--fbm,
   .col--fbs {
-    width: 60px;
+    width: 70px;
   }
 }
 
