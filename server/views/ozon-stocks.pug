@@ -1,0 +1,10 @@
+extends stocks-table
+
+append scripts
+    script(src="/scripts/ozon-table.js" type="module" defer)
+    script(src="/scripts/table-filters.js" defer)
+    script(src="/scripts/marketplaceStockUpdateListener.js" type="module" defer)
+
+block filters
+    a(class="btn table-filter--btn table-filter-name--stock_status") Нет на FBS
+    a(class="btn table-filter--btn table-filter-name--stock_status") Нет на FBO и FBS

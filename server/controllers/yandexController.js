@@ -1,60 +1,32 @@
-const axios = require("axios");
+const yandexService = require("../services/yandexService");
 
-const getHeadersRequire = () => {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `OAuth oauth_token="${process.env.YANDEX_OAUTHTOKEN}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,
-  };
-};
-
-exports.product_list = async (req, res) => {
+exports.getProductsList = async (req, res) => {
   try {
-    const shopSkus = await axios
-      .get(
-        "https://api.partner.market.yandex.ru/v2/campaigns/21938028/offer-mapping-entries.json?limit=200",
-        {
-          headers: {
-            ...getHeadersRequire(),
-          },
-        }
-      )
-      .then((response) => {
-        return response.data;
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    let products = await yandexService.getProductsList();
 
-    const config = {
-      method: "post",
-      url: "https://api.partner.market.yandex.ru/v2/campaigns/21938028/stats/skus.json",
-      headers: {
-        ...getHeadersRequire(),
-      },
-      data: {
-        shopSkus: shopSkus.result.offerMappingEntries
-          .filter((offer) => offer.offer.processingState.status !== "OTHER")
-          .map((offer) => offer.offer.shopSku),
-      },
-    };
-
-    const products = await axios(config)
-      .then((response) => {
-        return response.data.result.shopSkus;
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-
-    const productsToPrint = products.map((product) => {
-      const productStocks =
-        product.warehouses?.[0].stocks.find(
+    // Filter outofstock products only
+    if (req.query.stock_status === "outofstock") {
+      products = products.filter((product) => {
+        return !product.warehouses?.[0].stocks.find(
           (stockType) => stockType.type === "FIT"
-        )?.count ?? 0;
+        )?.count;
+      });
+    }
+
+    // Prepare product list to print
+    const productsToPrint = products.map((product) => {
+      // Take product stock if outofstock filter isn't enabled
+      let productStocks = 0;
+      if (req.query.stock_status !== "outofstock") {
+        productStocks =
+          product.warehouses?.[0].stocks.find(
+            (stockType) => stockType.type === "FIT"
+          )?.count ?? 0;
+      }
 
       const productName = product.name
         .replaceAll(
-          /[".:]|(Queridos Glir?tters)|(ГлиттерГель)|(Глиттер гель)|(Глиттер)|(Бл[её]стки для лица и тела)|(Цвета)|(Цвет)|(набора)|(для блёсток)|(3)|(6)|(мл)|(Блестки для глаз)/gi,
+          /[".:]|(Queridos Glir?tters)|(ГлиттерГель)|(Глиттер гель)|(Глиттер)|(Бл[её]стки для лица и тела)|(Цвета)|(Цвет)|(набора)|(для блёсток)|(3)|(6)|(мл\.?($|\s))|(Блестки для глаз)/gi,
           ""
         )
         .replace("набор", "Набор:")
@@ -68,6 +40,12 @@ exports.product_list = async (req, res) => {
         productStock: productStocks,
       };
     });
+
+    // Sorting
+    productsToPrint.sort((product1, product2) =>
+      product1.productName.localeCompare(product2.productName)
+    );
+
     res.render("yandex-stocks", {
       token: process.env.YANDEX_OAUTHTOKEN,
       title: "Yandex Stocks",
@@ -76,9 +54,7 @@ exports.product_list = async (req, res) => {
         Name: "productName",
         FBS: "productStock",
       },
-      products: productsToPrint.sort((product1, product2) =>
-        product1.productName.localeCompare(product2.productName)
-      ),
+      products: productsToPrint,
     });
   } catch (error) {
     res
@@ -87,37 +63,16 @@ exports.product_list = async (req, res) => {
   }
 };
 
-exports.update_stock = async (req, res) => {
+exports.updateStock = async (req, res) => {
   try {
-    const config = {
-      method: "put",
-      url: "https://api.partner.market.yandex.ru/v2/campaigns/21938028/offers/stocks.json",
-      headers: {
-        ...getHeadersRequire(),
-      },
-      data: {
-        skus: [
-          {
-            sku: req.query.sku,
-            warehouseId: 52301,
-            items: [
-              {
-                type: "FIT",
-                count: req.query.stock,
-                updatedAt: new Date().toISOString(),
-              },
-            ],
-          },
-        ],
-      },
-    };
-
-    axios(config)
+    yandexService
+      .updateStock(req.query.sku, req.query.stock)
       .then((response) => {
         res.send(JSON.stringify(response.data));
       })
       .catch((error) => {
         console.log(error);
+        res.status(500).json(error);
       });
   } catch (e) {
     res

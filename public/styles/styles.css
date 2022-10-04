@@ -11,6 +11,8 @@ html {
 html {
   font-size: 10px;
   font-style: normal;
+  /*font-family: Roboto, Arial, serif;*/
+  font-family: "Open Sans", Arial, serif;
   font-weight: 400;
   background-color: rgba(225, 167, 255, 0.2);
 }
@@ -121,17 +123,18 @@ img {
 
 .col--fbm,
 .col--fbs {
-  width: 60px;
+  width: 7rem;
   text-align: right;
   position: relative;
 }
+
 .table-filter--btn {
   box-shadow: 2px 4px 8px -4px rgba(0, 0, 0, 0.28);
   background-color: rgba(135, 95, 95, 0.22);
   float: right;
 }
 
-.table-filter--btn:not(:last-of-type) {
+.table-filter--btn:not(:first-of-type) {
   margin-right: 10px;
 }
 
@@ -168,6 +171,9 @@ td.col--fbs::after {
 
 .change-stock--input-number {
   width: 100%;
+  padding: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
 }
 
 .change-stock--form label {
@@ -196,12 +202,12 @@ td.col--fbs::after {
   border-radius: 10px;
   box-shadow: 0 0 17px -3px rgba(0, 0, 0, 0.42);
   position: relative;
-  padding: 1.8rem;
+  padding: 1.4rem 1.2rem;
   margin: 0 5px;
   width: 190px;
 }
 #site-stocks fieldset legend {
-  transform: translateY(100%);
+  transform: translateY(75%);
 }
 
 #site-stocks .col--fbs {
@@ -265,6 +271,6 @@ td.col--fbs::after {
 
   .col--fbm,
   .col--fbs {
-    width: 70px;
+    width: 6.4rem;
   }
 }

@@ -1,50 +1,24 @@
-const fbsCells = document.querySelector("#yandex-stocks");
+import { updateMarketplaceStock } from "./marketplaceStockUpdateListener.js";
 
-const updateStockListener = function (e) {
-  const cell = e.target;
-  if (
-    cell.classList.value.includes("col--fbs") &&
-    cell.nodeName === "TD" &&
-    !cell.querySelector(".change-stock--form")
-  ) {
-    cell.innerHTML = `<form class="change-stock--form">
-          <input class="change-stock--submit-button" type="submit" value="OK">
-          <input class="change-stock--input-number" name="stock" type="number" min="0" required value="${cell.textContent}">
-        </form>`;
+const yandexTable = document.querySelector("#yandex-stocks");
 
-    const form = cell.querySelector(".change-stock--form");
-    form.addEventListener(
-      "submit",
-      function (e) {
-        const newStockValue = e.target.querySelector(
+const yandexFetchUpdateFunction = (
+  cell,
+  skuUpdate,
+  newStockValue,
+  oldValue
+) => {
+  fetch(`/projects/yandex/update_stock?sku=${skuUpdate}&stock=${newStockValue}`)
+    .then((response) => {
+      if (response.ok) {
+        cell.textContent = cell.querySelector(
           ".change-stock--input-number"
         ).value;
-        const skuUpdate =
-          cell.parentElement.querySelector(".col--sku").textContent;
-
-        document.removeEventListener("click", exitUpdateStockListener);
-
-        cell.innerHTML = newStockValue;
-        fetch(
-          `/projects/yandex/update_stock?sku=${skuUpdate}&stock=${newStockValue}&access_token=${localStorage.getItem(
-            "yandex_access_token"
-          )}`
-        ).catch((error) => console.log(error));
-      },
-      { once: true }
-    );
-
-    const exitUpdateStockListener = (e) => {
-      const newValue = cell.querySelector(".change-stock--input-number").value;
-
-      if (e.target !== cell && e.target.nodeName !== "INPUT" && newValue) {
-        cell.textContent = newValue;
-        document.removeEventListener("click", exitUpdateStockListener);
+      } else {
+        cell.textContent = oldValue;
       }
-    };
-
-    document.addEventListener("click", exitUpdateStockListener);
-  }
+    })
+    .catch((error) => console.log(error));
 };
 
-fbsCells.addEventListener("click", updateStockListener);
+updateMarketplaceStock(yandexFetchUpdateFunction, yandexTable);

@@ -1,50 +1,61 @@
-const axios = require("axios");
+const ozonService = require("../services/ozonService");
 
-const getHeadersRequire = () => {
-  return {
-    "Content-Type": "application/json",
-    "Client-Id": process.env.OZON_CLIENTID,
-    "Api-Key": process.env.OZON_APIKEY,
-  };
+exports.getProductsList = async (req, res) => {
+  try {
+    let products = (await ozonService.getProductsList()).result.items;
+
+    // Filter only outofstock products (by FBS)
+    if (req.query.stock_status === "outofstock") {
+      products = products.filter((product) => {
+        return !product.stocks[1]?.present;
+      });
+    }
+
+    // Filter only outofstock products (by FBO and FBS)
+    if (req.query.stock_status === "outofstockall") {
+      products = products.filter((product) => {
+        return !product.stocks[0]?.present && !product.stocks[1]?.present;
+      });
+    }
+
+    res.render("ozon-stocks", {
+      title: "Ozon Stocks",
+      headers: {
+        SKU: "productSku",
+        Name: "productName",
+        FBM: "productStockFBM",
+        FBS: "productStockFBS",
+      },
+      products: products.map((product) => {
+        return {
+          productSku: product["product_id"],
+          productName: product["offer_id"],
+          productStockFBM: product.stocks[0]?.present ?? 0,
+          productStockFBS:
+            // no exact product stock if outofstock filter enabled
+            req.query.stock_status === "outofstock"
+              ? 0
+              : product.stocks[1]?.present ?? 0,
+        };
+      }),
+    });
+  } catch (error) {
+    res
+      .status(400)
+      .send("Error while getting list of products. Try again later.");
+  }
 };
 
-exports.product_list = (req, res) => {
+exports.updateStock = async (req, res) => {
   try {
-    const config = {
-      method: "post",
-      url: "https://api-seller.ozon.ru/v3/product/info/stocks",
-      headers: {
-        ...getHeadersRequire(req),
-      },
-      data: {
-        filter: {},
-        last_id: "",
-        limit: 200,
-      },
-    };
-    axios(config)
-      .then((response) => {
-        // res.send(JSON.stringify(response.data));
-        res.render("stocks-table", {
-          title: "Ozon Stocks",
-          headers: {
-            SKU: "productSku",
-            Name: "productName",
-            FBM: "productStockFBM",
-            FBS: "productStockFBS",
-          },
-          products: response.data.result.items.map((product) => {
-            return {
-              productSku: product["product_id"],
-              productName: product["offer_id"],
-              productStockFBM: product.stocks[0]?.present ?? 0,
-              productStockFBS: product.stocks[1]?.present ?? 0,
-            };
-          }),
-        });
+    ozonService
+      .updateStock(req.query.id, req.query.stock)
+      .then((result) => {
+        res.json(result);
       })
-      .catch((error) => {
-        console.log(error);
+      .catch((e) => {
+        console.log(e);
+        res.status(500).json(e);
       });
   } catch (error) {
     res
