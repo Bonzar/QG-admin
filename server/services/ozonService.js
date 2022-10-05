@@ -77,28 +77,7 @@ exports.getProductsList = async () => {
     .result.items;
 
   // Products list with article, name and stocks fields
-  return productsInfo.map((product) => {
-    const name = product.name
-      .replaceAll(
-        /[".:]|(Queridos Glir?tters)|(ГлиттерГель)|(Глиттер гель)|(Глиттер)|(Бл[её]стки для лица и тела)|(Цвета)|(Цвет)|(набора)|(для блёсток)|(3)|(6)|(мл\.?($|\s))|(Блестки для глаз)/gi,
-        ""
-      )
-      .replace("набор", "Набор:")
-      .replace("ГЕЛЬ-ЗАПРАВКА", "ГЗ")
-      .replace("Хайлайтер", "Хай")
-      .trim();
-
-    const productStocks = productsStockList.find(
-      (stockInfo) => stockInfo.product_id === product.id
-    );
-
-    return {
-      article: product.offer_id,
-      name,
-      stockFBO: productStocks.stocks[0]?.present ?? 0,
-      stockFBS: productStocks.stocks[1]?.present ?? 0,
-    };
-  });
+  return { productsInfo, productsStockList };
 };
 
 exports.updateStock = async (offer_id, stock) => {

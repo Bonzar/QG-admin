@@ -2,7 +2,31 @@ const ozonService = require("../services/ozonService");
 
 exports.getProductsList = async (req, res) => {
   try {
-    let products = await ozonService.getProductsList();
+    const { productsInfo, productsStockList } =
+      await ozonService.getProductsList();
+
+    let products = productsInfo.map((product) => {
+      const name = product.name
+        .replaceAll(
+          /[".:]|(Queridos Glir?tters)|(ГлиттерГель)|(Глиттер гель)|(Глиттер)|(Бл[её]стки для лица и тела)|(Цвета)|(Цвет)|(набора)|(для блёсток)|(3)|(6)|(мл\.?($|\s))|(Блестки для глаз)/gi,
+          ""
+        )
+        .replace("набор", "Набор:")
+        .replace("ГЕЛЬ-ЗАПРАВКА", "ГЗ")
+        .replace("Хайлайтер", "Хай")
+        .trim();
+
+      const productStocks = productsStockList.find(
+        (stockInfo) => stockInfo.product_id === product.id
+      );
+
+      return {
+        article: product.offer_id,
+        name,
+        stockFBO: productStocks.stocks[0]?.present ?? 0,
+        stockFBS: productStocks.stocks[1]?.present ?? 0,
+      };
+    });
 
     // Filter only outofstock products (by FBS)
     if (req.query.stock_status === "outofstock") {
