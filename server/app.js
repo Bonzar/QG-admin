@@ -4,14 +4,16 @@ const express = require("express");
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
-
-//Устанавливаем соединение с mongoose
-const mongoose = require("mongoose");
-const mongoDB = process.env.MONGODB_URI;
-mongoose.connect(mongoDB);
-// mongoose.Promise = global.Promise;
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "MongoDB connection error:"));
+try {
+  //Устанавливаем соединение с mongoose
+  const mongoose = require("mongoose");
+  const mongoDB = process.env.MONGODB_URI;
+  mongoose.connect(mongoDB);
+  const db = mongoose.connection;
+  db.on("error", console.error.bind(console, "MongoDB connection error:"));
+} catch (e) {
+  console.log(e);
+}
 
 const indexRouter = require("./routes/index");
 const authRouter = require("./routes/auth");

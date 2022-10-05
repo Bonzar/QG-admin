@@ -5,6 +5,7 @@ append scripts
         script.
           localStorage.setItem("authToken","#{authToken}");
           localStorage.setItem("username","#{username}");
+          localStorage.setItem("authTokenExpires", Date.now() + 24*60*60*1000);
           window.location.href = "/";
 
 block content

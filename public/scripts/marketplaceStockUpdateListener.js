@@ -27,13 +27,29 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
 
           document.removeEventListener("click", exitUpdateStockListener);
 
-          fetchUpdateFunction(cell, skuUpdate, newStockValue, oldValue).then(
-            (response) => {
-              if (response.status === 403) {
-                alert("Вы не авторизованы!");
-              }
+          const authToken = localStorage.getItem("authToken");
+          const authTokenExpires = localStorage.getItem("authTokenExpires");
+          if (!(Date.now() < authTokenExpires && authToken)) {
+            alert(
+              "Токен доступа не указан или его срок жизни истек. Необходима повторная авторизация."
+            );
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("username");
+            localStorage.removeItem("authTokenExpires");
+            return (window.location.href = "/auth/login");
+          }
+
+          fetchUpdateFunction(
+            cell,
+            skuUpdate,
+            newStockValue,
+            oldValue,
+            authToken
+          ).then((response) => {
+            if (response.status === 403) {
+              alert("Вы не авторизованы!");
             }
-          );
+          });
         },
         { once: true }
       );

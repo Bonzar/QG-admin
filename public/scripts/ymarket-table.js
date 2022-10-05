@@ -1,20 +1,19 @@
 import { updateMarketplaceStock } from "./marketplaceStockUpdateListener.js";
 
-const authToken = localStorage.getItem("authToken");
-
 const yandexTable = document.querySelector("#yandex-stocks");
 
 const yandexFetchUpdateFunction = async (
   cell,
   skuUpdate,
   newStockValue,
-  oldValue
+  oldValue,
+  authToken
 ) => {
   return await fetch(
     `/projects/yandex/update_stock?sku=${skuUpdate}&stock=${newStockValue}`,
     {
       headers: {
-        Authorization: authToken ? `Bearer ${authToken}` : "",
+        Authorization: `Bearer ${authToken}`,
       },
     }
   )

@@ -1,20 +1,19 @@
 import { updateMarketplaceStock } from "./marketplaceStockUpdateListener.js";
 
-const authToken = localStorage.getItem("authToken");
-
 const ozonTable = document.querySelector("#ozon-stocks");
 
 const ozonFetchUpdateFunction = async (
   cell,
   skuUpdate,
   newStockValue,
-  oldValue
+  oldValue,
+  authToken
 ) => {
   return await fetch(
     `/projects/ozon/update_stock?id=${skuUpdate}&stock=${newStockValue}`,
     {
       headers: {
-        Authorization: authToken ? `Bearer ${authToken}` : "",
+        Authorization: `Bearer ${authToken}`,
       },
     }
   )
