@@ -2,42 +2,35 @@ const ozonService = require("../services/ozonService");
 
 exports.getProductsList = async (req, res) => {
   try {
-    let products = (await ozonService.getProductsList()).result.items;
+    let products = await ozonService.getProductsList();
 
     // Filter only outofstock products (by FBS)
     if (req.query.stock_status === "outofstock") {
       products = products.filter((product) => {
-        return !product.stocks[1]?.present;
+        return product.stockFBS <= 0;
       });
     }
 
     // Filter only outofstock products (by FBO and FBS)
     if (req.query.stock_status === "outofstockall") {
       products = products.filter((product) => {
-        return !product.stocks[0]?.present && !product.stocks[1]?.present;
+        return product.stockFBS <= 0 && product.stockFBO <= 0;
       });
     }
+
+    products.sort((product1, product2) =>
+      product1.name.localeCompare(product2.name)
+    );
 
     res.render("ozon-stocks", {
       title: "Ozon Stocks",
       headers: {
-        SKU: "productSku",
-        Name: "productName",
-        FBM: "productStockFBM",
-        FBS: "productStockFBS",
+        Article: "article",
+        Name: "name",
+        FBM: "stockFBO",
+        FBS: "stockFBS",
       },
-      products: products.map((product) => {
-        return {
-          productSku: product["product_id"],
-          productName: product["offer_id"],
-          productStockFBM: product.stocks[0]?.present ?? 0,
-          productStockFBS:
-            // no exact product stock if outofstock filter enabled
-            req.query.stock_status === "outofstock"
-              ? 0
-              : product.stocks[1]?.present ?? 0,
-        };
-      }),
+      products,
     });
   } catch (error) {
     res

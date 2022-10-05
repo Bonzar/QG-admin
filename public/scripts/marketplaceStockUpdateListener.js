@@ -22,8 +22,8 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
           const newStockValue = form.querySelector(
             ".change-stock--input-number"
           ).value;
-          const skuUpdate =
-            cell.parentElement.querySelector(".col--sku").textContent;
+          const idUpdate =
+            cell.parentElement.querySelector("td:first-of-type").textContent;
 
           document.removeEventListener("click", exitUpdateStockListener);
 
@@ -41,7 +41,7 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
 
           fetchUpdateFunction(
             cell,
-            skuUpdate,
+            idUpdate,
             newStockValue,
             oldValue,
             authToken

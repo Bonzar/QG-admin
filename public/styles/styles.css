@@ -182,6 +182,12 @@ header a {
   background: #d1d1d155;
 }
 
+.col--sku, .col--article {
+  width: 120px;
+  text-align: left;
+  overflow: hidden;
+}
+
 .col--fbm,
 .col--fbs {
   width: 7rem;
@@ -342,9 +348,6 @@ td.col--fbs::after {
   /* Stocks table */
   .stocks-table {
     text-align: center;
-  }
-  .col--sku {
-    width: 120px;
   }
 
   .col--fbm,
