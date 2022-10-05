@@ -9,12 +9,19 @@ html(lang='ru')
         link(rel="preconnect" href="https://fonts.gstatic.com" crossorigin)
         link(href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet")
         block scripts
-            //script(src="main.js" defer)
+            script(src="/scripts/login.js" defer)
     body
-        block navigate
-            ul
-                li
-                    a(href="/") Home
-                li
-                    a(href="/projects") Projects
-        block content
+        block header
+            header
+                div(class="header--body")
+                    nav
+                        ul
+                            li
+                                a(href="/") Home
+                            li
+                                a(href="/projects") Projects
+                    block login
+                        a(id="loginBtn" href="/auth/login") Войти
+        main
+            block navigate
+            block content

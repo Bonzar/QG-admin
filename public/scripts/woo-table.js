@@ -112,6 +112,8 @@ const updateStockListener = async function (e) {
 
       document.removeEventListener("click", exitUpdateStockListener);
 
+      const authToken = localStorage.getItem("authToken");
+
       fetch(
         `/projects/woo/update_stock
           `,
@@ -119,6 +121,7 @@ const updateStockListener = async function (e) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: authToken ? `Bearer ${authToken}` : "",
           },
           body: JSON.stringify(updateProps),
         }
@@ -138,6 +141,9 @@ const updateStockListener = async function (e) {
             cell.textContent = newValue ? "Есть" : "Нет";
           } else {
             cell.textContent = oldValue;
+            if (response.status === 403) {
+              alert("Вы не авторизованы!");
+            }
           }
         })
         .catch((error) => console.log(error));

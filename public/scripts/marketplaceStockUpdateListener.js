@@ -9,7 +9,7 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
       const oldValue = cell.textContent;
 
       cell.innerHTML = `<form class="change-stock--form">
-          <input class="change-stock--submit-button" type="button" value="OK">
+          <input class="btn change-stock--submit-button" type="button" value="OK">
           <input class="change-stock--input-number" name="stock" type="number" min="0" required value="${cell.textContent}">
         </form>`;
 
@@ -18,7 +18,7 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
 
       submitButton.addEventListener(
         "click",
-        function (e) {
+        function () {
           const newStockValue = form.querySelector(
             ".change-stock--input-number"
           ).value;
@@ -27,7 +27,13 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
 
           document.removeEventListener("click", exitUpdateStockListener);
 
-          fetchUpdateFunction(cell, skuUpdate, newStockValue, oldValue);
+          fetchUpdateFunction(cell, skuUpdate, newStockValue, oldValue).then(
+            (response) => {
+              if (response.status === 403) {
+                alert("Вы не авторизованы!");
+              }
+            }
+          );
         },
         { once: true }
       );

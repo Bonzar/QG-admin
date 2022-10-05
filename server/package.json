@@ -14,9 +14,15 @@
   "dependencies": {
     "async": "^3.2.4",
     "axios": "^0.27.2",
+    "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
+    "express": "^4.18.1",
+    "express-validator": "^6.14.2",
     "helmet": "^6.0.0",
-    "woocommerce-api": "^1.5.0"
+    "mongoose": "^6.6.4",
+    "pug": "^3.0.2",
+    "woocommerce-api": "^1.5.0",
+    "jsonwebtoken": "^8.5.1"
   },
   "devDependencies": {
     "dotenv": "^16.0.2"

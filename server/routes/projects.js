@@ -4,6 +4,7 @@ const router = express.Router();
 const ozon_controller = require("../controllers/ozonController");
 const yandex_controller = require("../controllers/yandexController");
 const woocommerce_controller = require("../controllers/wooController");
+const authMiddleware = require("../middleware/authMiddleware");
 
 router.get("/", (req, res) => {
   res.render("projects", {
@@ -14,12 +15,16 @@ router.get("/", (req, res) => {
 // Get request for list of all Yandex products
 router.get("/yandex", yandex_controller.getProductsList);
 
-router.get("/yandex/update_stock", yandex_controller.updateStock);
+router.get(
+  "/yandex/update_stock",
+  authMiddleware,
+  yandex_controller.updateStock
+);
 
 // Get request for list of all Ozon products
 router.get("/ozon", ozon_controller.getProductsList);
 
-router.get("/ozon/update_stock", ozon_controller.updateStock);
+router.get("/ozon/update_stock", authMiddleware, ozon_controller.updateStock);
 
 // Get request for list of all Ozon products
 router.get("/woo", woocommerce_controller.getProductsList);
@@ -28,6 +33,10 @@ router.get("/woo", woocommerce_controller.getProductsList);
 router.get("/woo/:id/info", woocommerce_controller.getStockUpdateInfo);
 
 // Post request for update stock info of product
-router.post("/woo/update_stock", woocommerce_controller.updateStock);
+router.post(
+  "/woo/update_stock",
+  authMiddleware,
+  woocommerce_controller.updateStock
+);
 
 module.exports = router;

@@ -12,7 +12,6 @@ for (const { param, value } of [
   for (let i = 0; i < filterBtns.length; i++) {
     const filterBtn = filterBtns[i];
 
-    console.log(urlParams.get(param));
     if (
       urlParams.get(param) === value[i] &&
       !filterBtn.classList.contains("table-filter--btn-active")
