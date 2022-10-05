@@ -7,9 +7,7 @@ if (process.env.NODE_ENV !== "production") {
 
 //Устанавливаем соединение с mongoose
 const mongoose = require("mongoose");
-const dev_db_url =
-  "mongodb+srv://bonzar-stocks:wibzut-gutNy5-jistad@cluster0.9oysia7.mongodb.net/?retryWrites=true&w=majority";
-const mongoDB = process.env.MONGODB_URI || dev_db_url;
+const mongoDB = process.env.MONGODB_URI;
 mongoose.connect(mongoDB);
 // mongoose.Promise = global.Promise;
 const db = mongoose.connection;
