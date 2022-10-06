@@ -72,3 +72,28 @@ exports.updateStock = async (sku, stockCount) => {
     return response.data;
   });
 };
+
+exports.getTodayOrders = async () => {
+  const today = new Date();
+
+  const filterDate = today
+    .toLocaleString("ru", {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    })
+    .replaceAll(".", "-");
+
+  const config = {
+    method: "get",
+    url: `https://api.partner.market.yandex.ru/v2/campaigns/21938028/orders.json?supplierShipmentDateFrom=${filterDate}&supplierShipmentDateTo=${filterDate}`,
+    headers: {
+      ...getHeadersRequire(),
+    },
+  };
+
+  // List of all products
+  return await axios(config).then((response) => {
+    return response.data;
+  });
+};

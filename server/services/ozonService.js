@@ -81,23 +81,61 @@ exports.getProductsList = async () => {
 };
 
 exports.updateStock = async (offer_id, stock) => {
-  const config = {
-    method: "post",
-    url: "https://api-seller.ozon.ru/v1/product/import/stocks",
-    headers: {
-      ...getHeadersRequire(),
-    },
-    data: {
-      stocks: [
-        {
-          offer_id, // 55946,
-          stock, // 4,
-        },
-      ],
-    },
-  };
+  try {
+    const config = {
+      method: "post",
+      url: "https://api-seller.ozon.ru/v1/product/import/stocks",
+      headers: {
+        ...getHeadersRequire(),
+      },
+      data: {
+        stocks: [
+          {
+            offer_id, // 55946,
+            stock, // 4,
+          },
+        ],
+      },
+    };
 
-  return await axios(config).then((response) => {
-    return response.data;
-  });
+    return await axios(config).then((response) => {
+      return response.data;
+    });
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+exports.getTodayOrders = async () => {
+  try {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0);
+    const todayStart = today.toISOString();
+    today.setUTCHours(23, 59, 59, 999);
+    const todayEnd = today.toISOString();
+
+    const config = {
+      method: "post",
+      url: "https://api-seller.ozon.ru/v3/posting/fbs/unfulfilled/list",
+      headers: {
+        ...getHeadersRequire(),
+      },
+      data: {
+        dir: "ASC",
+        filter: {
+          delivering_date_from: todayStart,
+          delivering_date_to: todayEnd,
+        },
+        limit: 100,
+        offset: 0,
+        with: {},
+      },
+    };
+
+    return await axios(config).then((response) => {
+      return response.data;
+    });
+  } catch (e) {
+    console.log(e.code);
+  }
 };

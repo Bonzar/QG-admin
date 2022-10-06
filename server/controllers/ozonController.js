@@ -1,4 +1,5 @@
 const ozonService = require("../services/ozonService");
+const { clearName } = require("../services/nameFormatter");
 
 exports.getProductsList = async (req, res) => {
   try {
@@ -6,15 +7,7 @@ exports.getProductsList = async (req, res) => {
       await ozonService.getProductsList();
 
     let products = productsInfo.map((product) => {
-      const name = product.name
-        .replaceAll(
-          /[".:]|(Queridos Glir?tters)|(ГлиттерГель)|(Глиттер гель)|(Глиттер)|(Бл[её]стки для лица и тела)|(Цвета)|(Цвет)|(набора)|(для блёсток)|(3)|(6)|(мл\.?($|\s))|(Блестки для глаз)/gi,
-          ""
-        )
-        .replace("набор", "Набор:")
-        .replace("ГЕЛЬ-ЗАПРАВКА", "ГЗ")
-        .replace("Хайлайтер", "Хай")
-        .trim();
+      const name = clearName(product.name);
 
       const productStocks = productsStockList.find(
         (stockInfo) => stockInfo.product_id === product.id

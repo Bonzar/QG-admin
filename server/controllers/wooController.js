@@ -24,7 +24,7 @@ exports.getProductsList = async (req, res) => {
       .sort((product1, product2) => product1.name.localeCompare(product2.name))
       .map((product) => {
         return {
-          productSku: product["id"],
+          productId: product["id"],
           productName: product["name"],
           productStockFBS:
             product.stock_quantity ?? product.stock_status === "instock"
@@ -36,7 +36,7 @@ exports.getProductsList = async (req, res) => {
     res.render("woo-stocks", {
       title: "Site Stocks",
       headers: {
-        SKU: "productSku",
+        ID: "productId",
         Name: "productName",
         FBS: "productStockFBS",
       },

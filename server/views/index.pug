@@ -1,11 +1,15 @@
 extends layout
 
 block content
-    h1= username ? `Привет ${username}` : title
-    picture
-        source(media=media="(max-width: 768px)" srcset="/images/vlad-close-portrait.jpeg")
-        source(media="(min-width: 769px)" srcset="/images/vlad-wide-landscape.jpeg")
-        img(src="/images/vlad-wide-landscape.jpeg" alt="Vlad is in the forest near a road sign")
-        p 20 y.o.
-        p Future frontend developer
-        p Now working in Queridos Glitters on WordPress developer.
+    h1= title
+    h2 Наличие
+    ul.stock-tables--list
+        li
+            a(href="/stocks/woo") Сайт
+        li
+            a(href="/stocks/ozon") Ozon
+        li
+            a(href="/stocks/yandex") Яндекс Маркет
+    h2 Заказы
+    p
+        a(href="/orders/all") Все заказы

@@ -7,12 +7,11 @@ const updateStockListener = async function (e) {
     cell.nodeName === "TD" &&
     !cell.querySelector(".change-stock--form")
   ) {
-    const idSelected =
-      cell.parentElement.querySelector(".col--sku").textContent;
+    const idSelected = cell.parentElement.querySelector(".col--id").textContent;
 
     const oldValue = cell.textContent;
 
-    const productData = await fetch(`/projects/woo/${idSelected}/info`)
+    const productData = await fetch(`/stocks/woo/${idSelected}/info`)
       .then(async (response) => {
         return response.json();
       })
@@ -29,18 +28,20 @@ const updateStockListener = async function (e) {
         <legend>${productAttributesName}</legend>    
         ${productAttributesName ? "<hr>" : ""}    
         <!-- Управление запасами -->
-        <label><input class="change-stock--manage-stock" name="manage_stock-${
-          product.id
-        }" type="checkbox" ${
+        <label>
+          <input class="change-stock--manage-stock" name="manage_stock-${
+            product.id
+          }" type="checkbox" ${
           product.manage_stock ? "checked" : ""
-        }> Manage stocks</label>
-        <!-- Если управление запасами включено: Количество в наличии -->
-        <input class="change-stock--input-number" name="stock_quantity-${
-          product.id
-        }" type="number" min="0" value="${product.stock_quantity ?? 0}" ${
+        }> Точное кол-во
+          <!-- Если управление запасами включено: Количество в наличии -->
+          <input class="change-stock--input-number" name="stock_quantity-${
+            product.id
+          }" type="number" min="0" value="${product.stock_quantity ?? 0}" ${
           product.manage_stock ? "" : "disabled"
         }
-        >
+          >
+        </label>
         <!-- Если управление запасами выключено: Установка В наличии/Нет в наличии -->
         <label><input class="change-stock--instock" required="required" ${
           product.manage_stock ? "disabled" : ""
@@ -66,9 +67,7 @@ const updateStockListener = async function (e) {
         }" type="hidden">
         <!-- Product id (hidden) -->
         <input name="variable_id-${product.id}" value="${
-          productData.product_type === "variation"
-            ? cell.parentElement.querySelector(".col--sku").textContent
-            : ""
+          productData.product_type === "variation" ? idSelected : ""
         }" type="hidden">
       </fieldset>`;
       })
@@ -125,7 +124,7 @@ const updateStockListener = async function (e) {
       }
 
       fetch(
-        `/projects/woo/update_stock
+        `/stocks/woo/update_stock
           `,
         {
           method: "POST",

@@ -3,7 +3,7 @@ const router = express.Router();
 
 router.get("/", (req, res) => {
   res.render("index", {
-    title: "Vladisalav Navoyan aka Bonzar",
+    title: "Queridos Glitters - Admin",
   });
 });
 

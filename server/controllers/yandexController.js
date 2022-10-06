@@ -1,4 +1,5 @@
 const yandexService = require("../services/yandexService");
+const { clearName } = require("../services/nameFormatter");
 
 exports.getProductsList = async (req, res) => {
   try {
@@ -24,15 +25,7 @@ exports.getProductsList = async (req, res) => {
           )?.count ?? 0;
       }
 
-      const productName = product.name
-        .replaceAll(
-          /[".:]|(Queridos Glir?tters)|(ГлиттерГель)|(Глиттер гель)|(Глиттер)|(Бл[её]стки для лица и тела)|(Цвета)|(Цвет)|(набора)|(для блёсток)|(3)|(6)|(мл\.?($|\s))|(Блестки для глаз)/gi,
-          ""
-        )
-        .replace("набор", "Набор:")
-        .replace("ГЕЛЬ-ЗАПРАВКА", "ГЗ")
-        .replace("Хайлайтер", "Хай")
-        .trim();
+      const productName = clearName(product.name);
 
       return {
         productSku: product.shopSku,

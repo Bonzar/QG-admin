@@ -11,7 +11,6 @@ html {
 html {
   font-size: 10px;
   font-style: normal;
-  /*font-family: Roboto, Arial, serif;*/
   font-family: "Open Sans", Arial, serif;
   font-weight: 400;
   background-color: rgba(225, 167, 255, 0.2);
@@ -35,12 +34,28 @@ h1 {
   text-align: center;
 }
 
+h2 {
+  margin: 0.6rem 0;
+  padding: 0.6rem 0;
+  color: #081150;
+  font-size: 2.2rem;
+}
+
 p,
 li,
 a,
+ul,
 input,
 label {
   font-size: 1.6rem;
+}
+
+p,
+li,
+a,
+ul,
+label {
+  margin-block: 0.4rem;
 }
 
 p,
@@ -59,10 +74,14 @@ label {
   display: block;
 }
 
-input:not([type="radio"],[type="checkbox"],[type="button"],[type="submit"]) {
+input:not([type="radio"], [type="checkbox"], [type="button"], [type="submit"]) {
   border-radius: 8px;
   padding: 3px;
   border: 1px solid rgba(0, 0, 0, 0.28);
+}
+
+hr {
+  border: 0.5px solid #b8b8b8;
 }
 
 .btn {
@@ -86,6 +105,7 @@ header {
   position: sticky;
   top: 0;
   z-index: 10;
+  font-weight: 600;
 }
 
 .header--body {
@@ -95,7 +115,6 @@ header {
   justify-content: space-between;
   align-items: center;
   padding: 0 3vw;
-
 }
 
 nav ul {
@@ -116,8 +135,14 @@ header a {
   color: #fff;
 }
 
-/* Stocks Table */
-.stocks-table {
+/* Index page */
+.stock-tables--list {
+  padding: 0;
+  list-style: none;
+}
+
+/* Stocks and Orders Table */
+.stocks-table, .orders-table {
   border-collapse: collapse;
   background-color: rgba(225, 167, 255, 0.2);
   border-radius: 25px;
@@ -125,11 +150,17 @@ header a {
   width: 100%;
   font-size: 1.6rem;
   position: relative;
-  margin: 0 0 0.75rem;
+  margin: 0 0 1.75rem;
+  text-align: center;
+}
+/* Label for table */
+.table-header {
+  padding-left: 25px;
 }
 
 /* table shadow */
-.stocks-table::before {
+.stocks-table::before,
+.orders-table::before {
   content: "";
   display: block;
   height: 100%;
@@ -143,20 +174,25 @@ header a {
 }
 
 /* table border radius */
-.stocks-table tr:first-of-type th:first-of-type {
+.stocks-table tr:first-of-type th:first-of-type,
+.orders-table tr:first-of-type th:first-of-type {
   border-top-left-radius: 25px;
 }
-.stocks-table tr:first-of-type th:last-of-type {
+.stocks-table tr:first-of-type th:last-of-type,
+.orders-table tr:first-of-type th:last-of-type {
   border-top-right-radius: 25px;
 }
-.stocks-table tr:last-of-type td:first-of-type {
+.stocks-table tr:last-of-type td:first-of-type,
+.orders-table tr:last-of-type td:first-of-type {
   border-bottom-left-radius: 25px;
 }
-.stocks-table tr:last-of-type td:last-of-type {
+.stocks-table tr:last-of-type td:last-of-type,
+.orders-table tr:last-of-type td:last-of-type {
   border-bottom-right-radius: 25px;
 }
 /* Table headers */
-.stocks-table thead {
+.stocks-table thead,
+.orders-table thead {
   position: sticky;
   top: 0;
   line-height: 22px;
@@ -164,33 +200,86 @@ header a {
 }
 
 /* table cells */
-.stocks-table th {
+.stocks-table th,
+.orders-table th {
   background: #ccc;
   text-align: center;
 }
 
 .stocks-table th,
-.stocks-table td {
+.orders-table th,
+.stocks-table td,
+.orders-table td {
   padding: 7px;
 }
 
-.stocks-table tr:nth-child(even) {
+.stocks-table tr:nth-child(even),
+.orders-table tr:nth-child(even) {
   background: #efefef;
 }
 
-.stocks-table tr:hover {
+.stocks-table tr:hover,
+.orders-table tr:hover {
   background: #d1d1d155;
 }
 
-.col--sku, .col--article {
-  width: 120px;
+
+/* Order table cols */
+.orders-table .col--number {
+  width: 13rem;
+}
+
+.order-status--mobile {
+  display: none;
+}
+
+.orders-table .col--status {
+  width: 9rem;
+}
+
+.orders-table .col--product-quantity {
+  width: 7rem;
+}
+
+.orders-table .col--product-article {
+  width: 16rem;
+  overflow: hidden;
+  text-align: right;
+}
+
+.orders--block {
+  position: relative;
+}
+
+.product-article {
+  font-size: 0.8em;
+  color: #7a7a7a;
+  padding-left: 6px;
+}
+
+
+/* Stocks table cols */
+.stocks-table .col--sku,
+.stocks-table .col--article {
+  width: 13rem;
+}
+
+.stocks-table td.col--sku,
+.stocks-table td.col--article {
   text-align: left;
   overflow: hidden;
 }
 
-.col--fbm,
-.col--fbs {
+.stocks-table .col--fbm,
+.stocks-table .col--fbs {
+  width: 5.5rem;
+}
+
+.stocks-table .col--id {
   width: 7rem;
+}
+
+.stocks-table td.col--fbs {
   text-align: right;
   position: relative;
 }
@@ -217,8 +306,8 @@ header a {
   padding-right: 20px;
 }
 
-td.col--fbs::after {
-  content: '\2807';
+.stocks-table td.col--fbs::after {
+  content: "\2807";
   position: absolute;
   font-size: 1.5rem;
   right: 2px;
@@ -228,8 +317,11 @@ td.col--fbs::after {
 
 /* Change stock form */
 .change-stock--form {
-  position: relative;
+  position: absolute;
   text-align: center;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  z-index: 1;
 }
 
 .change-stock--submit-button {
@@ -250,7 +342,6 @@ td.col--fbs::after {
   background: #e8e8e8;
 }
 
-
 /* Site table */
 #site-stocks .change-stock--form {
   position: absolute;
@@ -259,6 +350,7 @@ td.col--fbs::after {
   z-index: 1;
   display: flex;
   max-width: 84vw;
+  transform: unset;
 }
 
 #site-stocks fieldset {
@@ -267,7 +359,7 @@ td.col--fbs::after {
   border-radius: 10px;
   box-shadow: 0 0 17px -3px rgba(0, 0, 0, 0.42);
   position: relative;
-  padding: 1.4rem 1.2rem;
+  padding: 1.4rem 1.2rem 0.4rem;
   margin: 0 5px;
   width: 190px;
 }
@@ -277,6 +369,7 @@ td.col--fbs::after {
 
 #site-stocks .col--fbs {
   padding-right: 12px;
+  width: 7rem;
 }
 
 #site-stocks td.col--fbs::after {
@@ -305,7 +398,6 @@ td.col--fbs::after {
   margin-top: 1rem;
 }
 
-
 /* MOBILE LAYOUT */
 @media screen and (max-width: 420px) {
   .stocks-table tr td:nth-child(1),
@@ -317,6 +409,10 @@ td.col--fbs::after {
   }
   .stocks-table tr:last-of-type td:nth-of-type(2) {
     border-bottom-left-radius: 25px;
+  }
+
+  .stocks-table td.col--name {
+    text-align: left;
   }
 
   /* Change stock form – for Site */
@@ -336,6 +432,14 @@ td.col--fbs::after {
   #site-stocks .col--fbs {
     position: static;
   }
+
+  .orders-table .col--status {
+    display: none;
+  }
+
+  .order-status--mobile {
+    display: initial;
+  }
 }
 
 /* DESKTOP LAYOUT */
@@ -346,10 +450,6 @@ td.col--fbs::after {
   }
 
   /* Stocks table */
-  .stocks-table {
-    text-align: center;
-  }
-
   .col--fbm,
   .col--fbs {
     width: 6.4rem;

@@ -10,19 +10,26 @@ const ozonFetchUpdateFunction = async (
   authToken
 ) => {
   return await fetch(
-    `/projects/ozon/update_stock?id=${skuUpdate}&stock=${newStockValue}`,
+    `/stocks/ozon/update_stock?id=${skuUpdate}&stock=${newStockValue}`,
     {
+      method: "post",
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
     }
   )
     .then(async (response) => {
-      if (response.ok && (await response.json()).result[0].updated === true) {
+      const responseData = await response.json();
+
+      if (responseData.result[0].updated === true) {
         cell.textContent = cell.querySelector(
           ".change-stock--input-number"
         ).value;
       } else {
+        if (responseData.result[0].errors?.[0].code === "TOO_MANY_REQUESTS") {
+          alert("Товар уже был недавно обновлен. Попоробуйте позже.");
+        }
+
         cell.textContent = oldValue;
       }
       return response;

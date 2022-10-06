@@ -1,0 +1,27 @@
+extends layout
+
+block content
+    h1= title
+    each market in allOrders
+        if market
+            h2.table-header= market.name
+            div.orders--block
+                table(class="orders-table")
+                    thead
+                        tr
+                            th.col--number Номер
+                            th.col--status Статус
+                            th.col--products Товары
+                    tbody
+                      each order in market.orders
+                        tr
+                            td.col--number= order.order_number
+                                br
+                                p.order-status--mobile= order.order_status
+                            td.col--status= order.order_status
+                            td.col--products
+                              each product, index  in order.products
+                                | #{product.name} x #{product.quantity} шт.
+                                i.product-article (#{product.article})
+                                if index + 1 !== order.products.length
+                                  hr

@@ -10,8 +10,9 @@ const yandexFetchUpdateFunction = async (
   authToken
 ) => {
   return await fetch(
-    `/projects/yandex/update_stock?sku=${skuUpdate}&stock=${newStockValue}`,
+    `/stocks/yandex/update_stock?sku=${skuUpdate}&stock=${newStockValue}`,
     {
+      method: "post",
       headers: {
         Authorization: `Bearer ${authToken}`,
       },

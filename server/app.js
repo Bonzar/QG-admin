@@ -15,9 +15,10 @@ try {
   console.log(e);
 }
 
-const indexRouter = require("./routes/index");
-const authRouter = require("./routes/auth");
-const projectsRouter = require("./routes/projects");
+const indexRouter = require("./routes/indexRouter");
+const authRouter = require("./routes/authRouter");
+const stocksRouter = require("./routes/stocksRouter");
+const ordersRouter = require("./routes/ordersRouter");
 
 const compression = require("compression");
 const helmet = require("helmet");
@@ -33,7 +34,8 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
-app.use("/projects", projectsRouter);
+app.use("/stocks", stocksRouter);
+app.use("/orders", ordersRouter);
 
 app.use(helmet());
 app.use(compression()); // Compress all routes

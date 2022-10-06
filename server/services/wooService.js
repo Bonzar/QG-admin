@@ -1,4 +1,5 @@
 const WooCommerceAPI = require("woocommerce-api");
+const nameFormatter = require("../services/nameFormatter");
 const async = require("async");
 
 const getWooCommerce = function () {
@@ -75,11 +76,7 @@ exports.getProductList = async (tableFilters) => {
   // Unpacking array of objects arrays in one array with naming replace
   return fetchedProducts.reduce((totalList, currentPack) => {
     currentPack.map((product) => {
-      product.name = product.name
-        .replace(/Глиттер-гель/i, "")
-        .replace(/Глиттер-набор/i, "Набор")
-        .replace(/Хайлайтер/i, "Хай")
-        .trim();
+      product.name = nameFormatter.clearName(product.name, "site");
       return product;
     });
 
@@ -152,4 +149,14 @@ exports.updateStock = async (products) => {
         throw new Error("Product_type not valid");
     }
   });
+};
+
+exports.getOrders = async () => {
+  const WooCommerce = getWooCommerce();
+
+  return await WooCommerce.getAsync(`orders?status=processing`).then(
+    (response) => {
+      return JSON.parse(response.body);
+    }
+  );
 };
