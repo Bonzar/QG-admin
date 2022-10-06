@@ -18,42 +18,59 @@ const getWooCommerce = function () {
 exports.getProductList = async (tableFilters) => {
   const WooCommerce = getWooCommerce();
 
-  const fetchedProducts = await async.waterfall([
-    function (callback) {
-      WooCommerce.getAsync(
-        `products?per_page=7&page=1&order=asc${tableFilters}`
-      ).then((response) => {
-        const totalPages = +response.headers["x-wp-totalpages"];
-        const firstProducts = JSON.parse(response.body);
+  // Setup optimal count requests pages
+  let totalPages = 30;
 
-        callback(null, firstProducts, totalPages);
-      });
-    },
-    (firstProducts, totalPages, callback) => {
-      const pages = [...Array.from({ length: totalPages + 1 }).keys()].slice(2);
-      const requests = pages.map((page) => {
-        return async () => {
-          return await WooCommerce.getAsync(
-            `products?per_page=8&page=${page}&order=asc${tableFilters}`
-          )
-            .then((response) => {
-              return JSON.parse(response.body);
-            })
-            .catch((e) => {
-              if (e.name === "SyntaxError") {
-                throw new Error(
-                  "Слишком много запросов к API, подождите немного"
-                );
-              }
+  // Array of page numbers for requests
+  const pages = [...Array.from({ length: totalPages + 1 }).keys()].slice(1);
+
+  // Array of request functions for optimal count requests pages
+  const requests = pages.map((currentPage) => {
+    return async function getProductsPack(page = currentPage) {
+      // Request it self
+      return await WooCommerce.getAsync(
+        `products?per_page=7&page=${page}&order=asc${tableFilters}`
+      )
+        .then(async (response) => {
+          let productsPack = JSON.parse(response.body);
+
+          // if optimal count requests pages doesn't fit, missing pages will be caused by recursion
+          const realTotalPages = +response.headers["x-wp-totalpages"];
+          if (page === 1 && totalPages < realTotalPages) {
+            const additionalPages = [
+              ...Array.from({ length: realTotalPages + 1 }).keys(),
+            ].slice(totalPages + 1);
+            // Array of additional requests
+            const additionalRequests = additionalPages.map((page) => {
+              // function that will execute by async parallels
+              return () => getProductsPack(page);
             });
-        };
-      });
+            totalPages = realTotalPages;
 
-      async.parallel(requests, (err, results) => {
-        callback(err, [firstProducts, ...results]);
-      });
-    },
-  ]);
+            const additionalPack = await async.parallel(additionalRequests);
+
+            const unpackedAdditionalPack = additionalPack.reduce(
+              (total, currentPack) => {
+                total.push(...currentPack);
+                return total;
+              },
+              []
+            );
+
+            productsPack = [...productsPack, ...unpackedAdditionalPack];
+          }
+
+          return productsPack;
+        })
+        .catch((e) => {
+          if (e.name === "SyntaxError") {
+            throw new Error("Слишком много запросов к API, подождите немного");
+          }
+        });
+    };
+  });
+
+  const fetchedProducts = await async.parallel(requests);
 
   // Unpacking array of objects arrays in one array with naming replace
   return fetchedProducts.reduce((totalList, currentPack) => {
