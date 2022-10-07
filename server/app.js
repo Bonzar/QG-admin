@@ -19,6 +19,7 @@ const indexRouter = require("./routes/indexRouter");
 const authRouter = require("./routes/authRouter");
 const stocksRouter = require("./routes/stocksRouter");
 const ordersRouter = require("./routes/ordersRouter");
+const shipmentsRouter = require("./routes/shipmentsRouter");
 
 const compression = require("compression");
 const helmet = require("helmet");
@@ -36,6 +37,7 @@ app.use("/", indexRouter);
 app.use("/auth", authRouter);
 app.use("/stocks", stocksRouter);
 app.use("/orders", ordersRouter);
+app.use("/shipments", shipmentsRouter);
 
 app.use(helmet());
 app.use(compression()); // Compress all routes

@@ -5,26 +5,39 @@ const { clearName } = require("../services/nameFormatter");
 const async = require("async");
 
 module.exports.getOrdersList = async (req, res) => {
+  const formatOzonOrders = (ozonOrders) => {
+    return ozonOrders.map((ozonOrder) => {
+      return {
+        order_number: ozonOrder.order_number,
+        order_status: ozonOrder.status,
+        products: ozonOrder.products.map((product) => {
+          return {
+            name: clearName(product.name),
+            article: product.offer_id,
+            quantity: product.quantity,
+          };
+        }),
+      };
+    });
+  };
   async function getOzonOrders(callback) {
     try {
       const ozonOrders = await ozonService.getTodayOrders();
 
-      const ozonOrdersFormatted = ozonOrders.result.postings.map(
-        (ozonOrder) => {
-          return {
-            order_number: ozonOrder.order_number,
-            order_status: ozonOrder.status,
-            products: ozonOrder.products.map((product) => {
-              return {
-                name: clearName(product.name),
-                article: product.offer_id,
-                quantity: product.quantity,
-              };
-            }),
-          };
-        }
-      );
+      const ozonOrdersFormatted = formatOzonOrders(ozonOrders);
       callback(null, ozonOrdersFormatted);
+    } catch (e) {
+      console.log(e);
+      callback(e, null);
+    }
+  }
+  async function getOzonOverdueOrders(callback) {
+    try {
+      const ozonOverdueOrders = await ozonService.getOverdueOrders();
+
+      const ozonOverdueOrdersFormatted = formatOzonOrders(ozonOverdueOrders);
+
+      callback(null, ozonOverdueOrdersFormatted);
     } catch (e) {
       console.log(e);
       callback(e, null);
@@ -37,10 +50,7 @@ module.exports.getOrdersList = async (req, res) => {
       const yandexOrdersFormatted = yandexOrders.orders.map((yandexOrder) => {
         return {
           order_number: yandexOrder.id,
-          order_status:
-            yandexOrder.status === "PROCESSING"
-              ? yandexOrder.substatus
-              : `${yandexOrder.status} - ${yandexOrder.substatus}`,
+          order_status: yandexOrder.substatus,
           products: yandexOrder.items.map((product) => {
             return {
               name: clearName(product.offerName),
@@ -85,10 +95,13 @@ module.exports.getOrdersList = async (req, res) => {
         ozonOrders(callback) {
           getOzonOrders(callback);
         },
-        getYandexOrders(callback) {
+        ozonOverdueOrders(callback) {
+          getOzonOverdueOrders(callback);
+        },
+        YandexOrders(callback) {
           getYandexOrders(callback);
         },
-        getWooOrders(callback) {
+        WooOrders(callback) {
           getWooOrders(callback);
         },
       },
@@ -105,15 +118,36 @@ module.exports.getOrdersList = async (req, res) => {
           allOrders: [
             {
               name: "Ozon",
-              orders: results.ozonOrders,
+              today: {
+                status: results.ozonOrders.length > 0,
+                orders: results.ozonOrders,
+              },
+              overdue: {
+                status: results.ozonOverdueOrders.length > 0,
+                orders: results.ozonOverdueOrders,
+              },
             },
             {
               name: "Yandex",
-              orders: results.getYandexOrders,
+              today: {
+                status: results.YandexOrders.length > 0,
+                orders: results.YandexOrders,
+              },
+              overdue: {
+                status: false,
+                orders: [],
+              },
             },
             {
               name: "Site",
-              orders: results.getWooOrders,
+              today: {
+                status: results.WooOrders.length > 0,
+                orders: results.WooOrders,
+              },
+              overdue: {
+                status: false,
+                orders: [],
+              },
             },
           ],
         });

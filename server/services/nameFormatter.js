@@ -11,6 +11,7 @@ exports.clearName = (name, type = "marketplace") => {
         .replace("набор", "Набор:")
         .replace("ГЕЛЬ-ЗАПРАВКА", "ГЗ")
         .replace("Хайлайтер", "Хай")
+        .replace(/\s+/g, " ")
         .trim();
       break;
     case "site":
@@ -19,6 +20,7 @@ exports.clearName = (name, type = "marketplace") => {
         .replace(/Глиттер-гель/i, "")
         .replace(/Глиттер-набор/i, "Набор")
         .replace(/Хайлайтер/i, "Хай")
+        .replace(/\s+/g, " ")
         .trim();
   }
 

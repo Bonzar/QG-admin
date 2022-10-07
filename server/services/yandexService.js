@@ -86,13 +86,12 @@ exports.getTodayOrders = async () => {
 
   const config = {
     method: "get",
-    url: `https://api.partner.market.yandex.ru/v2/campaigns/21938028/orders.json?supplierShipmentDateFrom=${filterDate}&supplierShipmentDateTo=${filterDate}`,
+    url: `https://api.partner.market.yandex.ru/v2/campaigns/21938028/orders.json?supplierShipmentDateFrom=${filterDate}&supplierShipmentDateTo=${filterDate}&status=PROCESSING`,
     headers: {
       ...getHeadersRequire(),
     },
   };
 
-  // List of all products
   return await axios(config).then((response) => {
     return response.data;
   });
