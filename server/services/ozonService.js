@@ -297,7 +297,7 @@ exports.getOzonShipment = async () => {
     const sellPerMonth = product.sources.reduce((total, currentSource) => {
       total +=
         monthData.result.data.find((productData) => {
-          return +productData.dimensions[0].id === currentSource.sku;
+          return +productData["dimensions"][0].id === currentSource.sku;
         })?.metrics[0] ?? 0;
 
       return total;
@@ -306,13 +306,13 @@ exports.getOzonShipment = async () => {
     const sellPerYear = product.sources.reduce((total, currentSource) => {
       total +=
         yearData.result.data.find((productData) => {
-          return +productData.dimensions[0].id === currentSource.sku;
+          return +productData["dimensions"][0].id === currentSource.sku;
         })?.metrics[0] ?? 0;
       return total;
     }, 0);
 
     const onShipment = Math.round(
-      (sellPerMonth >= sellPerYear / 12 ? sellPerMonth : sellPerYear / 12) * 2 -
+      (sellPerMonth >= sellPerYear / 12 ? sellPerMonth : sellPerYear / 12) -
         stock
     );
 
