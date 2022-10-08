@@ -5,3 +5,4 @@ dist
 .parcel-cache/
 ./node_modules/
 /server/.env
+/server/tmp/
