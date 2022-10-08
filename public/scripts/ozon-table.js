@@ -22,9 +22,7 @@ const ozonFetchUpdateFunction = async (
       const responseData = await response.json();
 
       if (responseData.result[0].updated === true) {
-        cell.textContent = cell.querySelector(
-          ".change-stock--input-number"
-        ).value;
+        cell.textContent = newStockValue;
       } else {
         if (responseData.result[0].errors?.[0].code === "TOO_MANY_REQUESTS") {
           alert("Товар уже был недавно обновлен. Попоробуйте позже.");
