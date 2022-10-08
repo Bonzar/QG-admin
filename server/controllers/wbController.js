@@ -30,6 +30,9 @@ exports.getProductsList = async (req, res) => {
       products,
     });
   } catch (error) {
+    console.log('1')
+    console.log(error);
+    
     res
       .status(400)
       .send("Error while getting list of products. Try again later.");

@@ -14,12 +14,13 @@ exports.getProductIdsList = async () => {
     const config = {
       method: "post",
       url: "https://suppliers-api.wildberries.ru/content/v1/cards/list",
+      timeout: 1000000,
       headers: {
         ...getHeadersRequire(),
       },
       data: {
-        sort: {
-          limit: 1000,
+        "sort": {
+          "limit": 1,
           // offset: 0,
           // searchValue: "",
           // sortColumn: "updateAt", // also only has hasPhoto sorting
@@ -40,7 +41,8 @@ exports.getProductFbsStocks = async () => {
   try {
     const config = {
       method: "get",
-      url: "https://suppliers-api.wildberries.ru/api/v2/stocks?skip=0&take=1000",
+      url: "https://suppliers-api.wildberries.ru/api/v2/stocks?skip=0&take=1",
+      timeout: 1000000,
       headers: {
         ...getHeadersRequire(),
       },
