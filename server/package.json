@@ -5,8 +5,8 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./bin/www",
-    "startdev": "nodemon ./bin/www"
+    "start": "node www",
+    "startdev": "nodemon www"
   },
   "keywords": [],
   "author": "",
