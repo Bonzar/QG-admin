@@ -7,7 +7,7 @@ html(lang='ru')
         link(rel='stylesheet', href='/styles/styles.css')
         link(rel="preconnect" href="https://fonts.googleapis.com")
         link(rel="preconnect" href="https://fonts.gstatic.com" crossorigin)
-        link(href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet")
+        link(href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet")
         block scripts
             script(src="/scripts/login.js" defer)
     body
@@ -17,13 +17,11 @@ html(lang='ru')
                     nav
                         ul
                             li
-                                a(href="/stocks/woo") Сайт
+                                a(href="/stocks/") Наличие
                             li
-                                a(href="/stocks/ozon") Ozon
+                                a(href="/orders/all/") Заказы
                             li
-                                a(href="/stocks/yandex") ЯМ
-                            li
-                                a(href="/orders/all") Заказы
+                                a(href="/shipments/") Поставки
                     block login
                         a(id="loginBtn" href="/auth/login") Войти
         main

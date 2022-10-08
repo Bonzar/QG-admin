@@ -7,10 +7,15 @@ const yandex_controller = require("../controllers/yandexController");
 const woocommerce_controller = require("../controllers/wooController");
 const authMiddleware = require("../middleware/authMiddleware");
 
-// redirect /stocks to index
-router.get("/", (req, res) => {
-  res.redirect("/");
-});
+// index page with stock tables list 
+router.get('/', (req, res)=> {
+  try {
+    res.render('stocks', {title: "Наличие"})
+  } catch (e) {
+    console.log(e);
+    res.status(400).json({message:"Ошибка при загрузке страницы. Попробуйте позже."})
+  }
+})
 
 // Get request for list of all Yandex products
 router.get("/yandex", yandex_controller.getProductsList);
