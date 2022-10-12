@@ -6,6 +6,20 @@ for (const { param, value } of [
     param: "stock_status",
     value: ["outofstock", "outofstockall"],
   },
+  {
+    param: "stock_status_wb",
+    value: [
+      "outofstock",
+      "outofstockall",
+      "instockFBS",
+      "instockFBW",
+      "instockSome",
+    ],
+  },
+  {
+    param: "isActual",
+    value: ["notActual", "all"],
+  },
 ]) {
   const filterBtns = document.querySelectorAll(`.table-filter-name--${param}`);
 
@@ -24,6 +38,8 @@ for (const { param, value } of [
         : window.location.pathname;
       urlParams.set(param, oldValue);
     } else {
+      filterBtn.classList.remove("table-filter--btn-active");
+
       const oldValue = urlParams.get(param);
 
       urlParams.set(param, value[i]);

@@ -16,4 +16,7 @@ block content
               each product in products
                   tr
                     each prop in Object.entries(headers)
-                        td(class=`col--${prop[0].toLowerCase()}`) #{product[prop[1]]}
+                        -let tdContent = product[prop[1]]
+                        -let tdTitle = null;
+                        -if (prop[0].toLowerCase() === 'name' && tdContent.includes("(")) {[tdContent, tdTitle] = tdContent.split("("); tdTitle = tdTitle.replace(")", "")}
+                        td(class=`col--${prop[0].toLowerCase()}` title=`${tdTitle ? tdTitle : ''}`) #{tdContent}

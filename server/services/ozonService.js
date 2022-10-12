@@ -177,7 +177,7 @@ exports.getOverdueOrders = async () => {
       );
     });
   } catch (e) {
-    console.log(e.code);
+    console.log(e);
   }
 };
 

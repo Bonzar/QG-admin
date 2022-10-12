@@ -21,18 +21,20 @@ exports.getProductsList = async (req, res) => {
       };
     });
 
-    // Filter only outofstock products (by FBS)
-    if (req.query.stock_status === "outofstock") {
-      products = products.filter((product) => {
-        return product.stockFBS <= 0;
-      });
-    }
-
-    // Filter only outofstock products (by FBO and FBS)
-    if (req.query.stock_status === "outofstockall") {
-      products = products.filter((product) => {
-        return product.stockFBS <= 0 && product.stockFBO <= 0;
-      });
+    // Filtration
+    switch (req.query.stock_status) {
+      // Filter only outofstock products (by FBS)
+      case "outofstock":
+        products = products.filter((product) => {
+          return product.stockFBS <= 0;
+        });
+        break;
+      // Filter only outofstock products (by FBO and FBS)
+      case "outofstockall":
+        products = products.filter((product) => {
+          return product.stockFBS <= 0 && product.stockFBO <= 0;
+        });
+        break;
     }
 
     products.sort((product1, product2) =>

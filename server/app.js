@@ -1,8 +1,7 @@
 const path = require("path");
-const express = require("express");
 
 // if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
+require("dotenv").config();
 // }
 try {
   //Устанавливаем соединение с mongoose
@@ -14,6 +13,8 @@ try {
 } catch (e) {
   console.log(e);
 }
+
+const express = require("express");
 
 const indexRouter = require("./routes/indexRouter");
 const authRouter = require("./routes/authRouter");

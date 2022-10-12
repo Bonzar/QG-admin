@@ -244,7 +244,7 @@ header a {
 }
 
 .orders-table .col--status {
-  width: 9rem;
+  width: 10rem;
   word-break: break-word;
 }
 
@@ -272,7 +272,8 @@ header a {
 
 /* Stocks table cols */
 .stocks-table .col--sku,
-.stocks-table .col--article {
+.stocks-table .col--article,
+.stocks-table .col--barcode {
   width: 13rem;
 }
 
