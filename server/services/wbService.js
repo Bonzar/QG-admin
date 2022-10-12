@@ -1,4 +1,6 @@
 const axios = require("axios");
+const async = require("async");
+const WbProduct = require("../models/WbProduct");
 
 const getHeadersRequire = () => {
   return {
@@ -68,25 +70,74 @@ exports.getProductFbsStocks = async (callback) => {
   }
 };
 
-exports.getProductFbwStocks = async (callback) => {
+exports.getProductFbwStocks = async (cb) => {
   try {
     const config = {
       method: "get",
       url: `https://suppliers-stats.wildberries.ru/api/v1/supplier/stocks?key=${process.env.WB_APISTATKEY}&dateFrom=2022-10-09`,
     };
 
-    const result = await axios(config).then((response) => {
+    const fbwStocks = await axios(config).then((response) => {
       return response.data;
     });
 
-    if (callback) {
-      return callback(null, result);
+    if (!cb) {
+      return fbwStocks;
     }
-    return result;
+    cb(null, fbwStocks);
+    async.waterfall([
+      (callback) => {
+        module.exports.getProductsInfoList(null, callback);
+      },
+      (productsInfoList, callback) => {
+        const productsFormatRequests = productsInfoList.data["cards"].map(
+          (product) => {
+            return function (callback) {
+              const stockFBW =
+                fbwStocks
+                  .filter((fbwStock) => fbwStock["nmId"] === product["nmID"])
+                  .reduce(
+                    (total, current) => total + current.quantityFull,
+                    0
+                  ) ?? 0;
+
+              const updatedProduct = WbProduct.findOneAndUpdate(
+                { sku: product["nmID"] },
+                { stock: stockFBW },
+                (err) => {
+                  if (err) {
+                    callback(err, null);
+                    return;
+                  }
+                  callback(null, updatedProduct);
+                }
+              );
+            };
+          }
+        );
+
+        async.parallel(productsFormatRequests, callback);
+      },
+    ]);
   } catch (e) {
     console.log(e);
-    if (callback) {
-      callback(e, null);
+    if (cb) {
+      WbProduct.find().exec((err, result) => {
+        if (err) {
+          cb(err, null);
+          return;
+        }
+        console.log("Saved data returned!");
+        cb(
+          null,
+          result.map((product) => {
+            return {
+              nmId: product.sku,
+              quantityFull: product.stock,
+            };
+          })
+        );
+      });
     }
   }
 };
