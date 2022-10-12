@@ -1,4 +1,5 @@
 const path = require("path");
+const express = require("express");
 
 // if (process.env.NODE_ENV !== "production") {
 require("dotenv").config();
@@ -14,7 +15,8 @@ try {
   console.log(e);
 }
 
-const express = require("express");
+// eslint-disable-next-line no-unused-vars
+const Product = require("./models/Product");
 
 const indexRouter = require("./routes/indexRouter");
 const authRouter = require("./routes/authRouter");
