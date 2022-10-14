@@ -312,6 +312,9 @@ exports.updateMarketProduct = async (marketProductData, cb) => {
 
         const updateRef = `${marketProductData.marketType}Product`;
 
+        // Если до сих пор нет вариации, значит product_id не указан и существующей вариации со связью нет -> все уже готово
+        if (!variation) return callback(null, marketProduct);
+
         // Если не указан id продкута -> удаляем связь продкта маркетплейса и вариации
         if (!marketProductData.product_id) {
           variation[updateRef] = undefined;

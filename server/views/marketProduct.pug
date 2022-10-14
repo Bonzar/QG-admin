@@ -18,10 +18,14 @@ block content
 
         label Article:#{" "}
             input(name="article" value=`${marketProduct ? marketProduct.article ? marketProduct.article : '' : ''}`)
-        label.inline Актуальный:#{" "}
+        label Актуальный:#{" "}
             input(required name="isActual" type="radio" value="true" checked=(marketProduct ? marketProduct.isActual : false))
-        label.inline #{" "}Неактуальный:#{" "}
+        label Неактуальный:#{" "}
             input(required name="isActual" type="radio" value="false" checked=(marketProduct ? !marketProduct.isActual : false))
+        label Остаток FBS:#{" "}
+            input(required name="stockFBS" type="number" value=(marketProduct ? marketProduct.stockFBS : 0))
+        label Остаток FBW:#{" "}
+            input(required name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
 
         fieldset
             legend Связь с вариацией (необязательно)

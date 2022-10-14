@@ -79,7 +79,7 @@ exports.getProductsListPage = async (req, res) => {
                 // Filtration
                 let isPassFilterArray = [];
                 // by stock status
-                switch (req.query.stock_status_wb) {
+                switch (req.query.stock_status) {
                   // Filter only outofstock products (by FBS)
                   case "outofstock":
                     isPassFilterArray.push(stockFBS <= 0);

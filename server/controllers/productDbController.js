@@ -69,8 +69,6 @@ exports.getDbMarketProductPage = async (req, res) => {
     const marketType = req.params.marketType;
     const productId = req.params.product_id;
 
-    console.log(marketType);
-
     if (["yandex", "wb"].includes(marketType)) {
       // if id exist -> update product ELSE add new
       if (productId) {
