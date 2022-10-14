@@ -1,0 +1,43 @@
+extends layout
+
+append scripts
+    script(src="/scripts/marketProduct.js" type="module" defer)
+
+block content
+    h1= title
+    form.market-product--form
+        case marketType
+            when "yandex"
+                label SKU:#{" "}
+                    input(required name="sku" value=`${marketProduct ? marketProduct.sku ? marketProduct.sku : '' : ''}`)
+            when "wb"
+                label SKU:#{" "}
+                    input(required name="sku" value=`${marketProduct ? marketProduct.sku ? marketProduct.sku : '' : ''}`)
+                label Barcode:#{" "}
+                    input(required name="barcode" value=`${marketProduct ? marketProduct.barcode ? marketProduct.barcode : '' : ''}`)
+
+        label Article:#{" "}
+            input(name="article" value=`${marketProduct ? marketProduct.article ? marketProduct.article : '' : ''}`)
+        label.inline Актуальный:#{" "}
+            input(required name="isActual" type="radio" value="true" checked=(marketProduct ? marketProduct.isActual : false))
+        label.inline #{" "}Неактуальный:#{" "}
+            input(required name="isActual" type="radio" value="false" checked=(marketProduct ? !marketProduct.isActual : false))
+
+        fieldset
+            legend Связь с вариацией (необязательно)
+            label Наименование продукта:#{" "}
+                select( name="product_id")
+                    option(value="") Выберете продукт
+                      each product in allProducts
+                          option(value=product._id selected=(variation ? product._id.toString() === variation.product._id.toString() : false))= product.name
+            label Объем:#{" "}
+                select( name="variation_volume")
+                    option(value="") Выберете объем
+                      each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
+                          option(value=volume selected=(variation ? volume === variation.volume : false))= volume
+
+        input(required name="marketType" value=marketType hidden)
+        if marketProduct
+            input(required name="_id" value=marketProduct._id hidden)
+
+        input.market-product--submit-button(type="button" value=(marketProduct ? "Обновить" : "Добавить") style="float: right;")

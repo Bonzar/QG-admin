@@ -13,4 +13,6 @@ const ProductVariation = new Schema({
   WooProduct: { type: Schema.ObjectId, ref: "WooProduct" },
 });
 
+ProductVariation.index({ product: 1, volume: 1 }, { unique: true });
+
 module.exports = model("ProductVariation", ProductVariation);

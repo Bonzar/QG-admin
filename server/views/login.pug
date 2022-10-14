@@ -1,27 +1,18 @@
 extends layout
 
-append scripts
-    if authToken
-        script.
-          localStorage.setItem("authToken","#{authToken}");
-          localStorage.setItem("username","#{username}");
-          localStorage.setItem("authTokenExpires", Date.now() + 24*60*60*1000);
-          window.location.href = "/";
-
 block content
     h1= title
 
-    if !authToken
-        if errors
-            ul.errors
-              for error in errors
-                  li.err!= error
+    if errors
+        ul.errors
+          for error in errors
+              li.err!= error
 
-        form.login--form(method='POST' action='')
-            label(for="username") Username:
-                input#username(name="username" required min="1" value=`${username ? username : ""}`)
+    form.login--form(method='POST' action='')
+        label(for="username") Username:
+            input#username(name="username" required min="1" value=`${username ? username : ""}`)
 
-            label(for="password") Password:
-                input#password(name="password" required minlength="8" type="password" value=`${password ? password : ""}`)
+        label(for="password") Password:
+            input#password(name="password" required minlength="8" type="password" value=`${password ? password : ""}`)
 
-            input.btn(type="submit" value="Войти")
+        input.btn(type="submit" value="Войти")

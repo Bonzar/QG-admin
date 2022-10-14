@@ -56,15 +56,22 @@ li,
 a,
 ul,
 input,
-label {
+label,
+select,
+option {
   font-size: 1.6rem;
+}
+
+legend {
+  font-size: 1.2rem;
 }
 
 p,
 li,
 a,
 ul,
-label {
+label,
+fieldset {
   margin-block: 0.4rem;
 }
 
@@ -106,6 +113,10 @@ hr {
   border: solid 1px #7b7b7b3d;
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+}
+
+.inline {
+  display: inline;
 }
 
 /* Navigation */
@@ -262,7 +273,7 @@ header a {
   position: relative;
 }
 
-.product-article {
+.product-description {
   font-size: 0.8em;
   color: #7a7a7a;
   padding-left: 6px;
@@ -410,6 +421,13 @@ header a {
 .login--form input[type="submit"] {
   margin-top: 1rem;
 }
+
+/* DB pages */
+.market-product--form select {
+  width: 150px;
+  margin: 0 0.4rem;
+}
+
 
 /* MOBILE LAYOUT */
 @media screen and (max-width: 420px) {

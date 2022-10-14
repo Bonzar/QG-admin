@@ -1,4 +1,11 @@
 extends layout
+append scripts
+    if authToken
+        script.
+          localStorage.setItem("authToken", "#{authToken}");
+          localStorage.setItem("username", "#{username}");
+          localStorage.setItem("authTokenExpires", Date.now() + 24 * 60 * 60 * 1000);
+
 
 block content
     h1= title
@@ -18,3 +25,8 @@ block content
     h2 Поставки
     p
         a(href="/shipments/ozon") Создать поставку Ozon
+    h2 База Данных
+    p
+        a.addTokenToHref(href="/stocks/yandex/new") Добавить товар Yandex
+    p
+        a.addTokenToHref(href="/stocks/wb/new") Добавить товар Wildberries

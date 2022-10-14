@@ -50,6 +50,7 @@ exports.getProductsList = async (req, res) => {
         FBS: "stockFBS",
       },
       products,
+      updateBy: "article",
     });
   } catch (error) {
     res

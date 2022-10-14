@@ -1,6 +1,4 @@
 const axios = require("axios");
-const async = require("async");
-const WbProduct = require("../models/WbProduct");
 
 const getHeadersRequire = () => {
   return {
@@ -9,7 +7,7 @@ const getHeadersRequire = () => {
   };
 };
 
-exports.getProductsInfoList = async (searchValue = null, callback) => {
+exports.getApiProductsInfoList = async (searchValue = null, callback) => {
   try {
     const config = {
       method: "post",
@@ -44,7 +42,7 @@ exports.getProductsInfoList = async (searchValue = null, callback) => {
   }
 };
 
-exports.getProductFbsStocks = async (callback) => {
+exports.getApiProductFbsStocks = async (callback) => {
   try {
     const config = {
       method: "get",
@@ -70,7 +68,7 @@ exports.getProductFbsStocks = async (callback) => {
   }
 };
 
-exports.getProductFbwStocks = async (cb) => {
+exports.getApiProductFbwStocks = async (cb) => {
   try {
     const config = {
       method: "get",
@@ -85,64 +83,17 @@ exports.getProductFbwStocks = async (cb) => {
       return fbwStocks;
     }
     cb(null, fbwStocks);
-    async.waterfall([
-      (callback) => {
-        module.exports.getProductsInfoList(null, callback);
-      },
-      (productsInfoList, callback) => {
-        const productsFormatRequests = productsInfoList.data["cards"].map(
-          (product) => {
-            return function (callback) {
-              const stockFBW =
-                fbwStocks
-                  .filter((fbwStock) => fbwStock["nmId"] === product["nmID"])
-                  .reduce(
-                    (total, current) => total + current.quantityFull,
-                    0
-                  ) ?? 0;
-
-              const updatedProduct = WbProduct.findOneAndUpdate(
-                { sku: product["nmID"] },
-                { stock: stockFBW },
-                (err) => {
-                  if (err) {
-                    callback(err, null);
-                    return;
-                  }
-                  callback(null, updatedProduct);
-                }
-              );
-            };
-          }
-        );
-
-        async.parallel(productsFormatRequests, callback);
-      },
-    ]);
   } catch (e) {
     console.log(e);
     if (cb) {
-      WbProduct.find().exec((err, result) => {
-        if (err) {
-          cb(err, null);
-          return;
-        }
-        console.log("Saved data returned!");
-        cb(
-          null,
-          result.map((product) => {
-            return {
-              nmId: product.sku,
-              quantityFull: product.stock,
-            };
-          })
-        );
-      });
+      cb(null, null);
+      return;
     }
+    return null;
   }
 };
 
-exports.updateStock = async (barcode, stock) => {
+exports.updateApiStock = async (barcode, stock) => {
   const config = {
     method: "post",
     url: "https://suppliers-api.wildberries.ru/api/v2/stocks",
@@ -163,7 +114,7 @@ exports.updateStock = async (barcode, stock) => {
   });
 };
 
-exports.getTodayOrders = async (callback) => {
+exports.getApiTodayOrders = async (callback) => {
   try {
     const date = new Date();
 

@@ -78,7 +78,7 @@ exports.loginCheck = async (req, res) => {
 
     const authToken = generateAccessToken(user._id, user.roles);
 
-    return res.render("login", {
+    return res.render("index", {
       title: `Добро пожаловать ${username}`,
       authToken,
       username,

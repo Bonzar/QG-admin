@@ -67,12 +67,25 @@ async function getOzonOverdueOrders(callback) {
 
 async function getYandexOrders(callback) {
   try {
-    const yandexOrders = await yandexService.getTodayOrders();
+    const yandexOrders = await yandexService.getApiTodayOrders();
 
     const yandexOrdersFormatted = yandexOrders.orders.map((yandexOrder) => {
+      let order_status = "";
+      switch (yandexOrder.substatus) {
+        case "STARTED":
+          order_status = "Новый";
+          break;
+        case "READY_TO_SHIP":
+          order_status = "Собран";
+          break;
+        case "SHIPPED":
+          order_status = "Доставка";
+          break;
+      }
+
       return {
         order_number: yandexOrder.id,
-        order_status: yandexOrder.substatus,
+        order_status,
         products: yandexOrder.items.map((product) => {
           return {
             name: clearName(product.offerName),
@@ -145,7 +158,7 @@ async function getWbOrders(callback) {
     async.waterfall(
       [
         (callback) => {
-          wbService.getTodayOrders(callback);
+          wbService.getApiTodayOrders(callback);
         },
         (todayOrders, callback) => {
           const ordersInfoRequests = todayOrders.map((order) => {

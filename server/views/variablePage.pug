@@ -1,0 +1,83 @@
+extends layout
+
+block content
+    h1= title
+    h2 Общие
+    form(id="product-properties--form")
+        label Наименование продукта:#{" "}
+            select(required name="product_name")
+                option(value="") Выберете продукт
+                each product in allProducts
+                    option(value=product._id selected=(product._id.toString() === variation.product._id.toString()))= product.name
+        label Актуальный:#{" "}
+            input(required name="isActual" type="radio" value="true" checked=variation.product.isActual)
+        label Неактуальный:#{" "}
+            input(required name="isActual" type="radio" value="false" checked=!variation.product.isActual)
+        input(id="product-properties--submit-button" type="button" value="Обновить")
+
+    hr(style="margin-top: 2rem")
+
+    h2 Вариация
+    form(id="variation-properties--form")
+        label Объем:#{" "}
+            select(required name="variation_volume")
+                option(value="") Выберете объем
+                each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
+                    option(value=volume selected=(volume=== variation.volume))= volume
+
+
+        input(id="variation-properties--submit-button" type="button" value="Обновить")
+
+
+    hr(style="margin-top: 2rem")
+    h2 Яндекс
+    form(id="yandex-product-properties--form")
+        if (variation.yandexProduct)
+            label SKU:#{" "}
+                select(required name="sku")
+                    option(value="") Выберете продукт
+                    each yandexProduct in allYandexProducts
+                        option(value=yandexProduct._id selected=(yandexProduct._id.toString() === variation.yandexProduct._id.toString()))= `${yandexProduct.sku} (${yandexProduct.article})`
+            label Article:#{" "}
+                input(name="article" value=variation.yandexProduct.article)
+            label Актуальный:#{" "}
+                input(required name="isActual" type="radio" value="true" checked=variation.yandexProduct.isActual)
+            label Неактуальный:#{" "}
+                input(required name="isActual" type="radio" value="false" checked=!variation.yandexProduct.isActual)
+            label Остаток FBS:#{" "}
+                input(required name="stock" type="number" value=variation.yandexProduct.stockFBS)
+            input(id="yandex-product-properties--submit-button" type="button" value="Обновить" )
+        else
+            label SKU:#{" "}
+                select(required name="sku")
+                    option(value="") Выберете продукт
+                      each yandexProduct in allYandexProducts
+                          option(value=yandexProduct._id)= `${yandexProduct.sku} (${yandexProduct.article})`
+
+    hr(style="margin-top: 2rem")
+    h2 Wildberries
+    form(id="wb-product-properties--form")
+        if (variation.wbProduct)
+            label SKU:#{" "}
+                select(required name="sku")
+                    option(value="") Выберете продукт
+                      each wbProduct in allWbProducts
+                          option(value=wbProduct._id selected=(wbProduct._id.toString() === variation.wbProduct._id.toString()))=`${wbProduct.sku} (${wbProduct.article})`
+
+            label Article:#{" "}
+                input(name="article" value=variation.wbProduct.article)
+            label Barcode:#{" "}
+                input(name="barcode" value=variation.wbProduct.barcode)
+            label Актуальный:#{" "}
+                input(required name="isActual" type="radio" value="true" checked=variation.wbProduct.isActual)
+            label Неактуальный:#{" "}
+                input(required name="isActual" type="radio" value="false" checked=!variation.wbProduct.isActual)
+            label Остаток FBW:#{" "}
+                input(required name="stock" type="number" value=variation.wbProduct.stock disabled)
+            input(id="yandex-product-properties--submit-button" type="button" value="Обновить" )
+        else
+            label SKU:#{" "}
+                select(required name="sku")
+                    option(value="") Выберете продукт
+                      each wbProduct in allWbProducts
+                          option(value=wbProduct._id)=`${wbProduct.sku} (${wbProduct.article})`

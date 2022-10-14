@@ -1,7 +1,7 @@
 const { Schema, model } = require("mongoose");
 
 const WooProduct = new Schema({
-  id: { type: Number, required: true },
+  id: { type: Number, unique: true, required: true },
   article: String,
   type: {
     type: String,

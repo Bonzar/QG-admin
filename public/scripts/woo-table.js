@@ -123,18 +123,14 @@ const updateStockListener = async function (e) {
         return (window.location.href = "/auth/login");
       }
 
-      fetch(
-        `/stocks/woo/update_stock
-          `,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: JSON.stringify(updateProps),
-        }
-      )
+      fetch(`/stocks/woo/update_stock`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(updateProps),
+      })
         .then((response) => {
           if (response.ok) {
             const newValue = Object.values(updateProps).some((props) => {

@@ -1,75 +1,155 @@
 const yandexService = require("../services/yandexService");
-const { clearName } = require("../services/nameFormatter");
+const async = require("async");
+const dbService = require("../services/dbService");
 
-exports.getProductsList = async (req, res) => {
+exports.getProductsListPage = async (req, res) => {
   try {
-    let products = await yandexService.getProductsList();
+    async.waterfall(
+      [
+        (cb) => {
+          async.parallel(
+            {
+              // Stocks on WB warehouse
+              productsApiList(callback) {
+                yandexService.getApiProductsList(callback);
+              },
+              // List of all products from DB with reference of WB product sku to product name
+              allVariations(callback) {
+                dbService.getAllVariations(
+                  {},
+                  "product yandexProduct",
+                  callback
+                );
+              },
+              // List of wb products from DB
+              yandexDbProducts(callback) {
+                dbService.getYandexProducts({}, callback);
+              },
+            },
+            cb
+          );
+        },
+        (results, cb) => {
+          const { productsApiList, allVariations, yandexDbProducts } = results;
 
-    // Filter outofstock products only
-    if (req.query.stock_status === "outofstock") {
-      products = products.filter((product) => {
-        return !product.warehouses?.[0].stocks.find(
-          (stockType) => stockType.type === "FIT"
-        )?.count;
-      });
-    }
+          const productsFormatRequests = productsApiList.map((product) => {
+            return async function () {
+              // Search fetched product from wb in DB
+              const yandexDbProduct = yandexDbProducts.find(
+                (yandexDbProduct) => yandexDbProduct.sku === product["shopSku"]
+              );
+              const variation = allVariations.find(
+                (variation) =>
+                  variation.yandexProduct?.sku === product["shopSku"]
+              );
 
-    // Prepare product list to print
-    const productsToPrint = products.map((product) => {
-      // Take product stock if outofstock filter isn't enabled
-      let productStocks = 0;
-      if (req.query.stock_status !== "outofstock") {
-        productStocks =
-          product.warehouses?.[0].stocks.find(
-            (stockType) => stockType.type === "FIT"
-          )?.count ?? 0;
+              const stock =
+                product.warehouses?.[0].stocks.find(
+                  (stockType) => stockType.type === "FIT"
+                )?.count ?? 0;
+
+              // Filtration
+              let isPassFilterArray = [];
+              // by stock status
+              if (req.query.stock_status === "outofstock") {
+                isPassFilterArray.push(stock <= 0);
+              }
+              // by actual (manual setup in DB)
+              switch (req.query.isActual) {
+                case "notActual":
+                  isPassFilterArray.push(yandexDbProduct?.isActual === false);
+                  break;
+                case "all":
+                  isPassFilterArray.push(true);
+                  break;
+                // Only actual by default
+                default:
+                  isPassFilterArray.push(yandexDbProduct?.isActual !== false);
+              }
+
+              if (isPassFilterArray.every((pass) => pass)) {
+                return {
+                  variationInnerId: variation?._id,
+                  marketProductInnerId: yandexDbProduct?._id,
+                  productSku: product.shopSku,
+                  productName:
+                    (variation?.product.name ?? "") +
+                    (["3 мл", "10 мл"].includes(variation?.volume)
+                      ? ` - ${variation?.volume}`
+                      : ""),
+                  productStock: stock,
+                };
+              }
+            };
+          });
+
+          async.parallel(productsFormatRequests, (err, products) => {
+            if (err) {
+              cb(err, null);
+              return;
+            }
+            // Ok
+            cb(null, [products, productsApiList]);
+          });
+        },
+      ],
+      (err, results) => {
+        if (err) {
+          console.log(err);
+          return res.status(400).json({
+            message: "Error while getting list of products. Try again later.",
+            err,
+          });
+        }
+
+        let [products, productsApiList] = results;
+
+        // Clear product list of undefined after async
+        products = products.filter((product) => !!product);
+
+        // Sorting
+        products.sort((product1, product2) =>
+          product1.productName.localeCompare(product2.productName)
+        );
+
+        res.render("yandex-stocks", {
+          title: "Yandex Stocks",
+          headers: {
+            SKU: "productSku",
+            Name: "productName",
+            FBS: "productStock",
+          },
+          updateBy: "productSku",
+          products,
+        });
+        dbService.updateYandexStocks(productsApiList);
       }
-
-      const productName = clearName(product.name);
-
-      return {
-        productSku: product.shopSku,
-        productName,
-        productStock: productStocks,
-      };
-    });
-
-    // Sorting
-    productsToPrint.sort((product1, product2) =>
-      product1.productName.localeCompare(product2.productName)
     );
-
-    res.render("yandex-stocks", {
-      token: process.env.YANDEX_OAUTHTOKEN,
-      title: "Yandex Stocks",
-      headers: {
-        SKU: "productSku",
-        Name: "productName",
-        FBS: "productStock",
-      },
-      products: productsToPrint,
-    });
   } catch (error) {
-    res
-      .status(400)
-      .send("Error while getting list of products. Try again later.");
+    console.log(error);
+    res.status(400).json({
+      message: "Error while getting list of products. Try again later.",
+      error,
+    });
   }
 };
 
-exports.updateStock = async (req, res) => {
+exports.updateApiStock = async (req, res) => {
   try {
     yandexService
-      .updateStock(req.query.sku, req.query.stock)
+      .updateApiStock(req.query.sku, req.query.stock)
       .then((response) => {
         res.send(JSON.stringify(response.data));
       })
       .catch((error) => {
         console.log(error);
-        res.status(500).json(error);
+        res.status(400).json(error);
       });
-  } catch (e) {
-    res
-      .status(400)
-      .send("Error while updating stock of product. Try again later.");
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      message: "Error while update stock of product. Try again later.",
+      error,
+    });
   }
 };

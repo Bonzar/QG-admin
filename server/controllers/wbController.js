@@ -1,8 +1,8 @@
 const wbService = require("../services/wbService");
-const productsDbService = require("../services/productsDbService");
+const dbService = require("../services/dbService");
 const async = require("async");
 
-exports.getProductsList = async (req, res) => {
+exports.getProductsListPage = async (req, res) => {
   try {
     async.waterfall(
       [
@@ -10,27 +10,24 @@ exports.getProductsList = async (req, res) => {
           async.parallel(
             {
               // List of all products fetched right from WB servers
-              productsInfoList(callback) {
-                wbService.getProductsInfoList(null, callback);
+              productsApiInfoList(callback) {
+                wbService.getApiProductsInfoList(null, callback);
               },
               // Stocks on our warehouse (for selling on WB)
-              productFbsStocks(callback) {
-                wbService.getProductFbsStocks(callback);
+              productApiFbsStocks(callback) {
+                wbService.getApiProductFbsStocks(callback);
               },
               // Stocks on WB warehouse
-              productFbwStocks(callback) {
-                wbService.getProductFbwStocks(callback);
+              productApiFbwStocks(callback) {
+                wbService.getApiProductFbwStocks(callback);
               },
               // List of all products from DB with reference of WB product sku to product name
-              allVariations(callback) {
-                productsDbService.getAllVariations(
-                  "product wbProduct",
-                  callback
-                );
+              allDbVariations(callback) {
+                dbService.getAllVariations({}, "product wbProduct", callback);
               },
               // List of wb products from DB
               wbDbProducts(callback) {
-                productsDbService.getWbProducts(callback);
+                dbService.getWbProducts({}, callback);
               },
             },
             cb
@@ -38,36 +35,46 @@ exports.getProductsList = async (req, res) => {
         },
         (results, cb) => {
           const {
-            productsInfoList,
-            productFbsStocks,
-            productFbwStocks,
-            allVariations,
+            productsApiInfoList,
+            productApiFbsStocks,
+            productApiFbwStocks,
+            allDbVariations,
             wbDbProducts,
           } = results;
 
-          const productsFormatRequests = productsInfoList.data["cards"].map(
+          // Get fbw stock data from db if request to api failed
+          let productFbwStocks = productApiFbwStocks;
+          if (!productFbwStocks) {
+            console.log("FBW stocks returned from DB.");
+            productFbwStocks = results.wbDbProducts.map((product) => {
+              return {
+                nmId: product.sku,
+                quantity: product.stock,
+              };
+            });
+          }
+
+          const productsFormatRequests = productsApiInfoList.data["cards"].map(
             (product) => {
               return async function () {
                 // Search fetched product from wb in DB
                 const wbDbProduct = wbDbProducts.find(
                   (wbDbProduct) => wbDbProduct.sku === product["nmID"]
                 );
-                const variation = allVariations.find(
+                const variation = allDbVariations.find(
                   (variation) => variation.wbProduct?.sku === product["nmID"]
                 );
 
                 const stockFBS =
-                  productFbsStocks["stocks"].find(
+                  productApiFbsStocks["stocks"].find(
                     (fbsStock) => fbsStock["nmId"] === product["nmID"]
                   )?.stock ?? 0;
 
                 const stockFBW =
                   productFbwStocks
                     .filter((fbwStock) => fbwStock["nmId"] === product["nmID"])
-                    .reduce(
-                      (total, current) => total + current.quantityFull,
-                      0
-                    ) ?? 0;
+                    .reduce((total, current) => total + current.quantity, 0) ??
+                  0;
 
                 // Filtration
                 let isPassFilterArray = [];
@@ -94,7 +101,8 @@ exports.getProductsList = async (req, res) => {
                     isPassFilterArray.push(stockFBS > 0 || stockFBW > 0);
                     break;
                 }
-                // by actual (manual setup)
+
+                // by actual (manual setup in DB)
                 switch (req.query.isActual) {
                   case "notActual":
                     isPassFilterArray.push(wbDbProduct?.isActual === false);
@@ -109,23 +117,35 @@ exports.getProductsList = async (req, res) => {
 
                 if (isPassFilterArray.every((pass) => pass)) {
                   return {
+                    variationInnerId: variation?._id,
+                    marketProductInnerId: wbDbProduct?._id,
                     barcode: variation?.wbProduct.barcode ?? "",
                     articleWb: product["nmID"],
                     article: product["vendorCode"],
-                    name: variation?.product.name ?? "",
+                    name:
+                      (variation?.product.name ?? "") +
+                      (["3 мл", "10 мл"].includes(variation?.volume)
+                        ? ` - ${variation?.volume}`
+                        : ""),
                     stockFBW,
                     stockFBS,
                   };
                 }
-                // }
               };
             }
           );
 
-          async.parallel(productsFormatRequests, cb);
+          async.parallel(productsFormatRequests, (err, products) => {
+            if (err) {
+              cb(err, null);
+              return;
+            }
+            // Ok
+            cb(null, [products, productApiFbwStocks, productsApiInfoList]);
+          });
         },
       ],
-      (err, products) => {
+      (err, results) => {
         if (err) {
           console.log(err);
           return res.status(400).json({
@@ -133,6 +153,8 @@ exports.getProductsList = async (req, res) => {
             err,
           });
         }
+
+        let [products, productApiFbwStocks, productsApiInfoList] = results;
 
         // Clear product list of undefined after async
         products = products.filter((product) => !!product);
@@ -145,13 +167,15 @@ exports.getProductsList = async (req, res) => {
         res.render("wb-stocks", {
           title: "WB Stocks",
           headers: {
-            Barcode: "barcode",
+            Article: "article",
             Name: "name",
             FBM: "stockFBW",
             FBS: "stockFBS",
           },
+          updateBy: "barcode",
           products,
         });
+        dbService.updateWbStocks(productsApiInfoList, productApiFbwStocks);
       }
     );
   } catch (error) {
@@ -163,9 +187,9 @@ exports.getProductsList = async (req, res) => {
   }
 };
 
-exports.updateStock = (req, res) => {
+exports.updateApiStock = (req, res) => {
   wbService
-    .updateStock(req.query.barcode, req.query.stock)
+    .updateApiStock(req.query.barcode, req.query.stock)
     .then((result) => {
       if (result["error"]) {
         return res

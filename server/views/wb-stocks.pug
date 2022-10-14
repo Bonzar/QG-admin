@@ -5,10 +5,14 @@ append scripts
     script(src="/scripts/table-filters.js" defer)
 
 block filters
-    a(class="btn table-filter--btn table-filter-name--stock_status_wb") Нет на FBS
-    a(class="btn table-filter--btn table-filter-name--stock_status_wb") Нет на FBW и FBS
-    a(class="btn table-filter--btn table-filter-name--stock_status_wb") Есть на FBS
-    a(class="btn table-filter--btn table-filter-name--stock_status_wb") Есть на FBW
-    a(class="btn table-filter--btn table-filter-name--stock_status_wb") Есть на FBW или FBS
-    a(class="btn table-filter--btn table-filter-name--isActual") Не актуальные
-    a(class="btn table-filter--btn table-filter-name--isActual") Все по актуальности
+    a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--outofstock") Нет на FBS
+    a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--outofstockall") Нет на FBW и FBS
+    a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--instockFBS") Есть на FBS
+    a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--instockFBM") Есть на FBW
+    a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--instockSome") Есть на FBW или FBS
+    a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--notActual") Не актуальные
+    a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--all") Все по актуальности
+
+block after-table
+    p
+        a.btn.addTokenToHref(href="/stocks/wb/new") Добавить товар Wildberries

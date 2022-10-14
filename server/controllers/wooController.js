@@ -62,6 +62,7 @@ exports.getStockUpdateInfo = async (req, res) => {
 
 exports.updateStock = (req, res) => {
   try {
+    console.log(req.body);
     wooService
       .updateStock(req.body)
       .then(() => {

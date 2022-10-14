@@ -4,15 +4,11 @@ const urlParams = new URLSearchParams(window.location.search.slice(1));
 for (const { param, value } of [
   {
     param: "stock_status",
-    value: ["outofstock", "outofstockall"],
-  },
-  {
-    param: "stock_status_wb",
     value: [
       "outofstock",
       "outofstockall",
       "instockFBS",
-      "instockFBW",
+      "instockFBM",
       "instockSome",
     ],
   },
@@ -24,7 +20,9 @@ for (const { param, value } of [
   const filterBtns = document.querySelectorAll(`.table-filter-name--${param}`);
 
   for (let i = 0; i < filterBtns.length; i++) {
-    const filterBtn = filterBtns[i];
+    const filterBtn = document.querySelector(
+      `.table-filter-value--${value[i]}`
+    );
 
     if (
       urlParams.get(param) === value[i] &&

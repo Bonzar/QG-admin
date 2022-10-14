@@ -1,6 +1,28 @@
 export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
   const updateStockListener = function (e) {
     const cell = e.target;
+
+    // redirect to variation page
+    if (
+      cell.classList.value.includes("col--name") &&
+      cell.nodeName === "TD" &&
+      cell.id
+    ) {
+      window.location.href = `/stocks/variation/${cell.id.split("-")[1]}`;
+    }
+
+    // redirect to market product page
+    if (
+      cell === cell.parentElement.firstElementChild &&
+      cell.nodeName === "TD" &&
+      cell.id
+    ) {
+      window.location.href = `/stocks/${tableHtml.id.split("-")[0]}/${
+        cell.id.split("-")[1]
+      }`;
+    }
+
+    // stock change form on stock click
     if (
       cell.classList.value.includes("col--fbs") &&
       cell.nodeName === "TD" &&
@@ -22,8 +44,9 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
           const newStockValue = form.querySelector(
             ".change-stock--input-number"
           ).value;
-          const idUpdate =
-            cell.parentElement.querySelector("td:first-of-type").textContent;
+          const idUpdate = cell.parentElement
+            .querySelector("td.col--name")
+            .getAttribute("updateBy");
 
           document.removeEventListener("click", exitUpdateStockListener);
 

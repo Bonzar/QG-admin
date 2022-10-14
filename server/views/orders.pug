@@ -26,6 +26,6 @@ block content
                                 td.col--products
                                   each product, index  in order.products
                                     | #{product.name} x #{product.quantity} шт.
-                                    i.product-article (#{product.article})
+                                    i.product-description (#{product.article})
                                     if index + 1 !== order.products.length
                                       hr
