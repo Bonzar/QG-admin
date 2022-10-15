@@ -46,7 +46,12 @@ h3 {
   font-size: 1.8rem;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: #081150;
   font-weight: 600;
 }
@@ -108,6 +113,7 @@ hr {
   border-radius: 25px;
   display: inline-block;
   text-decoration: none;
+  font-weight: 700;
   color: white;
   box-shadow: 2px 4px 11px -3px rgba(0, 0, 0, 0.28);
   border: solid 1px #7b7b7b3d;
@@ -121,7 +127,8 @@ hr {
 
 /* Navigation */
 header {
-  background: #cccccc;
+  background: #b980d2;
+  box-shadow: 1px 8px 19px -14px white;
   margin: 0 0 1rem;
   position: sticky;
   top: 0;
@@ -156,14 +163,24 @@ header a {
   color: #fff;
 }
 
-/* Index page */
-.stock-tables--list {
-  padding: 0;
-  list-style: none;
+/* Navigation links block on page */
+.nav-links--block {
+  display: flex;
+  justify-content: space-between;
+  flex-flow: row wrap;
+}
+
+.nav-links--btn {
+  /* To usage with .btn class on links */
+  flex: auto;
+  margin: 6px;
+  padding: 10px;
+  text-align: center;
 }
 
 /* Stocks and Orders Table */
-.stocks-table, .orders-table {
+.stocks-table,
+.orders-table {
   border-collapse: collapse;
   background-color: rgba(225, 167, 255, 0.2);
   border-radius: 25px;
@@ -223,8 +240,9 @@ header a {
 /* table cells */
 .stocks-table th,
 .orders-table th {
-  background: #ccc;
+  background: #b980d2;
   text-align: center;
+  color: white;
 }
 
 .stocks-table th,
@@ -236,14 +254,14 @@ header a {
 
 .stocks-table tr:nth-child(even),
 .orders-table tr:nth-child(even) {
-  background: #efefef;
+  background: rgba(255, 255, 255, 0.85);
 }
+
 
 .stocks-table tr:hover,
 .orders-table tr:hover {
-  background: #d1d1d155;
+  background: #ce60ff26;
 }
-
 
 /* Order table cols */
 .orders-table .col--number {
@@ -280,12 +298,12 @@ header a {
   word-break: break-word;
 }
 
-
 /* Stocks table cols */
 .stocks-table .col--sku,
 .stocks-table .col--article,
 .stocks-table .col--barcode {
   width: 13rem;
+  word-break: break-all;
 }
 
 .stocks-table td.col--sku,
@@ -294,8 +312,13 @@ header a {
   overflow: hidden;
 }
 
-.stocks-table .col--fbm,
+.stocks-table .col--fbm {
+  width: 5.5rem;
+}
 .stocks-table .col--fbs {
+  width: 13rem;
+}
+.stocks-table .col--fbm ~ .col--fbs {
   width: 5.5rem;
 }
 
@@ -315,7 +338,11 @@ header a {
 
 .table-filter--btn {
   box-shadow: 2px 4px 8px -4px rgba(0, 0, 0, 0.28);
-  background-color: rgba(135, 95, 95, 0.22);
+  font-weight: 700;
+  color: rgb(154, 154, 154);
+  background: rgba(255, 255, 255, 0.23);
+  border-width: 3px;
+  border-color: rgba(154, 154, 154, 0.45);
 }
 
 .table-filter--btn:not(:last-of-type) {
@@ -323,7 +350,9 @@ header a {
 }
 
 .table-filter--btn-active {
-  background-color: #c60e0e8c;
+  background-color: #b980d2;
+  color: white;
+  border-color: white;
 }
 
 .stocks-table .col--fbs {
@@ -351,11 +380,12 @@ header a {
 .change-stock--submit-button {
   position: absolute;
   font-size: 1.2rem;
-  transform: translateY(-50%);
-  top: 50%;
-  right: 100%;
+  transform: unset;
+  top: calc(100% + 3px);
+
+  right: 0;
   height: 30px;
-  margin: 0 5px 0 0;
+  margin: 3px 0;
 }
 
 .change-stock--input-number {
@@ -405,6 +435,12 @@ header a {
 
 #site-stocks .change-stock--submit-button {
   margin: 0;
+  position: absolute;
+  font-size: 1.2rem;
+  transform: translateY(-50%);
+  top: 50%;
+  right: 100%;
+  height: 30px;
 }
 
 /* Login page */
@@ -427,7 +463,6 @@ header a {
   width: 150px;
   margin: 0 0.4rem;
 }
-
 
 /* MOBILE LAYOUT */
 @media screen and (max-width: 420px) {
@@ -494,5 +529,9 @@ header a {
     position: sticky;
     top: 0;
     line-height: 26px;
+  }
+
+  .change-stock--submit-button {
+    top: calc(100% + 4.5px);
   }
 }

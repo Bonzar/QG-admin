@@ -21,7 +21,7 @@ exports.getProductsListPage = async (req, res) => {
                   callback
                 );
               },
-              // List of wb products from DB
+              // List of yandex products from DB
               yandexDbProducts(callback) {
                 dbService.getYandexProducts({}, callback);
               },

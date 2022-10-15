@@ -2,12 +2,12 @@ extends layout
 
 block content
     h1= title
-    ul.stock-tables--list
-        li
-            a(href="/stocks/woo") Сайт
-        li
-            a(href="/stocks/ozon") Ozon
-        li
-            a(href="/stocks/yandex") Яндекс Маркет
-        li
-            a(href="/stocks/wb") Wilderries
+    nav.nav-links--block
+        a.btn.nav-links--btn(href="/stocks/woo") Сайт
+        a.btn.nav-links--btn(href="/stocks/ozon") Ozon
+        a.btn.nav-links--btn(href="/stocks/yandex") Яндекс Маркет
+        a.btn.nav-links--btn(href="/stocks/wb") Wilderries
+    h2 База Данных
+    nav.nav-links--block
+        a.btn.nav-links--btn(href="/stocks/yandex/new") Добавить товар Yandex
+        a.btn.nav-links--btn(href="/stocks/wb/new") Добавить товар Wildberries
