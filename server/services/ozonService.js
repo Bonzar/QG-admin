@@ -10,7 +10,7 @@ const getHeadersRequire = () => {
   };
 };
 
-exports.getProductsStockList = async () => {
+exports.getProductsStockList = async (filter = { visibility: "ALL" }) => {
   const config = {
     method: "post",
     url: "https://api-seller.ozon.ru/v3/product/info/stocks",
@@ -18,7 +18,7 @@ exports.getProductsStockList = async () => {
       ...getHeadersRequire(),
     },
     data: {
-      filter: { visibility: "ALL" },
+      filter,
       last_id: "",
       limit: 1000,
     },
@@ -50,20 +50,33 @@ exports.getProductsInfo = async (ids) => {
     });
 };
 
-exports.getProductsList = async () => {
-  const productsStockList = (await module.exports.getProductsStockList()).result
-    .items;
+exports.getApiProductsList = async (filter, callback) => {
+  try {
+    const productsStockList = (
+      await module.exports.getProductsStockList(filter)
+    ).result.items;
 
-  const productsIds = productsStockList.map((product) => product.product_id);
+    const productsIds = productsStockList.map((product) => product.product_id);
 
-  const productsInfo = (await module.exports.getProductsInfo(productsIds))
-    .result.items;
+    const productsInfo = (await module.exports.getProductsInfo(productsIds))
+      .result.items;
 
-  // Products list with article, name and stocks fields
-  return { productsInfo, productsStockList };
+    // Products list with article, name and stocks fields
+    if (callback) {
+      return callback(null, { productsInfo, productsStockList });
+    }
+    return { productsInfo, productsStockList };
+  } catch (e) {
+    console.log(e);
+    if (callback) {
+      callback(e, null);
+      return;
+    }
+    return e;
+  }
 };
 
-exports.updateStock = async (offer_id, stock) => {
+exports.updateApiStock = async (offer_id, stock, callback) => {
   try {
     const config = {
       method: "post",
@@ -81,11 +94,20 @@ exports.updateStock = async (offer_id, stock) => {
       },
     };
 
-    return await axios(config).then((response) => {
+    const result = await axios(config).then((response) => {
       return response.data;
     });
+
+    if (!callback) {
+      return result;
+    }
+    callback(null, result);
   } catch (e) {
     console.log(e);
+    if (!callback) {
+      return new Error(e);
+    }
+    callback(e, null);
   }
 };
 
@@ -218,7 +240,7 @@ exports.getOzonShipment = async () => {
 
   const getProductsFullInfo = async (callback) => {
     try {
-      const ProductsFullInfo = await module.exports.getProductsList();
+      const ProductsFullInfo = await module.exports.getApiProductsList();
       return callback(null, ProductsFullInfo);
     } catch (e) {
       console.log(e);

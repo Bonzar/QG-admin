@@ -24,9 +24,11 @@ exports.getApiSkusList = async () => {
     });
 };
 
-exports.getApiProductsList = async (callback) => {
+exports.getApiProductsList = async (skusList = [], callback) => {
   try {
-    const skusList = await module.exports.getApiSkusList();
+    if (skusList.length <= 0) {
+      skusList = await module.exports.getApiSkusList();
+    }
 
     const config = {
       method: "post",
@@ -58,33 +60,46 @@ exports.getApiProductsList = async (callback) => {
   }
 };
 
-exports.updateApiStock = async (sku, stockCount) => {
-  const config = {
-    method: "put",
-    url: "https://api.partner.market.yandex.ru/v2/campaigns/21938028/offers/stocks.json",
-    headers: {
-      ...getHeadersRequire(),
-    },
-    data: {
-      skus: [
-        {
-          sku,
-          warehouseId: 52301,
-          items: [
-            {
-              type: "FIT",
-              count: stockCount,
-              updatedAt: new Date().toISOString(),
-            },
-          ],
-        },
-      ],
-    },
-  };
+exports.updateApiStock = async (sku, stockCount, callback) => {
+  try {
+    const config = {
+      method: "put",
+      url: "https://api.partner.market.yandex.ru/v2/campaigns/21938028/offers/stocks.json",
+      headers: {
+        ...getHeadersRequire(),
+      },
+      data: {
+        skus: [
+          {
+            sku,
+            warehouseId: 52301,
+            items: [
+              {
+                type: "FIT",
+                count: stockCount,
+                updatedAt: new Date().toISOString(),
+              },
+            ],
+          },
+        ],
+      },
+    };
 
-  return await axios(config).then((response) => {
-    return response.data;
-  });
+    const result = await axios(config).then((response) => {
+      return response.data;
+    });
+
+    if (!callback) {
+      return result;
+    }
+    callback(null, result);
+  } catch (e) {
+    console.log(e);
+    if (!callback) {
+      return new Error(e);
+    }
+    callback(e, null);
+  }
 };
 
 exports.getApiTodayOrders = async () => {

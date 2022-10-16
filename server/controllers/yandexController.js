@@ -11,7 +11,7 @@ exports.getProductsListPage = async (req, res) => {
             {
               // Stocks on WB warehouse
               productsApiList(callback) {
-                yandexService.getApiProductsList(callback);
+                yandexService.getApiProductsList([], callback);
               },
               // List of all products from DB with reference of WB product sku to product name
               allVariations(callback) {

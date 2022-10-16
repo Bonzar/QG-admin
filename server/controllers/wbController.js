@@ -15,7 +15,7 @@ exports.getProductsListPage = async (req, res) => {
               },
               // Stocks on our warehouse (for selling on WB)
               productApiFbsStocks(callback) {
-                wbService.getApiProductFbsStocks(callback);
+                wbService.getApiProductFbsStocks("", callback);
               },
               // Stocks on WB warehouse
               productApiFbwStocks(callback) {
@@ -93,7 +93,7 @@ exports.getProductsListPage = async (req, res) => {
                     isPassFilterArray.push(stockFBS > 0);
                     break;
                   // Filter only instock on FBW products
-                  case "instockFBW":
+                  case "instockFBM":
                     isPassFilterArray.push(stockFBW > 0);
                     break;
                   // Filter only instock on FBW or FBS products (some of them)

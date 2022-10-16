@@ -2,15 +2,17 @@ const ProductVariation = require("../models/ProductVariation");
 const Product = require("../models/Product");
 const WbProduct = require("../models/WbProduct");
 const YandexProduct = require("../models/YandexProduct");
+const OzonProduct = require("../models/OzonProduct");
 const async = require("async");
 
 const yandexService = require("./yandexService");
 const wbService = require("./wbService");
+const ozonService = require("./ozonService");
 
-exports.getProductInfo = async (id, callback) => {
+exports.getProductVariationById = async (id, populate = "", callback) => {
   try {
     const result = await ProductVariation.findById(id)
-      .populate("product yandexProduct wbProduct")
+      .populate(populate)
       .exec();
 
     if (callback) {
@@ -81,269 +83,294 @@ exports.getYandexProducts = async (filter = {}, callback) => {
   }
 };
 
-exports.addMarketProduct = async (marketProductData, callback) => {
-  await async.waterfall(
-    [
-      (callback) => {
-        const marketProductDetails = {};
+exports.getOzonProducts = async (filter = {}, callback) => {
+  try {
+    const result = await OzonProduct.find(filter).exec();
 
-        if (marketProductData.sku) {
-          marketProductDetails.sku = marketProductData.sku;
-        }
-        if (marketProductData.article) {
-          marketProductDetails.article = marketProductData.article;
-        }
-        if (marketProductData.barcode) {
-          marketProductDetails.barcode = marketProductData.barcode;
-        }
-        if (marketProductData.stockFBS) {
-          marketProductDetails.stockFBS = marketProductData.stockFBS;
-        }
-        switch (marketProductData.isActual) {
-          case "true":
-            marketProductDetails.isActual = true;
-            break;
-          case "false":
-            marketProductDetails.isActual = false;
-            break;
-          default:
-            marketProductDetails.isActual = true;
-        }
-
-        let newMarketProduct = null;
-        switch (marketProductData.marketType) {
-          case "wb":
-            newMarketProduct = new WbProduct(marketProductDetails);
-            break;
-          case "yandex":
-            newMarketProduct = new YandexProduct(marketProductDetails);
-            break;
-        }
-        if (newMarketProduct) {
-          newMarketProduct.save(callback);
-        } else {
-          callback(
-            new Error("Неверный тип маркетплейса на добавление продукта"),
-            null
-          );
-        }
-      },
-      (newMarketProduct, callback) => {
-        Product.findById(marketProductData.product_id).exec((err, product) => {
-          if (err) {
-            callback(err, null);
-            return;
-          }
-
-          callback(null, [newMarketProduct, product]);
-        });
-      },
-      (result, callback) => {
-        const [newMarketProduct, product] = result;
-
-        ProductVariation.findOne(
-          {
-            product,
-            volume: marketProductData.variation_volume,
-          },
-          (err, variation) => {
-            if (err) {
-              callback(err, null);
-              return;
-            }
-
-            callback(null, [newMarketProduct, variation]);
-          }
-        );
-      },
-      (result, callback) => {
-        const [newMarketProduct, variation] = result;
-
-        const updateRef = `${marketProductData.marketType}Product`;
-
-        if (variation[updateRef]) {
-          callback(
-            new Error(
-              `К вариации уже привязан продукт ${variation[updateRef]}`
-            ),
-            null
-          );
-          return;
-        }
-
-        variation[updateRef] = newMarketProduct;
-
-        variation.save((err) => {
-          if (err) {
-            callback(err, null);
-            return;
-          }
-
-          callback(null, newMarketProduct);
-        });
-      },
-    ],
-    callback
-  );
+    if (callback) {
+      return callback(null, result);
+    }
+    return result;
+  } catch (e) {
+    console.log(e);
+    callback(e, null);
+  }
 };
 
-exports.updateMarketProduct = async (marketProductData, cb) => {
-  await async.waterfall(
-    [
-      (callback) => {
-        switch (marketProductData.marketType) {
-          case "wb":
-            WbProduct.findById(marketProductData._id).exec(callback);
-            break;
-          case "yandex":
-            YandexProduct.findById(marketProductData._id).exec(callback);
-            break;
-        }
-      },
-      (marketProduct, callback) => {
-        const marketProductUpdateDetails = {};
+exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
+  const marketProp = `${marketProductData.marketType}Product`;
 
-        if (marketProductData.sku) {
-          marketProductUpdateDetails.sku = marketProductData.sku;
-        }
-        if (marketProductData.id) {
-          marketProductUpdateDetails.id = marketProductData.id;
-        }
-        if (marketProductData.article) {
-          marketProductUpdateDetails.article = marketProductData.article;
-        }
-        if (marketProductData.barcode) {
-          marketProductUpdateDetails.barcode = marketProductData.barcode;
-        }
-        if (marketProductData.stockFBS) {
-          marketProductUpdateDetails.stockFBS = marketProductData.stockFBS;
-        }
-        switch (marketProductData.isActual) {
-          case "true":
-            marketProductUpdateDetails.isActual = true;
-            break;
-          case "false":
-            marketProductUpdateDetails.isActual = false;
-            break;
-          default:
-            marketProductUpdateDetails.isActual = true;
-        }
-        if (marketProduct) {
-          for (const [key, value] of Object.entries(
-            marketProductUpdateDetails
-          )) {
-            marketProduct[key] = value;
-          }
-          marketProduct.save((err) => {
-            if (err) {
-              console.log(err);
-              callback(err, null);
-            }
+  // Получение продукта в зависимости от типа маркетплейса
+  let marketProduct = null;
+  let allApiProducts = null;
 
-            callback(null, marketProduct);
-          });
-        } else {
-          callback(
-            new Error("Неверный тип маркетплейса на добавление продукта"),
-            null
-          );
-        }
-      },
-      (marketProduct, callback) => {
-        // Если не указан product_id продкута -> далее
-        if (!marketProductData.product_id)
-          return callback(null, [marketProduct, null]);
+  if (!["wb", "yandex", "ozon"].includes(marketProductData.marketType))
+    return cbFunc(new Error("Не верный тип маркетплейса."));
 
-        Product.findById(marketProductData.product_id).exec((err, product) => {
-          if (err) {
-            callback(err, null);
-            return;
-          }
-          callback(null, [marketProduct, product]);
-        });
-      },
-      (result, callback) => {
-        const [marketProduct, product] = result;
-        // Если не указан product_id продкута -> далее
-        if (!marketProductData.product_id)
-          return callback(null, [marketProduct, null]);
+  switch (marketProductData.marketType) {
+    case "wb":
+      marketProduct = await WbProduct.findById(marketProductData._id).exec();
+      allApiProducts = (await wbService.getApiProductsInfoList()).data["cards"];
+      break;
+    case "yandex":
+      marketProduct = await YandexProduct.findById(
+        marketProductData._id
+      ).exec();
+      allApiProducts = await yandexService.getApiSkusList();
+      break;
+    case "ozon":
+      marketProduct = await OzonProduct.findById(marketProductData._id).exec();
+      allApiProducts = (await ozonService.getProductsStockList()).result.items;
+      break;
+  }
 
-        console.log(product);
+  // Обновления
+  await async.parallel(
+    {
+      // Обновление продукта маркетплейса
+      marketProductUpdate(cbPart) {
+        async.waterfall(
+          [
+            (callback) => {
+              const marketProductDetails = {};
 
-        ProductVariation.findOne(
-          {
-            product,
-            volume: marketProductData.variation_volume,
-          },
-          (err, variation) => {
-            if (err) {
-              callback(err, null);
-              return;
-            }
-            callback(null, [marketProduct, variation]);
-          }
-        );
-      },
-      (results, callback) => {
-        const [marketProduct, variation] = results;
+              if (marketProductData.sku) {
+                marketProductDetails.sku = marketProductData.sku;
+              }
+              if (marketProductData.id) {
+                marketProductDetails.id = marketProductData.id;
+              }
+              if (marketProductData.article) {
+                marketProductDetails.article = marketProductData.article;
+              }
+              if (marketProductData.barcode) {
+                marketProductDetails.barcode = marketProductData.barcode;
+              }
+              switch (marketProductData.isActual) {
+                case "true":
+                  marketProductDetails.isActual = true;
+                  break;
+                case "false":
+                  marketProductDetails.isActual = false;
+                  break;
+                default:
+                  marketProductDetails.isActual = true;
+              }
 
-        const updateRef = `${marketProductData.marketType}Product`;
+              let isProductExistsOnMarketplace = false;
+              switch (marketProductData.marketType) {
+                case "wb":
+                  isProductExistsOnMarketplace = allApiProducts.find(
+                    (product) => +product["nmID"] === +marketProductData.sku
+                  );
+                  break;
+                case "yandex":
+                  isProductExistsOnMarketplace = allApiProducts.includes(
+                    marketProductData.sku
+                  );
+                  break;
+                case "ozon":
+                  isProductExistsOnMarketplace = [
+                    allApiProducts.find(
+                      (product) =>
+                        +product.product_id === +marketProductData.sku
+                    ),
+                    allApiProducts.find(
+                      (product) =>
+                        product.offer_id === marketProductData.article
+                    ),
+                  ].every((check) => check);
+                  break;
+              }
 
-        // В случае когда нет product_id нужно найти вариацию которую отчищать
-        if (!variation) {
-          ProductVariation.findOne(
-            { [updateRef]: marketProductData._id },
-            (err, result) => {
-              if (err) {
-                callback(err, null);
+              if (!isProductExistsOnMarketplace) {
+                callback(
+                  new Error(
+                    "Идентификатор товара не существует в базе маркетплейса"
+                  ),
+                  null
+                );
                 return;
               }
 
-              callback(null, [marketProduct, result]);
-            }
-          );
+              if (!marketProduct) {
+                switch (marketProductData.marketType) {
+                  case "wb":
+                    marketProduct = new WbProduct(marketProductDetails);
+                    break;
+                  case "yandex":
+                    marketProduct = new YandexProduct(marketProductDetails);
+                    break;
+                  case "ozon":
+                    marketProduct = new OzonProduct(marketProductDetails);
+                    break;
+                }
+              } else {
+                for (const [key, value] of Object.entries(
+                  marketProductDetails
+                )) {
+                  marketProduct[key] = value;
+                }
+              }
+
+              marketProduct.save((err) => {
+                if (err) {
+                  console.log(err);
+                  callback(err, null);
+                  return;
+                }
+
+                callback(null, marketProduct);
+              });
+            },
+          ],
+          cbPart
+        );
+      },
+      // Обновление остатков продкута
+      fbsStockUpdate(cbPart) {
+        if (!marketProductData.stockFBS) {
+          cbPart(null, null);
           return;
         }
 
-        callback(null, [marketProduct, variation]);
-      },
-      (results, callback) => {
-        const [marketProduct, variation] = results;
-
-        const updateRef = `${marketProductData.marketType}Product`;
-
-        // Если до сих пор нет вариации, значит product_id не указан и существующей вариации со связью нет -> все уже готово
-        if (!variation) return callback(null, marketProduct);
-
-        // Если не указан id продкута -> удаляем связь продкта маркетплейса и вариации
-        if (!marketProductData.product_id) {
-          variation[updateRef] = undefined;
-          // Иначе устанавливаем новую
-        } else {
-          if (variation[updateRef]) {
-            callback(
-              new Error(
-                `К вариации уже привязан продукт ${variation[updateRef]}`
-              ),
-              null
+        switch (marketProductData.marketType) {
+          case "wb":
+            wbService.updateApiStock(
+              marketProductData.barcode,
+              marketProductData.stockFBS,
+              cbPart
             );
-            return;
-          }
-
-          variation[updateRef] = marketProduct;
+            break;
+          case "yandex":
+            yandexService.updateApiStock(
+              marketProductData.sku,
+              marketProductData.stockFBS,
+              cbPart
+            );
+            break;
+          case "ozon":
+            ozonService.updateApiStock(
+              marketProductData.article,
+              marketProductData.stockFBS,
+              cbPart
+            );
+            break;
         }
-
-        variation.save((err) => {
-          if (err) {
-            callback(err, null);
-            return;
-          }
-
-          callback(null, marketProduct);
-        });
       },
-    ],
-    cb
+      // Обновление вариации
+      variationUpdate(cbPart) {
+        async.waterfall(
+          [
+            // Обновление вариации 1. Поиск новой и старой вариации
+            (callback) => {
+              async.parallel(
+                {
+                  oldVariation(callback) {
+                    ProductVariation.findOne(
+                      {
+                        [marketProp]: marketProduct,
+                      },
+                      callback
+                    );
+                  },
+                  newVariation(callback) {
+                    Product.findById(marketProductData.product_id).exec(
+                      (err, product) => {
+                        ProductVariation.findOne(
+                          {
+                            product,
+                            volume: marketProductData.variation_volume,
+                          },
+                          callback
+                        );
+                      }
+                    );
+                  },
+                  marketProduct(callback) {
+                    callback(null, marketProduct);
+                  },
+                },
+                callback
+              );
+            },
+            // Обновление вариации 2. Удаление старой привязки при необходимости
+            (results, callback) => {
+              const { newVariation, oldVariation, marketProduct } = results;
+
+              // Вариация не требует обновления
+              if (
+                oldVariation &&
+                newVariation &&
+                oldVariation?.[marketProp].toString() ===
+                  newVariation?.[marketProp]?.toString()
+              ) {
+                cbPart(null, marketProduct);
+                return;
+              }
+
+              // Вариация связана с другим продуктом
+              if (newVariation?.[marketProp]) {
+                callback(
+                  new Error(
+                    `Вариация уже связана с другим продуктом - ${newVariation[marketProp]._id}`
+                  ),
+                  marketProduct
+                );
+                return;
+              }
+
+              if (!newVariation && marketProductData.product_id) {
+                callback(
+                  new Error(
+                    `Вариация c объемом: ${marketProductData.variation_volume} для продукта: ${marketProductData.product_id} не найдена.`
+                  ),
+                  marketProduct
+                );
+                return;
+              }
+
+              // Если старая вариация найдена -> удаляем связь
+              if (oldVariation) {
+                oldVariation[marketProp] = undefined;
+                oldVariation.save((err) => {
+                  if (err) {
+                    callback(err, null);
+                    return;
+                  }
+
+                  callback(null, { newVariation, marketProduct });
+                });
+                return;
+              }
+
+              callback(null, { newVariation, marketProduct });
+            },
+            // Обновление вариации 3. Создание новой связи при необходимости
+            (results, callback) => {
+              const { newVariation, marketProduct } = results;
+
+              // Если новая вариация указана -> создаем связь
+              if (newVariation) {
+                newVariation[marketProp] = marketProduct;
+                newVariation.save((err) => {
+                  if (err) {
+                    callback(err, null);
+                    return;
+                  }
+
+                  callback(null, marketProduct);
+                });
+                return;
+              }
+              callback(null, marketProduct);
+            },
+          ],
+          cbPart
+        );
+      },
+    },
+    cbFunc
   );
 };
 
@@ -368,9 +395,46 @@ exports.updateYandexStocks = async (productsApiList) => {
       };
     });
 
-    await async.parallel(productsFormatRequests);
+    async.parallel(productsFormatRequests);
   } catch (e) {
     console.log({ message: "Yandex stocks in db update failed.", e });
+  }
+};
+
+exports.updateOzonStocks = async (productsApiList) => {
+  try {
+    if (!productsApiList) {
+      productsApiList = await ozonService.getApiProductsList();
+    }
+
+    const { productsInfo, productsStockList } = productsApiList;
+
+    const productsFormatRequests = productsInfo.map((product) => {
+      return function (callback) {
+        const productStocks = productsStockList.find(
+          (stockInfo) => stockInfo.product_id === product.id
+        );
+
+        const stockFBO = productStocks.stocks[0]?.present ?? 0;
+        const stockFBS = productStocks.stocks[1]?.present ?? 0;
+
+        const updatedProduct = OzonProduct.findOneAndUpdate(
+          { sku: product.id },
+          { stock: stockFBO, stockFBS },
+          (err) => {
+            if (err) {
+              callback(err, null);
+              return;
+            }
+            callback(null, updatedProduct);
+          }
+        );
+      };
+    });
+
+    async.parallel(productsFormatRequests);
+  } catch (e) {
+    console.log({ message: "Ozon stocks in db update failed.", e });
   }
 };
 
@@ -382,6 +446,9 @@ exports.updateWbStocks = async (productsApiList, productFbwStocks) => {
     if (!productFbwStocks) {
       productFbwStocks = await wbService.getApiProductFbwStocks();
     }
+
+    if (!productFbwStocks)
+      return console.log({ message: "Wb stocks in db update failed." });
 
     const productsFormatRequests = productsApiList.data["cards"].map(
       (product) => {
@@ -406,7 +473,7 @@ exports.updateWbStocks = async (productsApiList, productFbwStocks) => {
       }
     );
 
-    await async.parallel(productsFormatRequests);
+    async.parallel(productsFormatRequests);
   } catch (e) {
     console.log({ message: "Wb stocks in db update failed.", e });
   }

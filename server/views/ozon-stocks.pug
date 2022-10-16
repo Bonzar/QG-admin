@@ -7,3 +7,9 @@ append scripts
 block filters
     a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--outofstockall") Нет на FBO и FBS
     a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--outofstock") Нет на FBS
+    a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--notActual") Не актуальные
+    a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--all") Все по актуальности
+
+block after-table
+    p
+        a.btn.addTokenToHref(href="/stocks/ozon/new") Новый товар Ozon

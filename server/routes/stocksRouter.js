@@ -5,8 +5,9 @@ const ozon_controller = require("../controllers/ozonController");
 const wb_controller = require("../controllers/wbController");
 const yandex_controller = require("../controllers/yandexController");
 const woocommerce_controller = require("../controllers/wooController");
-const productDbController = require("../controllers/productDbController");
+const productDbController = require("../controllers/dbController");
 const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
 const { body } = require("express-validator");
 
@@ -44,7 +45,7 @@ const productAddSanitizers = [
 ];
 
 // Get request for list of all Ozon products
-router.get("/ozon", ozon_controller.getProductsList);
+router.get("/ozon", ozon_controller.getProductsListPage);
 
 // Post request for update Ozon stock info of product
 router.post("/ozon/update_stock", authMiddleware, ozon_controller.updateStock);
@@ -74,10 +75,10 @@ router.get("/:marketType/new", productDbController.getDbMarketProductPage);
 // Post request for add new Marketplace product to DB
 router.post(
   "/:marketType/new",
-  authMiddleware,
+  roleMiddleware(["ADMIN"]),
   body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
   productAddSanitizers,
-  productDbController.addDbMarketProduct
+  productDbController.addUpdateDbMarketProduct
 );
 
 // Get request for page - update Marketplace product to DB
@@ -89,10 +90,10 @@ router.get(
 // Post request for update new Marketplace product (DB)
 router.post(
   "/:marketType/:product_id",
-  authMiddleware,
+  roleMiddleware(["ADMIN"]),
   body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
   productAddSanitizers,
-  productDbController.updateDbMarketProduct
+  productDbController.addUpdateDbMarketProduct
 );
 
 module.exports = router;

@@ -26,7 +26,7 @@ submitButton.addEventListener("click", function () {
   if (updateProps.marketType) {
     let request;
 
-    const productUpdateId = document.querySelector('input[name="_id"]');
+    const productUpdateId = document.querySelector('input[name="_id"]').value;
     // Если есть поле с id товара, значит его нужно обновить
     if (productUpdateId) {
       request = fetch(
@@ -55,13 +55,14 @@ submitButton.addEventListener("click", function () {
     request
       .then((response) => {
         if (response.ok) {
-          window.location.href = `/stocks/${updateProps.marketType.toLowerCase()}`;
+          window.location.href = "";
           return;
         }
         return response;
       })
       // response body to text
       .then((response) => {
+        if (!response) return;
         const reader = response.body.getReader();
 
         const stream = new ReadableStream({
@@ -90,9 +91,10 @@ submitButton.addEventListener("click", function () {
         }).text();
       })
       .then((result) => {
-        if (result) {
-          alert(result);
-        }
+        if (!result) return;
+
+        alert(result);
+        window.location.href = "";
       })
       .catch((error) => console.log(error));
   } else {

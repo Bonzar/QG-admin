@@ -11,26 +11,27 @@ block content
                 block table-stock-headers
                   each header in Object.keys(headers)
                       th(class=`col--${header.toLowerCase()}`) #{header}
-        tbody
-            block table-stock-body
-              each product in products
-                  tr
-                    each prop in Object.entries(headers)
-                        - let variationId = (prop[0].toLowerCase() === 'name' && product.variationInnerId ? `variation-${product.variationInnerId}` : '')
-                        - let marketProductId = (['article', 'sku', 'id', 'barcode'].includes(prop[0].toLowerCase()) && product.marketProductInnerId ? `marketProduct-${product.marketProductInnerId}` : '')
+        if products.length > 0
+            tbody
+                block table-stock-body
+                  each product in products
+                      tr
+                        each prop in Object.entries(headers)
+                            - let variationId = (prop[0].toLowerCase() === 'name' && product.variationInnerId ? `variation-${product.variationInnerId}` : '')
+                            - let marketProductId = (['article', 'sku', 'id', 'barcode'].includes(prop[0].toLowerCase()) && product.marketProductInnerId ? `marketProduct-${product.marketProductInnerId}` : '')
 
-                        td( class=`col--${prop[0].toLowerCase()}`
-                            id=(variationId ? variationId : marketProductId)
-                            updateBy=`${prop[0].toLowerCase() === 'name' ? product[updateBy] : ''}` )
-                            // if name has a parentheses, put within text to description tag attribute
-                            |
-                            if (prop[0].toLowerCase() === 'name' && product[prop[1]].includes("("))
-                                - const [ , productName, productDescription] = product[prop[1]].match(/(.*) \((.*)\)/)
-                                | #{productName}
-                                br
-                                i.product-description #{productDescription}
-                            else
-                                | #{product[prop[1]]}
+                            td( class=`col--${prop[0].toLowerCase()}`
+                                id=(variationId ? variationId : marketProductId)
+                                updateBy=`${prop[0].toLowerCase() === 'name' ? product[updateBy] : ''}` )
+                                // if name has a parentheses, put within text to description tag attribute
+                                |
+                                if (prop[0].toLowerCase() === 'name' && product[prop[1]].includes("("))
+                                    - const [ , productName, productDescription] = product[prop[1]].match(/(.*) \((.*)\)/)
+                                    | #{productName}
+                                    br
+                                    i.product-description #{productDescription}
+                                else
+                                    | #{product[prop[1]]}
 
     div(class="table-after")
         block after-table

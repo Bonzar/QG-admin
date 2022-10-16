@@ -7,10 +7,30 @@ const ProductVariation = new Schema({
     enum: ["3 мл", "6 мл", "10 мл", "Набор", "Стикеры"],
     required: true,
   },
-  ozonProduct: { type: Schema.ObjectId, ref: "OzonProduct" },
-  yandexProduct: { type: Schema.ObjectId, ref: "YandexProduct" },
-  wbProduct: { type: Schema.ObjectId, ref: "WbProduct" },
-  WooProduct: { type: Schema.ObjectId, ref: "WooProduct" },
+  ozonProduct: {
+    type: Schema.ObjectId,
+    unique: true,
+    sparse: true,
+    ref: "OzonProduct",
+  },
+  yandexProduct: {
+    type: Schema.ObjectId,
+    unique: true,
+    sparse: true,
+    ref: "YandexProduct",
+  },
+  wbProduct: {
+    type: Schema.ObjectId,
+    unique: true,
+    sparse: true,
+    ref: "WbProduct",
+  },
+  WooProduct: {
+    type: Schema.ObjectId,
+    unique: true,
+    sparse: true,
+    ref: "WooProduct",
+  },
 });
 
 ProductVariation.index({ product: 1, volume: 1 }, { unique: true });

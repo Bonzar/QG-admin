@@ -38,15 +38,19 @@ exports.getApiProductsInfoList = async (searchValue = null, callback) => {
     console.log(e);
     if (callback) {
       callback(e, null);
+      return;
     }
+    return e;
   }
 };
 
-exports.getApiProductFbsStocks = async (callback) => {
+exports.getApiProductFbsStocks = async (search, callback) => {
   try {
+    const searchParam = search ? `search=${search}&` : "";
+
     const config = {
       method: "get",
-      url: "https://suppliers-api.wildberries.ru/api/v2/stocks?skip=0&take=1000",
+      url: `https://suppliers-api.wildberries.ru/api/v2/stocks?${searchParam}skip=0&take=1000`,
       headers: {
         ...getHeadersRequire(),
       },
@@ -93,25 +97,38 @@ exports.getApiProductFbwStocks = async (cb) => {
   }
 };
 
-exports.updateApiStock = async (barcode, stock) => {
-  const config = {
-    method: "post",
-    url: "https://suppliers-api.wildberries.ru/api/v2/stocks",
-    headers: {
-      ...getHeadersRequire(),
-    },
-    data: [
-      {
-        barcode: barcode.toString(),
-        stock: +stock,
-        warehouseId: 206312,
+exports.updateApiStock = async (barcode, stock, callback) => {
+  try {
+    const config = {
+      method: "post",
+      url: "https://suppliers-api.wildberries.ru/api/v2/stocks",
+      headers: {
+        ...getHeadersRequire(),
       },
-    ],
-  };
+      data: [
+        {
+          barcode: barcode.toString(),
+          stock: +stock,
+          warehouseId: 206312,
+        },
+      ],
+    };
 
-  return await axios(config).then((response) => {
-    return response.data;
-  });
+    const result = await axios(config).then((response) => {
+      return response.data;
+    });
+
+    if (!callback) {
+      return result;
+    }
+    callback(null, result);
+  } catch (e) {
+    console.log(e);
+    if (!callback) {
+      return new Error(e);
+    }
+    callback(e, null);
+  }
 };
 
 exports.getApiTodayOrders = async (callback) => {

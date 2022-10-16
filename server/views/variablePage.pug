@@ -1,9 +1,13 @@
 extends layout
 
+append scripts
+    script(src="/scripts/variationProduct.js" type="module" defer)
+
 block content
     h1= title
     h2 Общие
     form(id="product-properties--form")
+        input(required name="product_id" value=variation.product._id hidden)
         label Наименование продукта:#{" "}
             select(required name="product_name")
                 option(value="") Выберете продукт
@@ -13,12 +17,13 @@ block content
             input(required name="isActual" type="radio" value="true" checked=variation.product.isActual)
         label Неактуальный:#{" "}
             input(required name="isActual" type="radio" value="false" checked=!variation.product.isActual)
-        input(id="product-properties--submit-button" type="button" value="Обновить")
+        input.btn.submit-button(id="product-properties--submit-button" type="button" value="Обновить")
 
     hr(style="margin-top: 2rem")
 
     h2 Вариация
     form(id="variation-properties--form")
+        input(required name="variation_volume" value=variation.volume hidden)
         label Объем:#{" "}
             select(required name="variation_volume")
                 option(value="") Выберете объем
@@ -26,18 +31,20 @@ block content
                     option(value=volume selected=(volume=== variation.volume))= volume
 
 
-        input(id="variation-properties--submit-button" type="button" value="Обновить")
+        input.btn.submit-button(id="variation-properties--submit-button" type="button" value="Обновить")
 
 
     hr(style="margin-top: 2rem")
     h2 Яндекс
     form(id="yandex-product-properties--form")
+        input(required name="marketType" value="yandex" hidden)
         if (variation.yandexProduct)
+            input(required name="_id" value=variation.yandexProduct._id hidden)
             label SKU:#{" "}
                 select(required name="sku")
                     option(value="") Выберете продукт
                     each yandexProduct in allYandexProducts
-                        option(value=yandexProduct._id selected=(yandexProduct._id.toString() === variation.yandexProduct._id.toString()))= `${yandexProduct.sku} (${yandexProduct.article})`
+                        option(value=yandexProduct.sku selected=(yandexProduct._id.toString() === variation.yandexProduct._id.toString()))= `${yandexProduct.sku} (${yandexProduct.article})`
             label Article:#{" "}
                 input(name="article" value=variation.yandexProduct.article)
             label Актуальный:#{" "}
@@ -45,24 +52,27 @@ block content
             label Неактуальный:#{" "}
                 input(required name="isActual" type="radio" value="false" checked=!variation.yandexProduct.isActual)
             label Остаток FBS:#{" "}
-                input(required name="stock" type="number" value=variation.yandexProduct.stockFBS)
-            input(id="yandex-product-properties--submit-button" type="button" value="Обновить" )
+                input(required name="stockFBS" type="number" value=(fbsYandexStocks) disabled=(fbsYandexStocks === undefined))
+
         else
             label SKU:#{" "}
                 select(required name="sku")
                     option(value="") Выберете продукт
                       each yandexProduct in allYandexProducts
                           option(value=yandexProduct._id)= `${yandexProduct.sku} (${yandexProduct.article})`
+        input.btn.submit-button(id="yandex-product-properties--submit-button" type="button" value="Обновить" )
 
     hr(style="margin-top: 2rem")
     h2 Wildberries
     form(id="wb-product-properties--form")
+        input(required name="marketType" value="wb" hidden)
         if (variation.wbProduct)
+            input(required name="_id" value=variation.wbProduct._id hidden)
             label SKU:#{" "}
                 select(required name="sku")
                     option(value="") Выберете продукт
                       each wbProduct in allWbProducts
-                          option(value=wbProduct._id selected=(wbProduct._id.toString() === variation.wbProduct._id.toString()))=`${wbProduct.sku} (${wbProduct.article})`
+                          option(value=wbProduct.sku selected=(wbProduct._id.toString() === variation.wbProduct._id.toString()))=`${wbProduct.sku} (${wbProduct.article})`
 
             label Article:#{" "}
                 input(name="article" value=variation.wbProduct.article)
@@ -72,12 +82,46 @@ block content
                 input(required name="isActual" type="radio" value="true" checked=variation.wbProduct.isActual)
             label Неактуальный:#{" "}
                 input(required name="isActual" type="radio" value="false" checked=!variation.wbProduct.isActual)
+            label Остаток FBS:#{" "}
+                input(required name="stockFBS" type="number" value=(fbsWbStocks) disabled=(fbsWbStocks === undefined))
             label Остаток FBW:#{" "}
                 input(required name="stock" type="number" value=variation.wbProduct.stock disabled)
-            input(id="yandex-product-properties--submit-button" type="button" value="Обновить" )
+
         else
             label SKU:#{" "}
                 select(required name="sku")
                     option(value="") Выберете продукт
                       each wbProduct in allWbProducts
                           option(value=wbProduct._id)=`${wbProduct.sku} (${wbProduct.article})`
+        input.btn.submit-button(id="wb-product-properties--submit-button" type="button" value="Обновить" )
+
+    hr(style="margin-top: 2rem")
+    h2 Ozon
+    form(id="ozon-product-properties--form")
+        input(required name="marketType" value="ozon" hidden)
+        if (variation.ozonProduct)
+            input(required name="_id" value=variation.ozonProduct._id hidden)
+            label SKU:#{" "}
+                select(required name="sku")
+                    option(value="") Выберете продукт
+                      each ozonProduct in allOzonProducts
+                          option(value=ozonProduct.sku selected=(ozonProduct._id.toString() === variation.ozonProduct._id.toString()))=`${ozonProduct.sku} (${ozonProduct.article})`
+
+            label Article:#{" "}
+                input(name="article" value=variation.ozonProduct.article)
+            label Актуальный:#{" "}
+                input(required name="isActual" type="radio" value="true" checked=variation.ozonProduct.isActual)
+            label Неактуальный:#{" "}
+                input(required name="isActual" type="radio" value="false" checked=!variation.ozonProduct.isActual)
+            label Остаток FBS:#{" "}
+                input(required name="stockFBS" type="number" value=(fbsOzonStocks) disabled=(fbsOzonStocks === undefined))
+            label Остаток FBO:#{" "}
+                input(required name="stock" type="number" value=variation.ozonProduct.stock disabled)
+
+        else
+            label SKU:#{" "}
+                select(required name="sku")
+                    option(value="") Выберете продукт
+                      each ozonProduct in allOzonProducts
+                          option(value=ozonProduct._id)=`${ozonProduct.sku} (${ozonProduct.article})`
+        input.btn.submit-button(id="ozon-product-properties--submit-button" type="button" value="Обновить" )

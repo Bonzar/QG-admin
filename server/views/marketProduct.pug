@@ -10,6 +10,9 @@ block content
             when "yandex"
                 label SKU:#{" "}
                     input(required name="sku" value=`${marketProduct ? marketProduct.sku ? marketProduct.sku : '' : ''}`)
+            when "ozon"
+                label SKU:#{" "}
+                    input(required name="sku" value=`${marketProduct ? marketProduct.sku ? marketProduct.sku : '' : ''}`)
             when "wb"
                 label SKU:#{" "}
                     input(required name="sku" value=`${marketProduct ? marketProduct.sku ? marketProduct.sku : '' : ''}`)
@@ -23,9 +26,15 @@ block content
         label Неактуальный:#{" "}
             input(required name="isActual" type="radio" value="false" checked=(marketProduct ? !marketProduct.isActual : false))
         label Остаток FBS:#{" "}
-            input(required name="stockFBS" type="number" value=(marketProduct ? marketProduct.stockFBS : 0))
-        label Остаток FBW:#{" "}
-            input(required name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
+            input(required name="stockFBS" type="number" value=(fbsStocks ? fbsStocks : 0) disabled=(marketProduct && fbsStocks === undefined))
+        case marketType
+            when "wb"
+                label Остаток FBW:#{" "}
+                    input(required name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
+
+            when "ozon"
+                label Остаток FBO:#{" "}
+                    input(required name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
 
         fieldset
             legend Связь с вариацией (необязательно)
@@ -44,4 +53,4 @@ block content
         if marketProduct
             input(required name="_id" value=marketProduct._id hidden)
 
-        input.market-product--submit-button(type="button" value=(marketProduct ? "Обновить" : "Добавить") style="float: right;")
+        input.btn.submit-button.market-product--submit-button(type="button" value=(marketProduct ? "Обновить" : "Добавить") style="float: right;")

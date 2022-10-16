@@ -37,12 +37,12 @@ h2 {
   margin: 0.6rem 0;
   padding: 0.6rem 0;
   font-size: 2.2rem;
+  text-align: center;
 }
 
 h3 {
   margin: 0.4rem 0;
   padding: 0.4rem 0;
-
   font-size: 1.8rem;
 }
 
@@ -94,6 +94,14 @@ img {
 
 label {
   display: block;
+  min-height: 30px;
+  line-height: 1.7;
+  font-weight: 600;
+}
+
+select {
+  max-width: 100%;
+  font-size: 2rem;
 }
 
 input:not([type="radio"], [type="checkbox"], [type="button"], [type="submit"]) {
@@ -119,6 +127,10 @@ hr {
   border: solid 1px #7b7b7b3d;
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+}
+
+.submit-button {
+  cursor: pointer;
 }
 
 .inline {
@@ -228,6 +240,17 @@ header a {
 .orders-table tr:last-of-type td:last-of-type {
   border-bottom-right-radius: 25px;
 }
+/* if in table only one headers row */
+.stocks-table thead:last-child th:last-of-type,
+.orders-table thead:last-child th:last-of-type {
+  border-bottom-right-radius: 25px;
+}
+.stocks-table thead:last-child th:first-of-type,
+.orders-table thead:last-child th:first-of-type {
+  border-bottom-left-radius: 25px;
+}
+
+
 /* Table headers */
 .stocks-table thead,
 .orders-table thead {
@@ -419,6 +442,12 @@ header a {
 }
 #site-stocks fieldset legend {
   transform: translateY(75%);
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+#site-stocks label {
+  font-weight: 400;
 }
 
 #site-stocks .col--fbs {
@@ -513,6 +542,10 @@ header a {
   /* Font */
   html {
     font-size: 12px;
+  }
+
+  label {
+    min-height: 36px;
   }
 
   /* Stocks table */
