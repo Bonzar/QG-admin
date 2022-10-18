@@ -183,7 +183,7 @@ async function getWbOrders(callback) {
                           order_status = "Новый";
                           break;
                         case 1:
-                          order_status = "В работе";
+                          order_status = "Сборка";
                           break;
                       }
 

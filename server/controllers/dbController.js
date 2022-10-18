@@ -5,30 +5,60 @@ const wbService = require("../services/wbService");
 const yandexService = require("../services/yandexService");
 const ozonService = require("../services/ozonService");
 
-exports.getProductVariationPage = async (req, res) => {
+exports.getProductPage = (req, res) => {
   try {
-    async.parallel(
-      {
-        productVariation(callback) {
-          dbService.getProductVariationById(
-            req.params.id,
-            "product yandexProduct wbProduct ozonProduct",
-            callback
+    async.waterfall(
+      [
+        (callback) => {
+          dbService.getProductById(req.params.id, callback);
+        },
+        (product, callback) => {
+          dbService.getAllVariations(
+            { product },
+            "yandexProduct ozonProduct wbProduct",
+            (err, variations) => {
+              if (err) {
+                console.log(err);
+                callback(err, null);
+                return;
+              }
+
+              callback(null, product, variations);
+            }
           );
         },
-        allProducts(callback) {
-          dbService.getAllProducts(callback);
+        (product, variations, callback) => {
+          const variationStockRequests = variations.map((variation) => {
+            return (callback) => {
+              dbService.getVariationProductsStocks(
+                variation._id,
+                (err, results) => {
+                  if (err) {
+                    console.log(err);
+                    callback(err, null);
+                    return;
+                  }
+
+                  variation = results[0];
+                  variation.stocks = results[1];
+
+                  callback(null, variation);
+                }
+              );
+            };
+          });
+
+          async.parallel(variationStockRequests, (err, results) => {
+            if (err) {
+              console.log(err);
+              callback(err, null);
+              return;
+            }
+
+            callback(null, [product, results]);
+          });
         },
-        allWbProducts(callback) {
-          dbService.getWbProducts({}, callback);
-        },
-        allYandexProducts(callback) {
-          dbService.getYandexProducts({}, callback);
-        },
-        allOzonProducts(callback) {
-          dbService.getOzonProducts({}, callback);
-        },
-      },
+      ],
       async (err, results) => {
         if (err) {
           console.log(err);
@@ -39,83 +69,40 @@ exports.getProductVariationPage = async (req, res) => {
           return;
         }
 
-        const {
-          productVariation,
-          allProducts,
-          allWbProducts,
-          allYandexProducts,
-          allOzonProducts,
-        } = results;
+        const [product, variations] = results;
 
-        allOzonProducts.sort((product1, product2) =>
-          product1.article.localeCompare(product2.article)
+        variations.sort((variation1, variation2) =>
+          variation2.volume.localeCompare(variation1.volume, "ru")
         );
 
-        allWbProducts.sort((product1, product2) =>
-          product1.article.localeCompare(product2.article)
-        );
-
-        allYandexProducts.sort(
-          (product1, product2) =>
-            product1.article?.localeCompare(product2.article) ??
-            product1.sku.localeCompare(product2.sku)
-        );
-
-        let fbsYandexStocks = null;
-        if (productVariation.yandexProduct) {
-          fbsYandexStocks = (
-            await yandexService.getApiProductsList([
-              productVariation.yandexProduct.sku,
-            ])
-          )[0].warehouses?.[0].stocks.find(
-            (stockType) => stockType.type === "FIT"
-          )?.count;
+        if (product) {
+          res.render("product", {
+            title: `${product.name}`,
+            product,
+            variations,
+          });
+        } else {
+          res.render("product", {
+            title: "Добавить новый товар",
+          });
         }
-
-        let fbsWbStocks = null;
-        if (productVariation.wbProduct) {
-          fbsWbStocks =
-            (
-              await wbService.getApiProductFbsStocks(
-                productVariation.wbProduct.barcode
-              )
-            ).stocks?.[0].stock ?? 0;
-        }
-
-        let fbsOzonStocks = null;
-        if (productVariation.ozonProduct) {
-          fbsOzonStocks = (
-            await ozonService.getProductsStockList({
-              product_id: [productVariation.ozonProduct.sku],
-              visibility: "ALL",
-            })
-          ).result.items[0].stocks[1]?.present;
-        }
-
-        res.render("variablePage", {
-          title: `${productVariation.product.name} - ${productVariation.volume}`,
-          variation: productVariation,
-          fbsWbStocks,
-          fbsYandexStocks,
-          fbsOzonStocks,
-          allProducts,
-          allWbProducts,
-          allYandexProducts,
-          allOzonProducts,
-        });
       }
     );
   } catch (error) {
     console.log(error);
     res
       .status(400)
-      .json({ message: "Error while getting product variation page", error });
+      .json({ message: "Error while getting all products page", error });
   }
 };
 
 exports.getDbMarketProductPage = async (req, res) => {
   try {
-    const allProducts = await dbService.getAllProducts();
+    let allProducts = await dbService.getAllProducts();
+
+    allProducts.sort((product1, product2) =>
+      product1.name.localeCompare(product2.name, "ru")
+    );
 
     const marketType = req.params.marketType;
     const productId = req.params.product_id;
@@ -169,7 +156,7 @@ exports.getDbMarketProductPage = async (req, res) => {
 
         if (marketProduct) {
           res.render("marketProduct", {
-            title: `Товар ${
+            title: `${
               marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
             } - ${
               marketProduct.article ??
@@ -240,5 +227,166 @@ exports.addUpdateDbMarketProduct = async (req, res) => {
       message: "Error while adding product to DB. Try again later.",
       error,
     });
+  }
+};
+
+exports.addUpdateDbProduct = async (req, res) => {
+  try {
+    let errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      // There are errors.
+      console.log(errors);
+      errors = errors.errors.map((error) => error.msg).join(". ");
+      res.status(400).json(errors);
+      return;
+    }
+
+    await dbService.addUpdateProduct(req.body, (err, results) => {
+      if (err) {
+        console.log(err);
+
+        if (err.code === 11000) {
+          err.message = `Продукт с ${Object.keys(err.keyValue)[0]} - ${
+            err.keyValue[Object.keys(err.keyValue)[0]]
+          } уже существует`;
+        }
+        res.status(400).json({ message: err.message });
+        return;
+      }
+
+      res.json(results);
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      message: "Error while adding product to DB. Try again later.",
+      error,
+    });
+  }
+};
+
+exports.addDbProductVariation = async (req, res) => {
+  try {
+    await dbService.addProductVariation(req.body, (err, results) => {
+      if (err) {
+        console.log(err);
+
+        if (err.code === 11000) {
+          err.message = `Вариация с ${Object.keys(err.keyValue)[0]} - ${
+            err.keyValue[Object.keys(err.keyValue)[0]]
+          } уже существует`;
+        }
+        res.status(400).json({ message: err.message });
+        return;
+      }
+
+      res.json(results);
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      message: "Error while adding variation to DB. Try again later.",
+      error,
+    });
+  }
+};
+
+exports.deleteDbProduct = async (req, res) => {
+  try {
+    await dbService.deleteProduct(req.params.id, (err, results) => {
+      if (err) {
+        console.log(err);
+
+        res.status(400).json({ message: err.message });
+        return;
+      }
+
+      res.json(results);
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      message: "Error while deleting Product from DB. Try again later.",
+      error,
+    });
+  }
+};
+
+exports.deleteDbProductVariation = async (req, res) => {
+  try {
+    await dbService.deleteProductVariation(req.params.id, (err, results) => {
+      if (err) {
+        console.log(err);
+
+        res.status(400).json({ message: err.message });
+        return;
+      }
+
+      res.json(results);
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      message:
+        "Error while deleting product variation from DB. Try again later.",
+      error,
+    });
+  }
+};
+
+exports.getAllProductsPage = (req, res) => {
+  try {
+    async.parallel(
+      {
+        allProducts(callback) {
+          dbService.getAllProducts(callback);
+        },
+      },
+      async (err, results) => {
+        if (err) {
+          console.log(err);
+          res.status(400).json({
+            message: "Error while getting product page. Try again later.",
+            err,
+          });
+          return;
+        }
+
+        const { allProducts } = results;
+
+        let filtratedProducts;
+        // Filtration by actual (manual setup in DB)
+        switch (req.query.isActual) {
+          case "notActual":
+            filtratedProducts = allProducts.filter(
+              (product) => !product.isActual
+            );
+            break;
+          case "all":
+            filtratedProducts = allProducts;
+            break;
+          // Only actual by default
+          default:
+            filtratedProducts = allProducts.filter(
+              (product) => product.isActual
+            );
+        }
+
+        filtratedProducts.sort((product1, product2) =>
+          product1.name.localeCompare(product2.name, "ru")
+        );
+
+        res.render("allProductsPage", {
+          title: `Все продукты (БД)`,
+          products: filtratedProducts,
+        });
+      }
+    );
+  } catch (error) {
+    console.log(error);
+    res
+      .status(400)
+      .json({ message: "Error while getting all products page", error });
   }
 };

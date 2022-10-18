@@ -10,23 +10,40 @@ const getHeadersRequire = () => {
   };
 };
 
-exports.getProductsStockList = async (filter = { visibility: "ALL" }) => {
-  const config = {
-    method: "post",
-    url: "https://api-seller.ozon.ru/v3/product/info/stocks",
-    headers: {
-      ...getHeadersRequire(),
-    },
-    data: {
-      filter,
-      last_id: "",
-      limit: 1000,
-    },
-  };
+exports.getProductsStockList = async (
+  filter = { visibility: "ALL" },
+  callback
+) => {
+  try {
+    const config = {
+      method: "post",
+      url: "https://api-seller.ozon.ru/v3/product/info/stocks",
+      headers: {
+        ...getHeadersRequire(),
+      },
+      data: {
+        filter,
+        last_id: "",
+        limit: 1000,
+      },
+    };
 
-  return await axios(config).then((response) => {
-    return response.data;
-  });
+    const result = await axios(config).then((response) => {
+      return response.data;
+    });
+
+    if (!callback) {
+      return result;
+    }
+    callback(null, result);
+  } catch (e) {
+    console.log(e);
+    if (callback) {
+      callback(e, null);
+      return;
+    }
+    return e;
+  }
 };
 
 exports.getProductsInfo = async (ids) => {

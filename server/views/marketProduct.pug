@@ -1,10 +1,12 @@
 extends layout
 
 append scripts
-    script(src="/scripts/marketProduct.js" type="module" defer)
+    script(src="/scripts/dbMarketProduct.js" type="module" defer)
 
 block content
     h1= title
+        if variation
+            a.btn.navigate-btn.navigate-btn--back(href=`/stocks/db/product/${variation.product._id}`)
     form.market-product--form
         case marketType
             when "yandex"
@@ -21,24 +23,26 @@ block content
 
         label Article:#{" "}
             input(name="article" value=`${marketProduct ? marketProduct.article ? marketProduct.article : '' : ''}`)
-        label Актуальный:#{" "}
-            input(required name="isActual" type="radio" value="true" checked=(marketProduct ? marketProduct.isActual : false))
-        label Неактуальный:#{" "}
-            input(required name="isActual" type="radio" value="false" checked=(marketProduct ? !marketProduct.isActual : false))
-        label Остаток FBS:#{" "}
+        fieldset
+            legend Актуальность
+            label.inline Актуальный#{" "}
+                input(required name="isActual" type="radio" value="true" checked=(marketProduct ? marketProduct.isActual : false))
+            label.inline #{" "}Неактуальный#{" "}
+                input(required name="isActual" type="radio" value="false" checked=(marketProduct ? !marketProduct.isActual : false))
+        label FBS:#{" "}
             input(required name="stockFBS" type="number" value=(fbsStocks ? fbsStocks : 0) disabled=(marketProduct && fbsStocks === undefined))
         case marketType
             when "wb"
-                label Остаток FBW:#{" "}
+                label FBW:#{" "}
                     input(required name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
 
             when "ozon"
-                label Остаток FBO:#{" "}
+                label FBO:#{" "}
                     input(required name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
 
         fieldset
             legend Связь с вариацией (необязательно)
-            label Наименование продукта:#{" "}
+            label Продукт:#{" "}
                 select( name="product_id")
                     option(value="") Выберете продукт
                       each product in allProducts

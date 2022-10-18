@@ -1,0 +1,125 @@
+extends layout
+
+append scripts
+    script(src="/scripts/dbProduct.js" type="module" defer)
+
+block content
+    h1= title
+    form.product--form
+        if product
+            input(required name="_id" value=product._id hidden)
+
+        label Наименование:#{" "}
+            input(name="name" value=`${product ? product.name : ''}`)
+        fieldset
+            legend Актуальность
+            label.inline Актуальный#{" "}
+                input(required name="isActual" type="radio" value="true" checked=(product ? product.isActual : false))
+            label.inline #{" "}Неактуальный#{" "}
+                input(required name="isActual" type="radio" value="false" checked=(product ? !product.isActual : false))
+
+        input.btn.submit-button.submit-button--product.inline(type="button" value=(product ? "Обновить" : "Добавить"))
+
+        if product
+            input.btn.delete-button.delete-button--product.inline(type="button")
+    form.add-variation--form
+        a.btn.add-variation--btn
+        select.add-variation--volume-select( name="variation_volume" disabled)
+            option(value="") Выберете
+              each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
+                  option(value=volume)= volume
+
+    if product
+        input(required name="product_id" value=product._id hidden)
+        each variation in variations
+            div.product-variation--block
+                h2= variation.volume
+                input(required name="variation_volume" value=variation.volume hidden)
+                input(required name="variation_id" value=variation._id hidden)
+
+                input.btn.delete-button.delete-button--variation.inline(type="button")
+
+                hr(style="margin-top: 2rem")
+
+                div.variation-market-products--block
+                    if (variation.yandexProduct)
+                        div.market-product--form
+                            h2 Яндекс
+
+                            a.btn.navigate-btn(href=`/stocks/yandex/${variation.yandexProduct._id}`)
+
+                            form(id="yandex-product-properties--form")
+                                input(required name="marketType" value="yandex" hidden)
+                                input(required name="_id" value=variation.yandexProduct._id hidden)
+                                label SKU:#{" "}
+                                    input(name="sku" value=variation.yandexProduct.sku disabled)
+                                    input(name="sku" value=variation.yandexProduct.sku hidden)
+                                label Article:#{" "}
+                                    input(name="article" value=variation.yandexProduct.article disabled)
+                                    input(name="article" value=variation.yandexProduct.article hidden)
+                                fieldset.inline
+                                    legend Актуальность
+                                    label.inline Актуальный#{" "}
+                                        input(required name="isActual" type="radio" value="true" checked=variation.yandexProduct.isActual)
+                                    label.inline #{" "}Неактуальный#{" "}
+                                        input(required name="isActual" type="radio" value="false" checked=!variation.yandexProduct.isActual)
+                                label FBS:#{" "}
+                                    input(required name="stockFBS" type="number" value=(variation.stocks.fbsYandexStocks) disabled=(variation.stocks.fbsYandexStocks === undefined))
+                                input.btn.submit-button(id="yandex-product-properties--submit-button" type="button" value="Обновить" )
+
+                    if (variation.wbProduct)
+                        div.market-product--form
+                            h2 Wildberries
+
+                            a.btn.navigate-btn(href=`/stocks/wb/${variation.wbProduct._id}`)
+
+                            form(id="wb-product-properties--form")
+                                input(required name="marketType" value="wb" hidden)
+                                input(required name="_id" value=variation.wbProduct._id hidden)
+                                label SKU:#{" "}
+                                    input(name="sku" value=variation.wbProduct.sku disabled)
+                                    input(name="sku" value=variation.wbProduct.sku hidden)
+                                label Article:#{" "}
+                                    input(name="article" value=variation.wbProduct.article disabled)
+                                    input(name="article" value=variation.wbProduct.article hidden)
+                                label Barcode:#{" "}
+                                    input(name="barcode" value=variation.wbProduct.barcode disabled)
+                                    input(name="barcode" value=variation.wbProduct.barcode hidden)
+                                fieldset.inline
+                                    legend Актуальность
+                                    label.inline Актуальный#{" "}
+                                        input(required name="isActual" type="radio" value="true" checked=variation.wbProduct.isActual)
+                                    label.inline #{" "}Неактуальный#{" "}
+                                        input(required name="isActual" type="radio" value="false" checked=!variation.wbProduct.isActual)
+                                label FBS:#{" "}
+                                    input(required name="stockFBS" type="number" value=(variation.stocks.fbsWbStocks) disabled=(variation.stocks.fbsWbStocks === undefined))
+                                label FBW:#{" "}
+                                    input(required name="stock" type="number" value=variation.wbProduct.stock disabled)
+                                input.btn.submit-button(id="wb-product-properties--submit-button" type="button" value="Обновить" )
+
+                    if (variation.ozonProduct)
+                        div.market-product--form
+                            h2 Ozon
+
+                            a.btn.navigate-btn(href=`/stocks/ozon/${variation.ozonProduct._id}`)
+
+                            form(id="ozon-product-properties--form")
+                                input(required name="marketType" value="ozon" hidden)
+                                input(required name="_id" value=variation.ozonProduct._id hidden)
+                                label SKU:#{" "}
+                                    input(name="sku" value=variation.ozonProduct.sku disabled)
+                                    input(name="sku" value=variation.ozonProduct.sku hidden)
+                                label Article:#{" "}
+                                    input(name="article" value=variation.ozonProduct.article disabled)
+                                    input(name="article" value=variation.ozonProduct.article hidden)
+                                fieldset.inline
+                                    legend Актуальность
+                                    label.inline Актуальный#{" "}
+                                        input(required name="isActual" type="radio" value="true" checked=variation.ozonProduct.isActual)
+                                    label.inline #{" "}Неактуальный#{" "}
+                                        input(required name="isActual" type="radio" value="false" checked=!variation.ozonProduct.isActual)
+                                label FBS:#{" "}
+                                    input(required name="stockFBS" type="number" value=(variation.stocks.fbsOzonStocks) disabled=(variation.stocks.fbsOzonStocks === undefined))
+                                label FBO:#{" "}
+                                    input(required name="stock" type="number" value=variation.ozonProduct.stock disabled)
+                                input.btn.submit-button(id="ozon-product-properties--submit-button" type="button" value="Обновить" )

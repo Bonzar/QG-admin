@@ -30,8 +30,6 @@ exports.getProductsListPage = async (req, res) => {
 
           const { productsInfo, productsStockList } = productsApiList;
 
-          console.log(productsInfo[0]["id"]);
-
           const productsFormatRequests = productsInfo.map((product) => {
             return async function () {
               // Search fetched product from wb in DB
@@ -90,7 +88,7 @@ exports.getProductsListPage = async (req, res) => {
 
               if (isPassFilterArray.every((pass) => pass)) {
                 return {
-                  variationInnerId: variation?._id,
+                  variationInnerId: variation?.product._id,
                   marketProductInnerId: ozonDbProduct?._id,
                   sku: product.id,
                   article: product.offer_id,
@@ -132,7 +130,7 @@ exports.getProductsListPage = async (req, res) => {
 
         // Sorting
         products.sort((product1, product2) =>
-          product1.name.localeCompare(product2.name)
+          product1.name.localeCompare(product2.name, "ru")
         );
 
         res.render("ozon-stocks", {

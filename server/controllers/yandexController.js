@@ -69,7 +69,7 @@ exports.getProductsListPage = async (req, res) => {
 
               if (isPassFilterArray.every((pass) => pass)) {
                 return {
-                  variationInnerId: variation?._id,
+                  variationInnerId: variation?.product._id,
                   marketProductInnerId: yandexDbProduct?._id,
                   productSku: product.shopSku,
                   productName:
@@ -109,7 +109,7 @@ exports.getProductsListPage = async (req, res) => {
 
         // Sorting
         products.sort((product1, product2) =>
-          product1.productName.localeCompare(product2.productName)
+          product1.productName.localeCompare(product2.productName, "ru")
         );
 
         res.render("yandex-stocks", {

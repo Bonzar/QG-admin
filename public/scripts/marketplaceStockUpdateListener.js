@@ -1,14 +1,16 @@
+import authCheck from "./authCheck.js";
+
 export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
   const updateStockListener = function (e) {
     const cell = e.target;
 
-    // redirect to variation page
+    // redirect to Product page
     if (
       cell.classList.value.includes("col--name") &&
       cell.nodeName === "TD" &&
       cell.id
     ) {
-      window.location.href = `/stocks/variation/${cell.id.split("-")[1]}`;
+      window.location.href = `/stocks/db/product/${cell.id.split("-")[1]}`;
     }
 
     // redirect to market product page
@@ -50,17 +52,7 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
 
           document.removeEventListener("click", exitUpdateStockListener);
 
-          const authToken = localStorage.getItem("authToken");
-          const authTokenExpires = localStorage.getItem("authTokenExpires");
-          if (!(Date.now() < authTokenExpires && authToken)) {
-            alert(
-              "Токен доступа не указан или его срок жизни истек. Необходима повторная авторизация."
-            );
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("username");
-            localStorage.removeItem("authTokenExpires");
-            return (window.location.href = "/auth/login");
-          }
+          const authToken = authCheck();
 
           fetchUpdateFunction(
             cell,

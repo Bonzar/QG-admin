@@ -117,7 +117,7 @@ exports.getProductsListPage = async (req, res) => {
 
                 if (isPassFilterArray.every((pass) => pass)) {
                   return {
-                    variationInnerId: variation?._id,
+                    variationInnerId: variation?.product._id,
                     marketProductInnerId: wbDbProduct?._id,
                     barcode: variation?.wbProduct.barcode ?? "",
                     articleWb: product["nmID"],
@@ -161,7 +161,7 @@ exports.getProductsListPage = async (req, res) => {
 
         // Sorting
         products.sort((product1, product2) =>
-          product1.name.localeCompare(product2.name)
+          product1.name.localeCompare(product2.name, "ru")
         );
 
         res.render("wb-stocks", {

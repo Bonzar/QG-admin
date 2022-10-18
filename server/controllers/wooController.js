@@ -21,7 +21,9 @@ exports.getProductsList = async (req, res) => {
     }`;
 
     const products = (await wooService.getProductList(tableFilters))
-      .sort((product1, product2) => product1.name.localeCompare(product2.name))
+      .sort((product1, product2) =>
+        product1.name.localeCompare(product2.name, "ru")
+      )
       .map((product) => {
         return {
           productId: product["id"],

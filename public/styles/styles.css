@@ -23,7 +23,8 @@ body {
 main {
   max-width: 800px;
   margin: 0 auto;
-  padding: 0 2vw 20px;
+  padding: 0 min(2vw, 20px) 20px;
+  position: relative;
 }
 
 h1 {
@@ -34,7 +35,7 @@ h1 {
 }
 
 h2 {
-  margin: 0.6rem 0;
+  margin: 0 0 0.6rem;
   padding: 0.6rem 0;
   font-size: 2.2rem;
   text-align: center;
@@ -93,21 +94,33 @@ img {
 }
 
 label {
-  display: block;
+  display: flex;
   min-height: 30px;
   line-height: 1.7;
   font-weight: 600;
 }
 
-select {
-  max-width: 100%;
-  font-size: 2rem;
+select,
+input {
+}
+
+fieldset {
+  border-radius: 15px;
+  border: 1px solid black;
+  margin-block-end: 1rem;
+}
+
+fieldset legend {
+  padding: 0 5px;
+  margin: 0 10px;
 }
 
 input:not([type="radio"], [type="checkbox"], [type="button"], [type="submit"]) {
   border-radius: 8px;
   padding: 3px;
   border: 1px solid rgba(0, 0, 0, 0.28);
+  width: 100%;
+  margin-left: 5px;
 }
 
 hr {
@@ -127,14 +140,15 @@ hr {
   border: solid 1px #7b7b7b3d;
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
-}
-
-.submit-button {
   cursor: pointer;
 }
 
 .inline {
   display: inline;
+}
+
+.block {
+  display: block;
 }
 
 /* Navigation */
@@ -250,7 +264,6 @@ header a {
   border-bottom-left-radius: 25px;
 }
 
-
 /* Table headers */
 .stocks-table thead,
 .orders-table thead {
@@ -279,7 +292,6 @@ header a {
 .orders-table tr:nth-child(even) {
   background: rgba(255, 255, 255, 0.85);
 }
-
 
 .stocks-table tr:hover,
 .orders-table tr:hover {
@@ -356,7 +368,10 @@ header a {
 
 .table-filters {
   margin: 1rem 0;
-  text-align: right;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: end;
+  gap: 0.5rem;
 }
 
 .table-filter--btn {
@@ -366,10 +381,7 @@ header a {
   background: rgba(255, 255, 255, 0.23);
   border-width: 3px;
   border-color: rgba(154, 154, 154, 0.45);
-}
-
-.table-filter--btn:not(:last-of-type) {
-  margin-right: 10px;
+  margin: 0;
 }
 
 .table-filter--btn-active {
@@ -489,14 +501,91 @@ header a {
 
 /* DB pages */
 .market-product--form select {
-  width: 150px;
-  margin: 0 0.4rem;
+  width: 100%;
+  margin: auto auto auto 0.5rem;
+  font-size: 2.6rem;
+}
+
+.variation-market-products--block {
+  display: grid;
+  grid-gap: 1.6rem;
+}
+
+.variation-market-products--block .market-product--form,
+.product-variation--block {
+  position: relative;
+}
+
+.navigate-btn,
+.delete-button,
+.add-variation--btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  height: 3rem;
+  width: 3rem;
+  margin: 0;
+  background-repeat: no-repeat;
+  background-size: 50%;
+  background-position: center;
+}
+
+.add-variation--form {
+  position: absolute;
+  top: 1rem;
+  right: 4.5rem;
+  height: 3rem;
+  width: 3rem;
+}
+
+.add-variation--btn {
+  background-image: url("../images/icon-plus.png");
+  top: 0;
+  right: 0;
+}
+
+.add-variation--volume-select {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  transform: translateY(-50%);
+  margin-right: 0.5rem;
+}
+
+.add-variation--volume-select[disabled] {
+  display: none;
+}
+
+.navigate-btn {
+  background-image: url("../images/icon-arrow-right.svg");
+}
+
+.navigate-btn--back {
+  transform: rotate(180deg);
+  box-shadow: -2px -4px 11px -3px rgba(0, 0, 0, 0.28);
+  left: 1rem;
+  right: unset;
+}
+
+.product-variation--block,
+.product-variation--block .variation-market-products--block {
+  margin-top: 2rem;
+}
+
+.delete-button {
+  background: url("../images/icon-trash.png") center / 50% no-repeat,
+    rgba(255, 0, 0, 0.34);
+}
+
+.navigate-btn:not(.navigate-btn--back) + .delete-button,
+.delete-button + .add-variation--btn {
+  transform: translateX(calc(-100% - 0.5rem));
 }
 
 /* MOBILE LAYOUT */
 @media screen and (max-width: 420px) {
-  .stocks-table tr td:nth-child(1),
-  .stocks-table tr th:nth-child(1) {
+  .stocks-table tr th:first-of-type:not(:last-of-type),
+  .stocks-table tr td:first-of-type:not(:last-of-type) {
     display: none;
   }
   .stocks-table tr:first-of-type th:nth-of-type(2) {
@@ -506,7 +595,7 @@ header a {
     border-bottom-left-radius: 25px;
   }
 
-  .stocks-table td.col--name {
+  .stocks-table td.col--name:not(:first-of-type:last-of-type) {
     text-align: left;
   }
 
@@ -534,6 +623,20 @@ header a {
 
   .order-status--mobile {
     display: initial;
+  }
+
+  /* if in table only one headers row */
+  .stocks-table thead:last-child th:last-of-type,
+  .orders-table thead:last-child th:last-of-type {
+    border-bottom-right-radius: 25px;
+  }
+  .stocks-table thead:last-child th:nth-of-type(2),
+  .orders-table thead:last-child th:nth-of-type(2) {
+    border-bottom-left-radius: 25px;
+  }
+
+  .stocks-table .col--fbs {
+    width: 5.5rem;
   }
 }
 
@@ -566,5 +669,15 @@ header a {
 
   .change-stock--submit-button {
     top: calc(100% + 4.5px);
+  }
+
+  .variation-market-products--block {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .variation-market-products--block .market-product--form {
+    border-radius: 25px;
+    padding: 1rem;
+    box-shadow: 0.359375px 0 9px 4px rgb(237, 193, 255);
   }
 }

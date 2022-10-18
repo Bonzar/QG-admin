@@ -5,7 +5,7 @@ const ozon_controller = require("../controllers/ozonController");
 const wb_controller = require("../controllers/wbController");
 const yandex_controller = require("../controllers/yandexController");
 const woocommerce_controller = require("../controllers/wooController");
-const productDbController = require("../controllers/dbController");
+const dbController = require("../controllers/dbController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
@@ -22,9 +22,6 @@ router.get("/", (req, res) => {
       .json({ message: "Ошибка при загрузке страницы. Попробуйте позже." });
   }
 });
-
-// Get request for product page
-router.get("/variation/:id", productDbController.getProductVariationPage);
 
 // Get request for list of all Yandex products
 router.get("/yandex", yandex_controller.getProductsListPage);
@@ -69,8 +66,54 @@ router.post(
   woocommerce_controller.updateStock
 );
 
+// Get request for list of all DB products
+router.get("/db/products", dbController.getAllProductsPage);
+
+// Get request for add new DB product page
+router.get("/db/product/new", dbController.getProductPage);
+
+// Post request for add new DB product to DB
+router.post(
+  "/db/product/new",
+  roleMiddleware(["ADMIN"]),
+  body("name", "Name must not be empty.").trim().isLength({ min: 1 }).escape(),
+  dbController.addUpdateDbProduct
+);
+
+// Post request for delete Product to DB
+router.post(
+  "/db/product/:id/delete",
+  roleMiddleware(["ADMIN"]),
+  dbController.deleteDbProduct
+);
+
+// Post request for add Variation to DB
+router.post(
+  "/db/variation/new",
+  roleMiddleware(["ADMIN"]),
+  dbController.addDbProductVariation
+);
+
+// Post request for delete Variation to DB
+router.post(
+  "/db/variation/:id/delete",
+  roleMiddleware(["ADMIN"]),
+  dbController.deleteDbProductVariation
+);
+
+// Get request for DB product page
+router.get("/db/product/:id", dbController.getProductPage);
+
+// Post request for add/update new Marketplace product to DB
+router.post(
+  "/db/product/:id",
+  roleMiddleware(["ADMIN"]),
+  body("name", "Name must not be empty.").trim().isLength({ min: 1 }).escape(),
+  dbController.addUpdateDbProduct
+);
+
 // Get request for page - add new Marketplace product to DB
-router.get("/:marketType/new", productDbController.getDbMarketProductPage);
+router.get("/:marketType/new", dbController.getDbMarketProductPage);
 
 // Post request for add new Marketplace product to DB
 router.post(
@@ -78,14 +121,11 @@ router.post(
   roleMiddleware(["ADMIN"]),
   body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
   productAddSanitizers,
-  productDbController.addUpdateDbMarketProduct
+  dbController.addUpdateDbMarketProduct
 );
 
 // Get request for page - update Marketplace product to DB
-router.get(
-  "/:marketType/:product_id",
-  productDbController.getDbMarketProductPage
-);
+router.get("/:marketType/:product_id", dbController.getDbMarketProductPage);
 
 // Post request for update new Marketplace product (DB)
 router.post(
@@ -93,7 +133,7 @@ router.post(
   roleMiddleware(["ADMIN"]),
   body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
   productAddSanitizers,
-  productDbController.addUpdateDbMarketProduct
+  dbController.addUpdateDbMarketProduct
 );
 
 module.exports = router;
