@@ -22,12 +22,13 @@ block content
 
         if product
             input.btn.delete-button.delete-button--product.inline(type="button")
-    form.add-variation--form
-        a.btn.add-variation--btn
-        select.add-variation--volume-select( name="variation_volume" disabled)
-            option(value="") Выберете
-              each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
-                  option(value=volume)= volume
+    if product
+        form.add-variation--form
+            a.btn.add-variation--btn
+            select.add-variation--volume-select( name="variation_volume" disabled)
+                option(value="") Выберете
+                  each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
+                      option(value=volume)= volume
 
     if product
         input(required name="product_id" value=product._id hidden)

@@ -124,6 +124,8 @@ for (const marketProductForm of variationBlocks) {
 
 const addVariationForm = document.querySelector(".add-variation--form");
 addVariationForm.addEventListener("click", (e) => {
+  if (!e.target.classList.contains("add-variation--btn")) return;
+
   const addVariationForm = e.currentTarget;
   const volumeSelect = addVariationForm.querySelector(
     ".add-variation--volume-select"
