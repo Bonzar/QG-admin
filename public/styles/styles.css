@@ -221,10 +221,6 @@ header a {
   margin: 0 0 1.75rem;
   text-align: center;
 }
-/* Label for table */
-.table-header {
-  padding-left: 25px;
-}
 
 /* table shadow */
 .stocks-table::before,
@@ -464,6 +460,7 @@ header a {
 
 #site-stocks label {
   font-weight: 400;
+  display: initial;
 }
 
 #site-stocks .col--fbs {

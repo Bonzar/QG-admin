@@ -4,11 +4,11 @@ block content
     h1= title
     each market in allOrders
       if market.today.status || market.overdue.status
-          h2.table-header= market.name
+          h2= market.name
           each table in ['today', 'overdue']
             if market[table].status
                 if table === 'overdue'
-                    h3.table-header Просроченные
+                    h3 Просроченные
                 div.orders--block
                     table(class="orders-table")
                         thead

@@ -111,7 +111,6 @@ exports.getOzonProducts = async (filter = {}, callback) => {
   }
 };
 
-//fixme marketProducts to Array of objects change
 exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
   const variationMarketProp = `${marketProductData.marketType}Product`;
 
@@ -333,17 +332,6 @@ exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
                 cbPart(null, marketProduct);
                 return;
               }
-
-              // Вариация связана с другим продуктом
-              // if (newVariation?.[variationMarketProp]) {
-              //   callback(
-              //     new Error(
-              //       `Вариация уже связана с другим продуктом - ${newVariation[variationMarketProp]._id}`
-              //     ),
-              //     marketProduct
-              //   );
-              //   return;
-              // }
 
               if (!newVariation && marketProductData.product_id) {
                 callback(
@@ -722,8 +710,6 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
                           callback(err, null);
                           return;
                         }
-
-                        console.log({ result });
 
                         callback(null, {
                           sku: ozonProduct.sku,
