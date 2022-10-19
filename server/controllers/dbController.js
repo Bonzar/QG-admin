@@ -71,9 +71,20 @@ exports.getProductPage = (req, res) => {
 
         const [product, variations] = results;
 
-        variations.sort((variation1, variation2) =>
-          variation2.volume.localeCompare(variation1.volume, "ru")
-        );
+        variations.sort((variation1, variation2) => {
+          const volumeSortRating = {
+            "3 мл": 50,
+            "6 мл": 40,
+            "10 мл": 30,
+            Набор: 20,
+            Стикеры: 10,
+          };
+
+          return (
+            volumeSortRating[variation2.volume] -
+            volumeSortRating[variation1.volume]
+          );
+        });
 
         if (product) {
           res.render("product", {
@@ -96,6 +107,7 @@ exports.getProductPage = (req, res) => {
   }
 };
 
+//todo check works after wbProduct to array change
 exports.getDbMarketProductPage = async (req, res) => {
   try {
     let allProducts = await dbService.getAllProducts();

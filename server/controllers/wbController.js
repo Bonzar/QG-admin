@@ -61,8 +61,12 @@ exports.getProductsListPage = async (req, res) => {
                 const wbDbProduct = wbDbProducts.find(
                   (wbDbProduct) => wbDbProduct.sku === product["nmID"]
                 );
+
                 const variation = allDbVariations.find(
-                  (variation) => variation.wbProduct?.sku === product["nmID"]
+                  (variation) =>
+                    variation.wbProduct?.filter(
+                      (wbProduct) => wbProduct.sku === product["nmID"]
+                    ).length > 0
                 );
 
                 const stockFBS =

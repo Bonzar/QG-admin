@@ -14,7 +14,7 @@ exports.getProductsListPage = async (req, res) => {
                 ozonService.getApiProductsList({ visibility: "ALL" }, callback);
               },
               // List of all products from DB with reference of WB product sku to product name
-              allVariations(callback) {
+              allDbVariations(callback) {
                 dbService.getAllVariations({}, "product ozonProduct", callback);
               },
               // List of yandex products from DB
@@ -26,7 +26,7 @@ exports.getProductsListPage = async (req, res) => {
           );
         },
         (results, cb) => {
-          const { ozonDbProducts, allVariations, productsApiList } = results;
+          const { ozonDbProducts, allDbVariations, productsApiList } = results;
 
           const { productsInfo, productsStockList } = productsApiList;
 
@@ -36,8 +36,12 @@ exports.getProductsListPage = async (req, res) => {
               const ozonDbProduct = ozonDbProducts.find(
                 (ozonDbProduct) => ozonDbProduct.sku === product["id"]
               );
-              const variation = allVariations.find(
-                (variation) => variation.ozonProduct?.sku === product["id"]
+
+              const variation = allDbVariations.find(
+                (variation) =>
+                  variation.ozonProduct?.filter(
+                    (ozonProduct) => ozonProduct.sku === product["id"]
+                  ).length > 0
               );
 
               const productStocks = productsStockList.find(

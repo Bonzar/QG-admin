@@ -14,7 +14,7 @@ exports.getProductsListPage = async (req, res) => {
                 yandexService.getApiProductsList([], callback);
               },
               // List of all products from DB with reference of WB product sku to product name
-              allVariations(callback) {
+              allDbVariations(callback) {
                 dbService.getAllVariations(
                   {},
                   "product yandexProduct",
@@ -30,7 +30,8 @@ exports.getProductsListPage = async (req, res) => {
           );
         },
         (results, cb) => {
-          const { productsApiList, allVariations, yandexDbProducts } = results;
+          const { productsApiList, allDbVariations, yandexDbProducts } =
+            results;
 
           const productsFormatRequests = productsApiList.map((product) => {
             return async function () {
@@ -38,9 +39,12 @@ exports.getProductsListPage = async (req, res) => {
               const yandexDbProduct = yandexDbProducts.find(
                 (yandexDbProduct) => yandexDbProduct.sku === product["shopSku"]
               );
-              const variation = allVariations.find(
+
+              const variation = allDbVariations.find(
                 (variation) =>
-                  variation.yandexProduct?.sku === product["shopSku"]
+                  variation.yandexProduct?.filter(
+                    (yandexProduct) => yandexProduct.sku === product["shopSku"]
+                  ).length > 0
               );
 
               const stock =

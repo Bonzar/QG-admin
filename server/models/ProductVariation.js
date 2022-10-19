@@ -8,22 +8,43 @@ const ProductVariation = new Schema({
     required: true,
   },
   ozonProduct: {
-    type: Schema.ObjectId,
-    unique: true,
+    type: [
+      {
+        type: Schema.ObjectId,
+        // unique: true,
+        // sparse: true,
+        ref: "OzonProduct",
+      },
+    ],
     sparse: true,
-    ref: "OzonProduct",
+    unique: true,
+    default: undefined,
   },
   yandexProduct: {
-    type: Schema.ObjectId,
-    unique: true,
+    type: [
+      {
+        type: Schema.ObjectId,
+        // unique: true,
+        // sparse: true,
+        ref: "YandexProduct",
+      },
+    ],
     sparse: true,
-    ref: "YandexProduct",
+    unique: true,
+    default: undefined,
   },
   wbProduct: {
-    type: Schema.ObjectId,
-    unique: true,
+    type: [
+      {
+        type: Schema.ObjectId,
+        // unique: true,
+        // sparse: true,
+        ref: "WbProduct",
+      },
+    ],
     sparse: true,
-    ref: "WbProduct",
+    unique: true,
+    default: undefined,
   },
   WooProduct: {
     type: Schema.ObjectId,

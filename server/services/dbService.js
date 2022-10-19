@@ -111,6 +111,7 @@ exports.getOzonProducts = async (filter = {}, callback) => {
   }
 };
 
+//fixme marketProducts to Array of objects change
 exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
   const variationMarketProp = `${marketProductData.marketType}Product`;
 
@@ -320,25 +321,29 @@ exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
 
               // Вариация не требует обновления
               if (
-                oldVariation &&
-                newVariation &&
-                oldVariation?.[variationMarketProp].toString() ===
-                  newVariation?.[variationMarketProp]?.toString()
+                oldVariation?.[variationMarketProp]?.filter(
+                  (product) =>
+                    product.toString() === marketProduct._id.toString()
+                ).length > 0 &&
+                newVariation?.[variationMarketProp]?.filter(
+                  (product) =>
+                    product.toString() === marketProduct._id.toString()
+                ).length > 0
               ) {
                 cbPart(null, marketProduct);
                 return;
               }
 
               // Вариация связана с другим продуктом
-              if (newVariation?.[variationMarketProp]) {
-                callback(
-                  new Error(
-                    `Вариация уже связана с другим продуктом - ${newVariation[variationMarketProp]._id}`
-                  ),
-                  marketProduct
-                );
-                return;
-              }
+              // if (newVariation?.[variationMarketProp]) {
+              //   callback(
+              //     new Error(
+              //       `Вариация уже связана с другим продуктом - ${newVariation[variationMarketProp]._id}`
+              //     ),
+              //     marketProduct
+              //   );
+              //   return;
+              // }
 
               if (!newVariation && marketProductData.product_id) {
                 callback(
@@ -352,9 +357,24 @@ exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
 
               // Если старая вариация найдена -> удаляем связь
               if (oldVariation) {
-                oldVariation[variationMarketProp] = undefined;
+                oldVariation[variationMarketProp].splice(
+                  oldVariation[variationMarketProp].indexOf(marketProduct)
+                );
+
+                if (oldVariation[variationMarketProp].length === 0) {
+                  oldVariation[variationMarketProp] = undefined;
+                }
+
+                console.log(
+                  `Новое значение после удаления - ${typeof oldVariation[
+                    variationMarketProp
+                  ]}`
+                );
+
                 oldVariation.save((err) => {
                   if (err) {
+                    console.log("Ошибка при сохранении удаления");
+
                     callback(err, null);
                     return;
                   }
@@ -372,7 +392,10 @@ exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
 
               // Если новая вариация указана -> создаем связь
               if (newVariation) {
-                newVariation[variationMarketProp] = marketProduct;
+                if (!newVariation[variationMarketProp]) {
+                  newVariation[variationMarketProp] = [];
+                }
+                newVariation[variationMarketProp].push(marketProduct);
                 newVariation.save((err) => {
                   if (err) {
                     callback(err, null);
@@ -480,11 +503,13 @@ exports.deleteProductVariation = async (id, cbFunc) => {
     }
 
     if (
-      variation.yandexProduct ||
-      variation.wbProduct ||
-      variation.ozonProduct
+      [
+        variation.yandexProduct,
+        variation.ozonProduct,
+        variation.wbProduct,
+      ].some((products) => products?.length > 0)
     ) {
-      cbFunc(new Error("С продкутом связаны товары"), null);
+      cbFunc(new Error("С вариацией связаны товары"), null);
       return;
     }
 
@@ -614,60 +639,103 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
         async.parallel(
           {
             fbsYandexStocks(callback) {
-              if (!productVariation.yandexProduct) return callback(null, null);
+              if (
+                !productVariation.yandexProduct ||
+                productVariation.yandexProduct.length === 0
+              )
+                return callback(null, null);
 
-              yandexService.getApiProductsList(
-                [productVariation.yandexProduct.sku],
-                (err, result) => {
-                  if (err) {
-                    console.log(err);
-                    callback(err, null);
-                    return;
-                  }
+              const fbsYandexStocksRequests =
+                productVariation.yandexProduct.map((yandexProduct) => {
+                  return (callback) => {
+                    yandexService.getApiProductsList(
+                      [yandexProduct.sku],
+                      (err, result) => {
+                        if (err) {
+                          console.log(err);
+                          callback(err, null);
+                          return;
+                        }
 
-                  callback(
-                    null,
-                    result[0].warehouses?.[0].stocks.find(
-                      (stockType) => stockType.type === "FIT"
-                    )?.count
-                  );
-                }
-              );
+                        callback(null, {
+                          sku: yandexProduct.sku,
+                          stock: result[0].warehouses?.[0].stocks.find(
+                            (stockType) => stockType.type === "FIT"
+                          )?.count,
+                        });
+                      }
+                    );
+                  };
+                });
+
+              async.parallel(fbsYandexStocksRequests, callback);
             },
             fbsWbStocks(callback) {
-              if (!productVariation.wbProduct) return callback(null, null);
+              if (
+                !productVariation.wbProduct ||
+                productVariation.wbProduct.length === 0
+              )
+                return callback(null, null);
 
-              wbService.getApiProductFbsStocks(
-                productVariation.wbProduct.barcode,
-                (err, result) => {
-                  if (err) {
-                    console.log(err);
-                    callback(err, null);
-                    return;
-                  }
+              const fbsWbStocksRequests = productVariation.wbProduct.map(
+                (wbProduct) => {
+                  return (callback) => {
+                    wbService.getApiProductFbsStocks(
+                      wbProduct.barcode,
+                      (err, result) => {
+                        if (err) {
+                          console.log(err);
+                          callback(err, null);
+                          return;
+                        }
 
-                  callback(null, result.stocks?.[0].stock ?? 0);
+                        callback(null, {
+                          sku: wbProduct.sku,
+                          stock: result.stocks?.[0].stock ?? 0,
+                        });
+                      }
+                    );
+                  };
                 }
               );
+
+              async.parallel(fbsWbStocksRequests, callback);
             },
             fbsOzonStocks(callback) {
-              if (!productVariation.ozonProduct) return callback(null, null);
+              if (
+                !productVariation.ozonProduct ||
+                productVariation.ozonProduct.length === 0
+              )
+                return callback(null, null);
 
-              ozonService.getProductsStockList(
-                {
-                  product_id: [productVariation.ozonProduct.sku],
-                  visibility: "ALL",
-                },
-                (err, result) => {
-                  if (err) {
-                    console.log(err);
-                    callback(err, null);
-                    return;
-                  }
+              const fbsOzonStocksRequests = productVariation.ozonProduct.map(
+                (ozonProduct) => {
+                  return (callback) => {
+                    ozonService.getProductsStockList(
+                      {
+                        product_id: [ozonProduct.sku],
+                        visibility: "ALL",
+                      },
+                      (err, result) => {
+                        if (err) {
+                          console.log(err);
+                          callback(err, null);
+                          return;
+                        }
 
-                  callback(null, result.result.items[0].stocks[1]?.present);
+                        console.log({ result });
+
+                        callback(null, {
+                          sku: ozonProduct.sku,
+                          stock: result.result.items[0].stocks[1]?.present,
+                        });
+                      }
+                    );
+                  };
                 }
               );
+
+              async.parallel(fbsOzonStocksRequests, callback);
             },
           },
           (err, results) => {
