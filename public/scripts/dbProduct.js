@@ -152,6 +152,7 @@ for (const marketProductForm of marketProductForms) {
     )
   ) {
     marketProductForm.classList.add("disabled");
+    marketProductForm.classList.add("order-last");
   }
 }
 
