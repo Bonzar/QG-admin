@@ -95,7 +95,7 @@ img {
 
 label {
   display: flex;
-  min-height: 30px;
+  min-height: 3rem;
   line-height: 1.7;
   font-weight: 600;
 }
@@ -499,6 +499,7 @@ header a {
   margin-top: 1rem;
 }
 
+
 /* DB pages */
 .market-product--form select {
   width: 100%;
@@ -511,9 +512,32 @@ header a {
   grid-gap: 1.6rem;
 }
 
+.variation-market-products--block .market-product--form {
+  border-radius: 25px;
+  padding: 1rem;
+  box-shadow: 0.359375px 0 9px 4px rgb(237, 193, 255);
+}
+
 .variation-market-products--block .market-product--form,
 .product-variation--block {
   position: relative;
+}
+
+.market-product--form.disabled {
+  box-shadow: inset 0.359375px 0 9px 4px rgb(237, 193, 255);
+}
+
+.market-product--form.disabled::before {
+  content: "";
+  height: 100%;
+  width: 100%;
+  z-index: 10;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: rgba(161, 133, 172, 0.32);
+  border-radius: 25px;
+  pointer-events: none;
 }
 
 .navigate-btn,
@@ -647,10 +671,6 @@ header a {
     font-size: 12px;
   }
 
-  label {
-    min-height: 36px;
-  }
-
   /* Stocks table */
   .col--fbm,
   .col--fbs {
@@ -673,11 +693,5 @@ header a {
 
   .variation-market-products--block {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .variation-market-products--block .market-product--form {
-    border-radius: 25px;
-    padding: 1rem;
-    box-shadow: 0.359375px 0 9px 4px rgb(237, 193, 255);
   }
 }

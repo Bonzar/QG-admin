@@ -102,6 +102,24 @@ const deleteVariation = (e) => {
   }
 };
 
+const styleDisabledMarketProductCard = (e) => {
+  const marketProductForm = e.currentTarget;
+
+  const isActualInputs = marketProductForm.querySelectorAll(
+    'input[name="isActual"]'
+  );
+
+  if (!Array.from(isActualInputs).includes(e.target)) {
+    return;
+  }
+
+  if (e.target.value === "true") {
+    marketProductForm.classList.remove("disabled");
+  } else if (e.target.value === "false") {
+    marketProductForm.classList.add("disabled");
+  }
+};
+
 const productDeleteButton = document.querySelector(".delete-button--product");
 if (productDeleteButton)
   productDeleteButton.addEventListener("click", deleteProduct);
@@ -118,8 +136,23 @@ if (productSubmitButton)
   productSubmitButton.addEventListener("click", addUpdateProduct);
 
 const variationBlocks = document.querySelectorAll(".product-variation--block");
-for (const marketProductForm of variationBlocks) {
-  marketProductForm.addEventListener("click", addUpdateMarketProduct);
+for (const variationBlock of variationBlocks) {
+  variationBlock.addEventListener("click", addUpdateMarketProduct);
+}
+
+const marketProductForms = document.querySelectorAll(".market-product--form");
+for (const marketProductForm of marketProductForms) {
+  marketProductForm.addEventListener("change", styleDisabledMarketProductCard);
+  const isActualInputs = marketProductForm.querySelectorAll(
+    'input[name="isActual"]'
+  );
+  if (
+    Array.from(isActualInputs).find(
+      (input) => input.value === "false" && input.hasAttribute("checked")
+    )
+  ) {
+    marketProductForm.classList.add("disabled");
+  }
 }
 
 const addVariationForm = document.querySelector(".add-variation--form");
