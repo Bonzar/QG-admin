@@ -30,15 +30,16 @@ block content
             label.inline #{" "}Неактуальный#{" "}
                 input(required name="isActual" type="radio" value="false" checked=(marketProduct ? !marketProduct.isActual : false))
         label FBS:#{" "}
-            input(required name="stockFBS" type="number" value=(fbsStocks ? fbsStocks : 0) disabled=(marketProduct && fbsStocks === undefined))
-        case marketType
-            when "wb"
-                label FBW:#{" "}
-                    input(required name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
+            input(name="stockFBS" type="number" value=(fbsStocks ? fbsStocks : 0) disabled=(marketProduct && fbsStocks === undefined))
+        if marketProduct
+            case marketType
+                when "wb"
+                    label FBW:#{" "}
+                        input(name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
 
-            when "ozon"
-                label FBO:#{" "}
-                    input(required name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
+                when "ozon"
+                    label FBO:#{" "}
+                        input(name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
 
         fieldset
             legend Связь с вариацией (необязательно)

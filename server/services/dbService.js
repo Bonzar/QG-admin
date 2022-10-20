@@ -353,16 +353,8 @@ exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
                   oldVariation[variationMarketProp] = undefined;
                 }
 
-                console.log(
-                  `Новое значение после удаления - ${typeof oldVariation[
-                    variationMarketProp
-                  ]}`
-                );
-
                 oldVariation.save((err) => {
                   if (err) {
-                    console.log("Ошибка при сохранении удаления");
-
                     callback(err, null);
                     return;
                   }

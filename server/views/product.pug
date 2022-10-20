@@ -67,7 +67,7 @@ block content
                                         input(required name="isActual" type="radio" value="false" checked=!yandexProduct.isActual)
                                 label FBS:#{" "}
                                   - const yandexStock = variation.stocks.fbsYandexStocks.find(yandexStock => yandexStock.sku === yandexProduct.sku)
-                                    input(required name="stockFBS" type="number" value=(yandexStock ? yandexStock.stock : '') disabled=(yandexStock === undefined))
+                                    input(name="stockFBS" type="number" value=(yandexStock ? yandexStock.stock : '') disabled=(yandexStock === undefined))
                                 input.btn.submit-button(id="yandex-product-properties--submit-button" type="button" value="Обновить" )
 
                     if (variation.wbProduct && variation.wbProduct.length > 0)
@@ -97,7 +97,7 @@ block content
                                             input(required name="isActual" type="radio" value="false" checked=!wbProduct.isActual)
                                     label FBS:#{" "}
                                       - const wbStock = variation.stocks.fbsWbStocks.find(wbStock => wbStock.sku === wbProduct.sku)
-                                        input(required name="stockFBS" type="number" value=(wbStock ? wbStock.stock : '') disabled=(wbStock === undefined))
+                                        input(name="stockFBS" type="number" value=(wbStock ? wbStock.stock : '') disabled=(wbStock === undefined))
                                     label FBW:#{" "}
                                         input(required name="stock" type="number" value=wbProduct.stock disabled)
                                     input.btn.submit-button(id="wb-product-properties--submit-button" type="button" value="Обновить" )
@@ -126,7 +126,7 @@ block content
                                         input(required name="isActual" type="radio" value="false" checked=!ozonProduct.isActual)
                                 label FBS:#{" "}
                                   - const ozonStock = variation.stocks.fbsOzonStocks.find(ozonStock => ozonStock.sku === ozonProduct.sku)
-                                    input(required name="stockFBS" type="number" value=(ozonStock ? ozonStock.stock : '') disabled=(ozonStock === undefined))
+                                    input(name="stockFBS" type="number" value=(ozonStock ? ozonStock.stock : '') disabled=(ozonStock === undefined))
                                 label FBO:#{" "}
                                     input(required name="stock" type="number" value=ozonProduct.stock disabled)
                                 input.btn.submit-button(id="ozon-product-properties--submit-button" type="button" value="Обновить" )
