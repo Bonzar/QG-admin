@@ -3,6 +3,8 @@ const Product = require("../models/Product");
 const WbProduct = require("../models/WbProduct");
 const YandexProduct = require("../models/YandexProduct");
 const OzonProduct = require("../models/OzonProduct");
+const WooProduct = require("../models/WooProduct");
+const Sells = require("../models/Sells");
 const async = require("async");
 
 const yandexService = require("./yandexService");
@@ -108,6 +110,88 @@ exports.getOzonProducts = async (filter = {}, callback) => {
   } catch (e) {
     console.log(e);
     callback(e, null);
+  }
+};
+
+exports.getAllSells = async (filter = {}, populate = "", callback) => {
+  try {
+    const result = await Sells.find(filter).populate(populate).exec();
+
+    if (callback) {
+      return callback(null, result);
+    }
+    return result;
+  } catch (e) {
+    console.log(e);
+    callback(e, null);
+  }
+};
+
+exports.addUpdateSell = async (
+  _id = null,
+  marketProductRef,
+  productIdentifier,
+  orderId,
+  quantity,
+  date,
+  cbFunc
+) => {
+  try {
+    let marketProduct;
+    switch (marketProductRef) {
+      case "WbProduct":
+        marketProduct = await WbProduct.findOne({
+          sku: productIdentifier,
+        });
+        break;
+      case "OzonProduct":
+        marketProduct = await OzonProduct.findOne({
+          sku: +productIdentifier,
+        });
+        break;
+      case "YandexProduct":
+        marketProduct = await YandexProduct.findOne({
+          sku: productIdentifier,
+        });
+        break;
+      case "WooProduct":
+        marketProduct = await WooProduct.findOne({
+          id: +productIdentifier,
+        });
+        break;
+    }
+
+    let sellDetails = {
+      marketProductRef,
+      orderId,
+      quantity: +quantity,
+      date: new Date(date),
+      marketProduct,
+    };
+
+    let sell;
+    if (_id) {
+      sell = await Sells.findById(_id).exec();
+      for (const [key, value] of Object.entries(sellDetails)) {
+        sell[key] = value;
+      }
+    } else {
+      sell = new Sells(sellDetails);
+    }
+
+    sell.save((err) => {
+      if (err) {
+        console.log(err);
+        cbFunc(err, null);
+        return;
+      }
+
+      console.log("Sell saved.");
+      cbFunc(null, sell);
+    });
+  } catch (e) {
+    console.log(e);
+    cbFunc(e, null);
   }
 };
 
