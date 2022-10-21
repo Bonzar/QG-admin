@@ -123,7 +123,7 @@ exports.getProductsListPage = async (req, res) => {
                   return {
                     variationInnerId: variation?.product._id,
                     marketProductInnerId: wbDbProduct?._id,
-                    barcode: variation?.wbProduct.barcode ?? "",
+                    barcode: wbDbProduct?.barcode ?? "",
                     articleWb: product["nmID"],
                     article: product["vendorCode"],
                     name:
