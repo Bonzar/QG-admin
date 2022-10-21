@@ -1,5 +1,4 @@
 const WooCommerceAPI = require("woocommerce-api");
-const nameFormatter = require("../services/nameFormatter");
 const async = require("async");
 
 const getWooCommerce = function () {
@@ -16,73 +15,169 @@ const getWooCommerce = function () {
   return this.woocommerce;
 };
 
-exports.getProductList = async (tableFilters) => {
-  const WooCommerce = getWooCommerce();
+exports.getProductList = async (tableFilters, callback) => {
+  try {
+    const WooCommerce = getWooCommerce();
 
-  // Setup optimal count requests pages
-  let totalPages = 30;
+    // Setup optimal count requests pages
+    let totalPages = 30;
 
-  // Array of page numbers for requests
-  const pages = [...Array.from({ length: totalPages + 1 }).keys()].slice(1);
+    // Array of page numbers for requests
+    const pages = [...Array.from({ length: totalPages + 1 }).keys()].slice(1);
 
-  // Array of request functions for optimal count requests pages
-  const requests = pages.map((currentPage) => {
-    return async function getProductsPack(page = currentPage) {
-      // Request it self
-      return await WooCommerce.getAsync(
-        `products?per_page=7&page=${page}&order=asc${tableFilters}`
-      )
-        .then(async (response) => {
-          let productsPack = JSON.parse(response.body);
+    // Array of request functions for optimal count requests pages
+    const requests = pages.map((currentPage) => {
+      return async function getProductsPack(page = currentPage) {
+        // Request it self
+        return await WooCommerce.getAsync(
+          `products?per_page=7&page=${page}&order=asc${tableFilters}`
+        )
+          .then(async (response) => {
+            let productsPack = JSON.parse(response.body);
 
-          // if optimal count requests pages doesn't fit, missing pages will be caused by recursion
-          const realTotalPages = +response.headers["x-wp-totalpages"];
-          if (page === 1 && totalPages < realTotalPages) {
-            const additionalPages = [
-              ...Array.from({ length: realTotalPages + 1 }).keys(),
-            ].slice(totalPages + 1);
-            // Array of additional requests
-            const additionalRequests = additionalPages.map((page) => {
-              // function that will execute by async parallels
-              return () => getProductsPack(page);
-            });
-            totalPages = realTotalPages;
+            // if optimal count requests pages doesn't fit, missing pages will be caused by recursion
+            const realTotalPages = +response.headers["x-wp-totalpages"];
+            if (page === 1 && totalPages < realTotalPages) {
+              const additionalPages = [
+                ...Array.from({ length: realTotalPages + 1 }).keys(),
+              ].slice(totalPages + 1);
+              // Array of additional requests
+              const additionalRequests = additionalPages.map((page) => {
+                // function that will execute by async parallels
+                return () => getProductsPack(page);
+              });
+              totalPages = realTotalPages;
 
-            const additionalPack = await async.parallel(additionalRequests);
+              const additionalPack = await async.parallel(additionalRequests);
 
-            const unpackedAdditionalPack = additionalPack.reduce(
-              (total, currentPack) => {
-                total.push(...currentPack);
-                return total;
-              },
-              []
-            );
+              const unpackedAdditionalPack = additionalPack.reduce(
+                (total, currentPack) => {
+                  total.push(...currentPack);
+                  return total;
+                },
+                []
+              );
 
-            productsPack = [...productsPack, ...unpackedAdditionalPack];
-          }
+              productsPack = [...productsPack, ...unpackedAdditionalPack];
+            }
 
-          return productsPack;
-        })
-        .catch((e) => {
-          if (e.name === "SyntaxError") {
-            throw new Error("Слишком много запросов к API, подождите немного");
-          }
-        });
-    };
-  });
+            // const resultProductsPack = [];
+            //
+            // // const variationIds = [];
+            // for (const product of productsPack) {
+            //   if (product.type === "simple") {
+            //     resultProductsPack.push(product);
+            //   } else {
+            //     resultProductsPack.push(
+            //       ...(await WooCommerce.getAsync(
+            //         `products/${product.id}/variations`
+            //       ).then((response) => {
+            //         return JSON.parse(response.body);
+            //       }))
+            //     );
+            //   }
+            // }
 
-  const fetchedProducts = await async.parallel(requests);
-
-  // Unpacking array of objects arrays in one array with naming replace
-  return fetchedProducts.reduce((totalList, currentPack) => {
-    currentPack.map((product) => {
-      product.name = nameFormatter.clearName(product.name, "site");
-      return product;
+            return productsPack;
+          })
+          .catch((e) => {
+            if (e.name === "SyntaxError") {
+              throw new Error(
+                "Слишком много запросов к API, подождите немного"
+              );
+            }
+          });
+      };
     });
 
-    totalList.push(...currentPack);
-    return totalList;
-  }, []);
+    const fetchedProducts = await async.parallel(requests);
+
+    // Unpacking array of objects arrays in one array with naming replace
+    const result = fetchedProducts.reduce((totalList, currentPack) => {
+      totalList.push(...currentPack);
+      return totalList;
+    }, []);
+
+    if (!callback) {
+      return result;
+    }
+    callback(null, result);
+  } catch (e) {
+    console.log(e);
+    if (!callback) {
+      return new Error(e);
+    }
+    callback(e, null);
+  }
+};
+
+exports.getProductVariations = async (productId, callback) => {
+  try {
+    const WooCommerce = getWooCommerce();
+
+    const result = await WooCommerce.getAsync(
+      `products/${productId}/variations`
+    ).then((response) => {
+      return JSON.parse(response.body);
+    });
+
+    if (!callback) {
+      return result;
+    }
+    callback(null, result);
+  } catch (e) {
+    console.log(e);
+    if (!callback) {
+      return new Error(e);
+    }
+    callback(e, null);
+  }
+};
+
+exports.getProductVariationInfo = async (productId, variationId, callback) => {
+  try {
+    const WooCommerce = getWooCommerce();
+
+    const result = await WooCommerce.getAsync(
+      `products/${productId}/variations/${variationId}`
+    ).then((response) => {
+      return JSON.parse(response.body);
+    });
+
+    if (!callback) {
+      return result;
+    }
+    callback(null, result);
+  } catch (e) {
+    console.log(e);
+    if (!callback) {
+      return new Error(e);
+    }
+    callback(e, null);
+  }
+};
+
+exports.getProductInfo = async (productId, callback) => {
+  try {
+    const WooCommerce = getWooCommerce();
+
+    const result = await WooCommerce.getAsync(`products/${productId}`).then(
+      (response) => {
+        return JSON.parse(response.body);
+      }
+    );
+
+    if (!callback) {
+      return result;
+    }
+    callback(null, result);
+  } catch (e) {
+    console.log(e);
+    if (!callback) {
+      return new Error(e);
+    }
+    callback(e, null);
+  }
 };
 
 exports.getStockUpdateInfo = async (id) => {

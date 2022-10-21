@@ -3,6 +3,8 @@ const Product = require("../models/Product");
 const WbProduct = require("../models/WbProduct");
 const YandexProduct = require("../models/YandexProduct");
 const OzonProduct = require("../models/OzonProduct");
+const WooProduct = require("../models/WooProduct");
+const WooProductVariable = require("../models/WooProductVariable");
 const async = require("async");
 
 const yandexService = require("./yandexService");
@@ -25,11 +27,17 @@ exports.getProductVariationById = async (id, populate = "", callback) => {
   }
 };
 
-exports.getAllVariations = async (filter = {}, populate = "", callback) => {
+exports.getAllVariations = async (filter = {}, populates = [], callback) => {
   try {
-    const result = await ProductVariation.find(filter)
-      .populate(populate)
-      .exec();
+    const populateAll = (query) => {
+      for (const populate of populates) {
+        query.populate(populate);
+      }
+
+      return query;
+    };
+
+    const result = await populateAll(ProductVariation.find(filter)).exec();
 
     if (callback) {
       return callback(null, result);
@@ -72,6 +80,34 @@ exports.getAllProducts = async (callback) => {
 exports.getWbProducts = async (filter = {}, callback) => {
   try {
     const result = await WbProduct.find(filter).exec();
+
+    if (callback) {
+      return callback(null, result);
+    }
+    return result;
+  } catch (e) {
+    console.log(e);
+    callback(e, null);
+  }
+};
+
+exports.getWooProducts = async (filter = {}, callback) => {
+  try {
+    const result = await WooProduct.find(filter).exec();
+
+    if (callback) {
+      return callback(null, result);
+    }
+    return result;
+  } catch (e) {
+    console.log(e);
+    callback(e, null);
+  }
+};
+
+exports.getWooVariableProducts = async (filter = {}, callback) => {
+  try {
+    const result = await WooProductVariable.find(filter).exec();
 
     if (callback) {
       return callback(null, result);

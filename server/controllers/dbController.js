@@ -15,7 +15,7 @@ exports.getProductPage = (req, res) => {
         (product, callback) => {
           dbService.getAllVariations(
             { product },
-            "yandexProduct ozonProduct wbProduct",
+            ["yandexProduct ozonProduct wbProduct"],
             (err, variations) => {
               if (err) {
                 console.log(err);
@@ -107,7 +107,6 @@ exports.getProductPage = (req, res) => {
   }
 };
 
-//todo check works after wbProduct to array change
 exports.getDbMarketProductPage = async (req, res) => {
   try {
     let allProducts = await dbService.getAllProducts();
@@ -163,7 +162,7 @@ exports.getDbMarketProductPage = async (req, res) => {
         variationFilter[`${marketType}Product`] = marketProduct;
 
         const variation = (
-          await dbService.getAllVariations(variationFilter, `product`)
+          await dbService.getAllVariations(variationFilter, ["product"])
         )[0];
 
         if (marketProduct) {

@@ -17,7 +17,7 @@ exports.getProductsListPage = async (req, res) => {
               allDbVariations(callback) {
                 dbService.getAllVariations(
                   {},
-                  "product yandexProduct",
+                  ["product yandexProduct"],
                   callback
                 );
               },
