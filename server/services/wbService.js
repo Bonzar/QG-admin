@@ -13,17 +13,25 @@ exports.getApiProductsInfoList = async (searchValue = null, callback) => {
   try {
     const config = {
       method: "post",
-      url: `https://suppliers-api.wildberries.ru/content/v1/cards/list`,
+      url: `https://suppliers-api.wildberries.ru/content/v1/cards/cursor/list`,
       headers: {
         ...getHeadersRequire(),
       },
       data: {
         sort: {
-          limit: 1000,
-          // offset: 0,
-          searchValue: searchValue?.toString() ?? "",
-          // sortColumn: "updateAt", // also only has hasPhoto sorting
-          // ascending: false,
+          cursor: {
+            // "updatedAt": "2022-09-23T17:41:32Z",
+            // "nmID": 66965444,
+            limit: 1000,
+          },
+          filter: {
+            textSearch: searchValue?.toString() ?? "",
+            withPhoto: -1,
+          },
+          // "sort": {
+          //   "sortColumn": "updateAt",
+          //   "ascending": false
+          // }
         },
       },
     };
