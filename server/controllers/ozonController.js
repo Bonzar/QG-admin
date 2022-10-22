@@ -123,7 +123,8 @@ exports.getProductsListPage = async (req, res) => {
           console.log(err);
           return res.status(400).json({
             message: "Error while getting list of products. Try again later.",
-            err,
+            code: err.code,
+            status: err.response?.status,
           });
         }
 
@@ -151,11 +152,13 @@ exports.getProductsListPage = async (req, res) => {
         dbService.updateOzonStocks(productsApiList);
       }
     );
-  } catch (error) {
-    console.log(error);
-    res
-      .status(400)
-      .send("Error while getting list of products. Try again later.");
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message: "Error while getting list of products. Try again later.",
+      code: err.code,
+      status: err.response?.status,
+    });
   }
 };
 
@@ -166,13 +169,20 @@ exports.updateStock = async (req, res) => {
       .then((result) => {
         res.json(result);
       })
-      .catch((e) => {
-        console.log(e);
-        res.status(500).json(e);
+      .catch((err) => {
+        console.log(err);
+        res.status(400).json({
+          message: "Error while updating product stock. Try again later.",
+          code: err.code,
+          status: err.response?.status,
+        });
       });
-  } catch (error) {
-    res
-      .status(400)
-      .send("Error while getting list of products. Try again later.");
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message: "Error while updating product stock. Try again later.",
+      code: err.code,
+      status: err.response?.status,
+    });
   }
 };

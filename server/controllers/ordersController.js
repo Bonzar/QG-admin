@@ -241,11 +241,13 @@ module.exports.getOrdersList = (req, res) => {
         },
       },
 
-      (errors, results) => {
-        if (errors) {
-          return res
-            .status(400)
-            .json({ message: "Ошибка получения списка заказов", errors });
+      (err, results) => {
+        if (err) {
+          return res.status(400).json({
+            message: "Ошибка получения списка заказов",
+            code: err.code,
+            status: err.response.status,
+          });
         }
 
         res.render("orders", {
@@ -299,10 +301,12 @@ module.exports.getOrdersList = (req, res) => {
         });
       }
     );
-  } catch (e) {
-    console.log(e);
-    res
-      .status(400)
-      .json({ message: "Ошибка при получении списка заказов.", error: e });
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      message: "Ошибка получения списка заказов",
+      code: err.code,
+      status: err.response?.status,
+    });
   }
 };

@@ -154,7 +154,8 @@ exports.getProductsListPage = async (req, res) => {
           console.log(err);
           return res.status(400).json({
             message: "Error while getting list of products. Try again later.",
-            err,
+            code: err.code,
+            status: err.response?.status,
           });
         }
 
@@ -182,11 +183,12 @@ exports.getProductsListPage = async (req, res) => {
         dbService.updateWbStocks(productsApiInfoList, productApiFbwStocks);
       }
     );
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(400).json({
       message: "Error while getting list of products. Try again later.",
-      error,
+      code: err.code,
+      status: err.response?.status,
     });
   }
 };
@@ -202,11 +204,12 @@ exports.updateApiStock = (req, res) => {
       }
       res.json(result);
     })
-    .catch((error) => {
-      console.log(error);
+    .catch((err) => {
+      console.log(err);
       res.status(400).json({
-        message: "Error while updating a product stock. Try again later.",
-        error: error,
+        message: "Error while updating product stock. Try again later.",
+        code: err.code,
+        status: err.response?.status,
       });
     });
 };

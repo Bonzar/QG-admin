@@ -102,7 +102,8 @@ exports.getProductsListPage = async (req, res) => {
           console.log(err);
           return res.status(400).json({
             message: "Error while getting list of products. Try again later.",
-            err,
+            code: err.code,
+            status: err.response?.status,
           });
         }
 
@@ -129,11 +130,12 @@ exports.getProductsListPage = async (req, res) => {
         dbService.updateYandexStocks(productsApiList);
       }
     );
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(400).json({
       message: "Error while getting list of products. Try again later.",
-      error,
+      code: err.code,
+      status: err.response?.status,
     });
   }
 };
@@ -149,11 +151,12 @@ exports.updateApiStock = async (req, res) => {
         console.log(error);
         res.status(400).json(error);
       });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(400).json({
       message: "Error while update stock of product. Try again later.",
-      error,
+      code: err.code,
+      status: err.response?.status,
     });
   }
 };

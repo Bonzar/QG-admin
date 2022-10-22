@@ -44,11 +44,13 @@ exports.getProductsList = async (req, res) => {
       },
       products,
     });
-  } catch (error) {
-    console.log(error);
-    res
-      .status(400)
-      .send("Error while getting list of products. Try again later.");
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message: "Error while getting list of products. Try again later.",
+      code: err.code,
+      status: err.response?.status,
+    });
   }
 };
 
@@ -70,13 +72,19 @@ exports.updateStock = (req, res) => {
       .then(() => {
         res.send();
       })
-      .catch((e) => {
-        console.log(e);
-        res.status(500).json(e);
+      .catch((err) => {
+        res.status(400).json({
+          message: "Error while updating stock of product. Try again later.",
+          code: err.code,
+          status: err.response?.status,
+        });
       });
-  } catch (e) {
-    res
-      .status(400)
-      .send("Error while updating stock of product. Try again later.");
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message: "Error while updating stock of product. Try again later.",
+      code: err.code,
+      status: err.response?.status,
+    });
   }
 };

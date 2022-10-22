@@ -30,21 +30,26 @@ exports.getProductPage = (req, res) => {
         (product, variations, callback) => {
           const variationStockRequests = variations.map((variation) => {
             return (callback) => {
-              dbService.getVariationProductsStocks(
-                variation._id,
-                (err, results) => {
-                  if (err) {
-                    console.log(err);
-                    callback(err, null);
-                    return;
+              try {
+                dbService.getVariationProductsStocks(
+                  variation._id,
+                  (err, results) => {
+                    if (err) {
+                      console.log(err);
+                      callback(err, null);
+                      return;
+                    }
+
+                    variation = results[0];
+                    variation.stocks = results[1];
+
+                    callback(null, variation);
                   }
-
-                  variation = results[0];
-                  variation.stocks = results[1];
-
-                  callback(null, variation);
-                }
-              );
+                );
+              } catch (e) {
+                console.log(e);
+                callback(e, null);
+              }
             };
           });
 
@@ -63,8 +68,9 @@ exports.getProductPage = (req, res) => {
         if (err) {
           console.log(err);
           res.status(400).json({
-            message: "Error while getting product page. Try again later.",
-            err,
+            message: `Error while getting product page. Try again later.`,
+            code: err.code,
+            status: err.response?.status,
           });
           return;
         }
@@ -99,15 +105,16 @@ exports.getProductPage = (req, res) => {
         }
       }
     );
-  } catch (error) {
-    console.log(error);
-    res
-      .status(400)
-      .json({ message: "Error while getting all products page", error });
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message: "Error while getting all products. Try again later.",
+      code: err.code,
+      status: err.response?.status,
+    });
   }
 };
 
-//todo check works after wbProduct to array change
 exports.getDbMarketProductPage = async (req, res) => {
   try {
     let allProducts = await dbService.getAllProducts();
@@ -197,11 +204,12 @@ exports.getDbMarketProductPage = async (req, res) => {
         message: "Выбран не вырный маркетплейс.",
       });
     }
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(400).json({
       message: "Error while getting market product add page. Try again later.",
-      error,
+      code: err.code,
+      status: err.response?.status,
     });
   }
 };
@@ -227,17 +235,22 @@ exports.addUpdateDbMarketProduct = async (req, res) => {
             err.keyValue[Object.keys(err.keyValue)[0]]
           } уже существует`;
         }
-        res.status(400).json({ message: err.message });
+        res.status(400).json({
+          message: "Error while adding product to DB. Try again later.",
+          code: err.code,
+          status: err.response?.status,
+        });
         return;
       }
 
       res.json({ marketType: req.body.marketType, results });
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(400).json({
       message: "Error while adding product to DB. Try again later.",
-      error,
+      code: err.code,
+      status: err.response?.status,
     });
   }
 };
@@ -263,17 +276,22 @@ exports.addUpdateDbProduct = async (req, res) => {
             err.keyValue[Object.keys(err.keyValue)[0]]
           } уже существует`;
         }
-        res.status(400).json({ message: err.message });
+        res.status(400).json({
+          message: "Error while adding product to DB. Try again later.",
+          code: err.code,
+          status: err.response?.status,
+        });
         return;
       }
 
       res.json(results);
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(400).json({
       message: "Error while adding product to DB. Try again later.",
-      error,
+      code: err.code,
+      status: err.response?.status,
     });
   }
 };
@@ -289,17 +307,22 @@ exports.addDbProductVariation = async (req, res) => {
             err.keyValue[Object.keys(err.keyValue)[0]]
           } уже существует`;
         }
-        res.status(400).json({ message: err.message });
+        res.status(400).json({
+          message: "Error while adding variation to DB. Try again later.",
+          code: err.code,
+          status: err.response?.status,
+        });
         return;
       }
 
       res.json(results);
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(400).json({
       message: "Error while adding variation to DB. Try again later.",
-      error,
+      code: err.code,
+      status: err.response?.status,
     });
   }
 };
@@ -309,18 +332,22 @@ exports.deleteDbProduct = async (req, res) => {
     await dbService.deleteProduct(req.params.id, (err, results) => {
       if (err) {
         console.log(err);
-
-        res.status(400).json({ message: err.message });
+        res.status(400).json({
+          message: "Error while deleting Product from DB. Try again later.",
+          code: err.code,
+          status: err.response?.status,
+        });
         return;
       }
 
       res.json(results);
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(400).json({
       message: "Error while deleting Product from DB. Try again later.",
-      error,
+      code: err.code,
+      status: err.response?.status,
     });
   }
 };
@@ -331,18 +358,23 @@ exports.deleteDbProductVariation = async (req, res) => {
       if (err) {
         console.log(err);
 
-        res.status(400).json({ message: err.message });
+        res.status(400).json({
+          message: "Error while deleting product variation. Try again later.",
+          code: err.code,
+          status: err.response?.status,
+        });
         return;
       }
 
       res.json(results);
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(400).json({
       message:
         "Error while deleting product variation from DB. Try again later.",
-      error,
+      code: err.code,
+      status: err.response?.status,
     });
   }
 };
@@ -360,7 +392,8 @@ exports.getAllProductsPage = (req, res) => {
           console.log(err);
           res.status(400).json({
             message: "Error while getting product page. Try again later.",
-            err,
+            code: err.code,
+            status: err.response?.status,
           });
           return;
         }
@@ -395,10 +428,12 @@ exports.getAllProductsPage = (req, res) => {
         });
       }
     );
-  } catch (error) {
-    console.log(error);
-    res
-      .status(400)
-      .json({ message: "Error while getting all products page", error });
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message: "Error while getting all products page",
+      code: err.code,
+      status: err.response?.status,
+    });
   }
 };

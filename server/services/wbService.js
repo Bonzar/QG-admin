@@ -135,7 +135,7 @@ exports.updateApiStock = async (barcode, stock, callback) => {
   } catch (e) {
     console.log(e);
     if (!callback) {
-      return new Error(e);
+      throw e;
     }
     callback(e, null);
   }

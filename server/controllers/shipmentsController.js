@@ -18,11 +18,15 @@ exports.getOzonShipment = async (req, res) => {
       .status(200)
       .attachment(`ozonShipment.csv`)
       .send(await csvOzonShipment.toString());
-  } catch (e) {
-    console.log(e);
+  } catch (err) {
+    console.log(err);
     res
       .status(400)
-      .json({ message: "Ошибка при получении поставки Ozon.", error: e });
+      .json({
+        message: "Ошибка при получении поставки Ozon.",
+        code: err.code,
+        status: err.response?.status,
+      });
   }
 };
 
@@ -31,9 +35,11 @@ exports.getWbShipment = (req, res) => {
     wbService.getWbShipment(req.body, async (err, wbShipmentProducts) => {
       if (err) {
         console.log(err);
-        res
-          .status(400)
-          .json({ message: "Ошибка при получении поставки WB", err });
+        res.status(400).json({
+          message: "Ошибка при получении поставки WB",
+          code: err.code,
+          status: err.response?.status,
+        });
         return;
       }
 
@@ -48,10 +54,12 @@ exports.getWbShipment = (req, res) => {
         .attachment(`wbShipment.csv`)
         .send(await csvWbShipment.toString());
     });
-  } catch (e) {
-    console.log(e);
-    res
-      .status(400)
-      .json({ message: "Ошибка при получении поставки WB.", error: e });
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message: "Ошибка при получении поставки WB.",
+      code: err.code,
+      status: err.response?.status,
+    });
   }
 };
