@@ -130,3 +130,37 @@ block content
                                 label FBO:#{" "}
                                     input(required name="stock" type="number" value=ozonProduct.stock disabled)
                                 input.btn.submit-button(id="ozon-product-properties--submit-button" type="button" value="Обновить" )
+
+                    if (variation.wooProduct && variation.wooProduct.length > 0)
+                      each wooProduct in variation.wooProduct
+                        div.market-product--form
+                            h2 Site
+
+                            a.btn.navigate-btn(href=`/stocks/woo/${wooProduct._id}`)
+
+                            form(id="woo-product-properties--form")
+                                input(required name="marketType" value="woo" hidden)
+                                input(required name="_id" value=wooProduct._id hidden)
+                                label ID:#{" "}
+                                    input(required name="id" value=`${wooProduct.id}` disabled)
+                                    input(required name="id" value=`${wooProduct.id}` hidden)
+                                label Article:#{" "}
+                                    input(name="article" value=wooProduct.article disabled)
+                                    input(name="article" value=wooProduct.article hidden)
+                                label Type:#{" "}
+                                    input(name="type" value=wooProduct.type disabled)
+                                    input(name="type" value=wooProduct.type hidden)
+                                if wooProduct.type === 'variation'
+                                    label Parent:#{" "}
+                                        input(required name="parentVariable" value=`${wooProduct.parentVariable.id}` disabled)
+                                        input(required name="parentVariable" value=`${wooProduct.parentVariable.id}` hidden)
+                                fieldset.inline
+                                    legend Актуальность
+                                    label.inline Актуальный#{" "}
+                                        input(required name="isActual" type="radio" value="true" checked=wooProduct.isActual)
+                                    label.inline #{" "}Неактуальный#{" "}
+                                        input(required name="isActual" type="radio" value="false" checked=!wooProduct.isActual)
+                                label FBS:#{" "}
+                                  - const wooStock = variation.stocks.fbsWooStocks.find(wooStock => wooStock.sku === wooProduct.sku)
+                                    input(name="stockFBS" type="number" value=(wooStock ? wooStock.stock : '') disabled=(wooStock === undefined))
+                                input.btn.submit-button(id="woo-product-properties--submit-button" type="button" value="Обновить" )

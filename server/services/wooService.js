@@ -61,23 +61,6 @@ exports.getProductList = async (tableFilters, callback) => {
               productsPack = [...productsPack, ...unpackedAdditionalPack];
             }
 
-            // const resultProductsPack = [];
-            //
-            // // const variationIds = [];
-            // for (const product of productsPack) {
-            //   if (product.type === "simple") {
-            //     resultProductsPack.push(product);
-            //   } else {
-            //     resultProductsPack.push(
-            //       ...(await WooCommerce.getAsync(
-            //         `products/${product.id}/variations`
-            //       ).then((response) => {
-            //         return JSON.parse(response.body);
-            //       }))
-            //     );
-            //   }
-            // }
-
             return productsPack;
           })
           .catch((e) => {
@@ -174,68 +157,31 @@ exports.getProductInfo = async (productId, callback) => {
   } catch (e) {
     console.log(e);
     if (!callback) {
-      return new Error(e);
+      throw e;
     }
     callback(e, null);
   }
 };
 
-exports.getStockUpdateInfo = async (id) => {
-  const WooCommerce = getWooCommerce();
+exports.updateProduct = async (
+  productType,
+  variableId,
+  id,
+  updateData,
+  callback
+) => {
+  try {
+    const WooCommerce = getWooCommerce();
 
-  const product = await WooCommerce.getAsync(`products/${id}`).then(
-    (response) => {
-      return JSON.parse(response.body);
-    }
-  );
+    console.log({ productType, variableId, id, updateData });
 
-  switch (product.type) {
-    case "simple":
-      return { product_type: "simple", products: [product] };
-    case "variable":
-      return await WooCommerce.getAsync(`products/${id}/variations`).then(
-        (response) => {
-          return {
-            product_type: "variation",
-            products: JSON.parse(response.body),
-          };
-        }
-      );
-  }
-};
-
-exports.updateStock = async (products) => {
-  const WooCommerce = getWooCommerce();
-
-  // Iterate each product id given in request
-  await Object.keys(products).forEach((id) => {
-    const productType = products[id].find((prop) =>
-      Object.keys(prop).includes("product_type")
-    )["product_type"];
-
-    const variableId = products[id].find((prop) =>
-      Object.keys(prop).includes("variable_id")
-    )["variable_id"];
-
-    const updateData = products[id].reduce((totalProps, current) => {
-      if (current.product_type || current.variable_id) {
-        return totalProps;
-      }
-      if (current.manage_stock) {
-        current["manage_stock"] = current["manage_stock"] === "on";
-      }
-      if (current.stock_status) {
-        current["manage_stock"] = false;
-      }
-      return { ...totalProps, ...current };
-    }, {});
-
+    let result;
     switch (productType) {
       case "simple":
-        WooCommerce.putAsync(`products/${id}`, updateData);
+        result = await WooCommerce.put(`products/${id}`, updateData);
         break;
       case "variation":
-        WooCommerce.putAsync(
+        result = await WooCommerce.putAsync(
           `products/${variableId}/variations/${id}`,
           updateData
         );
@@ -243,7 +189,18 @@ exports.updateStock = async (products) => {
       default:
         throw new Error("Product_type not valid");
     }
-  });
+
+    if (!callback) {
+      return result;
+    }
+    callback(null, result);
+  } catch (e) {
+    console.log(e);
+    if (!callback) {
+      throw e;
+    }
+    callback(e, null);
+  }
 };
 
 exports.getOrders = async () => {

@@ -100,9 +100,6 @@ label {
   font-weight: 600;
 }
 
-select,
-input {
-}
 
 fieldset {
   border-radius: 15px;
@@ -153,6 +150,171 @@ hr {
 
 .order-last {
   order: 1;
+}
+
+.loading {
+  position: relative;
+}
+
+.loading::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: calc(100% + 1rem);
+  width: calc(100% + 1rem);
+  transform: translate(-50%, -50%);
+  background-color: rgb(237, 193, 255, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 10;
+  border-radius: 25px;
+  padding: 1rem;
+  box-shadow: 0.359375px 0 9px 4px rgb(237, 193, 255);
+}
+
+.tea-loading--icon {
+  display: none;
+}
+.loading .tea-loading--icon {
+  --secondary: #33406f;
+  position: absolute;
+  display: block;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(2);
+  z-index: 11;
+}
+.tea-loading--icon #teabag {
+  transform-origin: top center;
+  transform: rotate(3deg);
+  animation: swing 2s infinite;
+}
+.tea-loading--icon #steamL {
+  stroke-dasharray: 13;
+  stroke-dashoffset: 13;
+  animation: steamLarge 2s infinite;
+}
+.tea-loading--icon #steamR {
+  stroke-dasharray: 9;
+  stroke-dashoffset: 9;
+  animation: steamSmall 2s infinite;
+}
+@-moz-keyframes swing {
+  50% {
+    transform: rotate(-3deg);
+  }
+}
+@-webkit-keyframes swing {
+  50% {
+    transform: rotate(-3deg);
+  }
+}
+@-o-keyframes swing {
+  50% {
+    transform: rotate(-3deg);
+  }
+}
+@keyframes swing {
+  50% {
+    transform: rotate(-3deg);
+  }
+}
+@-moz-keyframes steamLarge {
+  0% {
+    stroke-dashoffset: 13;
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: 39;
+    opacity: 0;
+  }
+}
+@-webkit-keyframes steamLarge {
+  0% {
+    stroke-dashoffset: 13;
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: 39;
+    opacity: 0;
+  }
+}
+@-o-keyframes steamLarge {
+  0% {
+    stroke-dashoffset: 13;
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: 39;
+    opacity: 0;
+  }
+}
+@keyframes steamLarge {
+  0% {
+    stroke-dashoffset: 13;
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: 39;
+    opacity: 0;
+  }
+}
+@-moz-keyframes steamSmall {
+  10% {
+    stroke-dashoffset: 9;
+    opacity: 0.6;
+  }
+  80% {
+    stroke-dashoffset: 27;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 27;
+    opacity: 0;
+  }
+}
+@-webkit-keyframes steamSmall {
+  10% {
+    stroke-dashoffset: 9;
+    opacity: 0.6;
+  }
+  80% {
+    stroke-dashoffset: 27;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 27;
+    opacity: 0;
+  }
+}
+@-o-keyframes steamSmall {
+  10% {
+    stroke-dashoffset: 9;
+    opacity: 0.6;
+  }
+  80% {
+    stroke-dashoffset: 27;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 27;
+    opacity: 0;
+  }
+}
+@keyframes steamSmall {
+  10% {
+    stroke-dashoffset: 9;
+    opacity: 0.6;
+  }
+  80% {
+    stroke-dashoffset: 27;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 27;
+    opacity: 0;
+  }
 }
 
 /* Navigation */
@@ -431,58 +593,9 @@ header a {
   background: #e8e8e8;
 }
 
-/* Site table */
-#site-stocks .change-stock--form {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  z-index: 1;
-  display: flex;
-  max-width: 84vw;
-  transform: unset;
-}
-
-#site-stocks fieldset {
-  border: none;
-  background-color: rgba(237, 226, 255, 1);
-  border-radius: 10px;
-  box-shadow: 0 0 17px -3px rgba(0, 0, 0, 0.42);
-  position: relative;
-  padding: 1.4rem 1.2rem 0.4rem;
-  margin: 0 5px;
-  width: 190px;
-}
-#site-stocks fieldset legend {
-  transform: translateY(75%);
-  font-size: 1.6rem;
-  font-weight: 600;
-}
-
-#site-stocks label {
-  font-weight: 400;
-  display: initial;
-}
-
-#site-stocks .col--fbs {
-  padding-right: 12px;
-  width: 7rem;
-}
-
-#site-stocks td.col--fbs::after {
-  position: relative;
-  right: -8px;
-  top: unset;
-  transform: unset;
-}
-
-#site-stocks .change-stock--submit-button {
-  margin: 0;
-  position: absolute;
-  font-size: 1.2rem;
-  transform: translateY(-50%);
-  top: 50%;
-  right: 100%;
-  height: 30px;
+/* Woo table */
+#woo-stocks .col--fbs {
+  width: 5.5rem;
 }
 
 /* Login page */
@@ -505,7 +618,6 @@ header a {
 .market-product--form select {
   width: 100%;
   margin: auto auto auto 0.5rem;
-  font-size: 2.6rem;
 }
 
 .variation-market-products--block {

@@ -4,6 +4,7 @@ const { validationResult } = require("express-validator");
 const wbService = require("../services/wbService");
 const yandexService = require("../services/yandexService");
 const ozonService = require("../services/ozonService");
+const wooService = require("../services/wooService");
 
 exports.getProductPage = (req, res) => {
   try {
@@ -15,7 +16,13 @@ exports.getProductPage = (req, res) => {
         (product, callback) => {
           dbService.getAllVariations(
             { product },
-            ["yandexProduct ozonProduct wbProduct"],
+            [
+              {
+                path: "wooProduct",
+                populate: { path: "parentVariable" },
+              },
+              "product yandexProduct wbProduct ozonProduct",
+            ],
             (err, variations) => {
               if (err) {
                 console.log(err);
@@ -118,7 +125,7 @@ exports.getDbMarketProductPage = async (req, res) => {
     const marketType = req.params.marketType;
     const productId = req.params.product_id;
 
-    if (["yandex", "wb", "ozon"].includes(marketType)) {
+    if (["yandex", "wb", "ozon", "woo"].includes(marketType)) {
       // if id exist -> update product ELSE add new
       if (productId) {
         let marketProduct = null;
@@ -155,6 +162,29 @@ exports.getDbMarketProductPage = async (req, res) => {
               })
             ).result.items[0].stocks[1]?.present;
 
+            break;
+          case "woo":
+            marketProduct = (
+              await dbService.getWooProducts(
+                { _id: productId },
+                "parentVariable"
+              )
+            )[0];
+
+            switch (marketProduct.type) {
+              case "simple":
+                fbsStocks = (await wooService.getProductInfo(marketProduct.id))
+                  .stock_quantity;
+                break;
+              case "variation":
+                fbsStocks = (
+                  await wooService.getProductVariationInfo(
+                    marketProduct.parentVariable.id,
+                    marketProduct.id
+                  )
+                ).stock_quantity;
+                break;
+            }
             break;
         }
 

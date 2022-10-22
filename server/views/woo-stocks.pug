@@ -1,9 +1,15 @@
 extends stocks-table
 
 append scripts
-    script(src="/scripts/woo-table.js" defer)
+    script(src="/scripts/woo-table.js" type="module" defer)
     script(src="/scripts/table-filters.js" defer)
 
 block filters
     div(class="table-filters")
+        a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--all") Все по актуальности
+        a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--notActual") Не актуальные
         a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--outofstock") Нет в наличии
+
+block after-table
+    p
+        a.btn.addTokenToHref(href="/stocks/woo/new") Новый товар Site

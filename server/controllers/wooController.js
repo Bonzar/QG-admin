@@ -2,26 +2,74 @@ const wooService = require("../services/wooService");
 const async = require("async");
 const dbService = require("../services/dbService");
 
+const formatProductInfo = (
+  product,
+  allDbVariations,
+  wooDbProducts,
+  filtersQuery
+) => {
+  return (callback) => {
+    // Search fetched product from woo in DB
+    const wooDbProduct = wooDbProducts.find(
+      (wooDbProduct) => wooDbProduct.id === product.id
+    );
+
+    const variation = allDbVariations.find(
+      (variation) =>
+        variation.wooProduct?.filter(
+          (wooProduct) => wooProduct.id === product.id
+        ).length > 0
+    );
+
+    const stock = product["stock_quantity"];
+
+    // Filtration
+    let isPassFilterArray = [];
+    // by stock status
+    switch (filtersQuery.stock_status) {
+      // Filter only outofstock products (by FBS)
+      case "outofstock":
+        isPassFilterArray.push(stock <= 0);
+        break;
+    }
+
+    // by actual (manual setup in DB)
+    switch (filtersQuery.isActual) {
+      case "notActual":
+        isPassFilterArray.push(wooDbProduct?.isActual === false);
+        break;
+      case "all":
+        isPassFilterArray.push(true);
+        break;
+      // Only actual by default
+      default:
+        isPassFilterArray.push(wooDbProduct?.isActual !== false);
+    }
+
+    if (isPassFilterArray.every((pass) => pass)) {
+      callback(null, {
+        variationInnerId: variation?.product._id,
+        marketProductInnerId: wooDbProduct?._id,
+        id: product.id,
+        stock,
+        updateBy:
+          product.type === "simple"
+            ? `simple-${product.id}`
+            : `variation-${wooDbProduct.parentVariable.id}-${product.id}`,
+        name:
+          (variation?.product.name ?? "") +
+          (["3 мл", "10 мл"].includes(variation?.volume)
+            ? ` - ${variation?.volume}`
+            : ""),
+      });
+    } else {
+      callback(null, null);
+    }
+  };
+};
+
 exports.getProductsList = async (req, res) => {
   try {
-    const tableFilters = `${
-      req.query.stock_status ? `&stock_status=${req.query.stock_status}` : ""
-    }${req.query.category ? `&category=${req.query.category}` : ""}${
-      req.query.orderby &&
-      [
-        "date",
-        "id",
-        "include",
-        "title",
-        "slug",
-        "price",
-        "popularity",
-        "rating",
-      ].includes(req.query.orderby)
-        ? `&orderby=${req.query.orderby}`
-        : ""
-    }`;
-
     async.waterfall(
       [
         (cb) => {
@@ -44,11 +92,11 @@ exports.getProductsList = async (req, res) => {
 
               // List of all products fetched from Woo server
               productsApiList(callback) {
-                wooService.getProductList(tableFilters, callback);
+                wooService.getProductList("", callback);
               },
               // List of wb products from DB
               wooDbProducts(callback) {
-                dbService.getWooProducts({}, callback);
+                dbService.getWooProducts({}, "parentVariable", callback);
               },
             },
             cb
@@ -57,99 +105,36 @@ exports.getProductsList = async (req, res) => {
         (results, cb) => {
           const { productsApiList, wooDbProducts, allDbVariations } = results;
 
-          console.log(productsApiList);
+          const productsFormatRequests = [];
 
-          const productsFormatRequests = productsApiList.map((product) => {
-            return async function () {
-              // Search fetched product from woo in DB
-              const wooDbProduct = wooDbProducts.find(
-                (wooDbProduct) => wooDbProduct.id === product.id
+          productsApiList.forEach((productApi) => {
+            if (productApi.type === "simple") {
+              productsFormatRequests.push(
+                formatProductInfo(
+                  productApi,
+                  allDbVariations,
+                  wooDbProducts,
+                  req.query
+                )
               );
-
-              const variation = allDbVariations.find(
-                (variation) =>
-                  variation.wooProduct?.filter(
-                    (wooProduct) => wooProduct.id === product.id
-                  ).length > 0
-              );
-
-              // const stockFBS =
-              //   productApiFbsStocks["stocks"].find(
-              //     (fbsStock) => fbsStock["nmId"] === product["nmID"]
-              //   )?.stock ?? 0;
-              //
-              // const stockFBW =
-              //   productFbwStocks
-              //     .filter((fbwStock) => fbwStock["nmId"] === product["nmID"])
-              //     .reduce((total, current) => total + current.quantity, 0) ??
-              //   0;
-
-              // Filtration
-              // let isPassFilterArray = [];
-              // // by stock status
-              // switch (req.query.stock_status) {
-              //   // Filter only outofstock products (by FBS)
-              //   case "outofstock":
-              //     isPassFilterArray.push(stockFBS <= 0);
-              //     break;
-              //   // Filter only outofstock products (by FBO and FBS)
-              //   case "outofstockall":
-              //     isPassFilterArray.push(stockFBS <= 0 && stockFBW <= 0);
-              //     break;
-              //   // Filter only instock on FBS products
-              //   case "instockFBS":
-              //     isPassFilterArray.push(stockFBS > 0);
-              //     break;
-              //   // Filter only instock on FBW products
-              //   case "instockFBM":
-              //     isPassFilterArray.push(stockFBW > 0);
-              //     break;
-              //   // Filter only instock on FBW or FBS products (some of them)
-              //   case "instockSome":
-              //     isPassFilterArray.push(stockFBS > 0 || stockFBW > 0);
-              //     break;
-              // }
-              //
-              // // by actual (manual setup in DB)
-              // switch (req.query.isActual) {
-              //   case "notActual":
-              //     isPassFilterArray.push(wbDbProduct?.isActual === false);
-              //     break;
-              //   case "all":
-              //     isPassFilterArray.push(true);
-              //     break;
-              //   // Only actual by default
-              //   default:
-              //     isPassFilterArray.push(wbDbProduct?.isActual !== false);
-              // }
-
-              if (true || isPassFilterArray.every((pass) => pass)) {
-                return {
-                  variationInnerId: variation?.product._id,
-                  marketProductInnerId: wooDbProduct?._id,
-                  id: product.id,
-                  name:
-                    (variation?.product.name ?? "") +
-                    (["3 мл", "10 мл"].includes(variation?.volume)
-                      ? ` - ${variation?.volume}`
-                      : ""),
-                };
+            } else {
+              for (const variationApi of productApi.product_variations) {
+                productsFormatRequests.push(
+                  formatProductInfo(
+                    variationApi,
+                    allDbVariations,
+                    wooDbProducts,
+                    req.query
+                  )
+                );
               }
-            };
+            }
           });
 
-          async.parallel(productsFormatRequests, (err, products) => {
-            if (err) {
-              cb(err, null);
-              return;
-            }
-            // Ok
-            // cb(null, [products, productApiFbwStocks, productsApiInfoList]);
-            cb(null, [products, null, null]);
-          });
+          async.parallel(productsFormatRequests, cb);
         },
       ],
-      (err, results) => {
+      (err, products) => {
         if (err) {
           console.log(err);
           return res.status(400).json({
@@ -157,8 +142,6 @@ exports.getProductsList = async (req, res) => {
             err,
           });
         }
-
-        let [products, productApiFbwStocks, productsApiInfoList] = results;
 
         // Clear product list of undefined after async
         products = products.filter((product) => !!product);
@@ -171,16 +154,13 @@ exports.getProductsList = async (req, res) => {
         res.render("woo-stocks", {
           title: "Woo Stocks",
           headers: {
-            // Article: "article",
-            Name: "name",
             ID: "id",
-            // FBM: "stockFBW",
-            // FBS: "stockFBS",
+            Name: "name",
+            FBS: "stock",
           },
-          // updateBy: "id",
+          updateBy: "updateBy",
           products,
         });
-        // dbService.updateWbStocks(productsApiInfoList, productApiFbwStocks);
       }
     );
   } catch (error) {
@@ -203,9 +183,12 @@ exports.getStockUpdateInfo = async (req, res) => {
 
 exports.updateStock = (req, res) => {
   try {
-    console.log(req.body);
+    const [productType, productId, variationId] = req.query.updateBy.split("-");
+
     wooService
-      .updateStock(req.body)
+      .updateProduct(productType, productId, variationId, {
+        stock_quantity: req.query.stock,
+      })
       .then(() => {
         res.send();
       })
