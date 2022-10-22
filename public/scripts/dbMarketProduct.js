@@ -1,4 +1,5 @@
 import { formatAddUpdateMarketProductResult } from "./formatAddUpdateMarketProductResult.js";
+import { addLoading } from "./loading-icon.js";
 import formatResponseBody from "./formatResponseBody.js";
 import authCheck from "./authCheck.js";
 
@@ -43,6 +44,8 @@ export const addUpdateMarketProduct = (e) => {
     productUpdateId ? productUpdateId.value : "new"
   }`;
 
+  const removeLoading = addLoading(form);
+
   fetch(requestUrl, {
     method: "POST",
     headers: {
@@ -55,18 +58,22 @@ export const addUpdateMarketProduct = (e) => {
     .then(async (result) => {
       if (result.response.ok) {
         const textBody = JSON.parse(await result.textBody);
-        const resultMessage = formatAddUpdateMarketProductResult(
+        const resultFormat = formatAddUpdateMarketProductResult(
           textBody.results,
           textBody.marketType
         );
-        alert(resultMessage);
+
+        if (!resultFormat.status) {
+          alert(resultFormat.message);
+        }
 
         // window.location.href = "";
       } else {
         alert(JSON.parse(await result.textBody).message);
       }
     })
-    .catch((error) => console.log(error));
+    .catch((error) => console.log(error))
+    .finally(removeLoading);
 };
 
 document.addEventListener("click", addUpdateMarketProduct);

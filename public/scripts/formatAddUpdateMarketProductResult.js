@@ -27,14 +27,29 @@ export const formatAddUpdateMarketProductResult = (results, marketType) => {
           fbsStockUpdateError = "Ошибка обновления остатков";
         }
         break;
+      case "woo":
+        isFbsStockUpdated = fbsStockUpdate.statusCode === 200;
+        if (!isFbsStockUpdated) {
+          fbsStockUpdateError = "Ошибка обновления остатков";
+        }
+        break;
     }
   }
 
-  return `Продукт маркетплейса: ${
-    isMarketProductUpdated ? "Обновлен" : "Не обновлен"
-  }\nВариация: ${
-    isVariationUpdated ? "Обновлена" : "Не обновлена"
-  }\nОстаток FBS: ${
-    isFbsStockUpdated ? "Обновлен" : "Не обновлен: " + fbsStockUpdateError
-  }`;
+  const status = [
+    isMarketProductUpdated,
+    isVariationUpdated,
+    isFbsStockUpdated,
+  ].every((status) => status);
+
+  return {
+    status,
+    message: `Продукт маркетплейса: ${
+      isMarketProductUpdated ? "Обновлен" : "Не обновлен"
+    }\nВариация: ${
+      isVariationUpdated ? "Обновлена" : "Не обновлена"
+    }\nОстаток FBS: ${
+      isFbsStockUpdated ? "Обновлен" : "Не обновлен: " + fbsStockUpdateError
+    }`,
+  };
 };

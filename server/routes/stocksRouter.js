@@ -119,7 +119,7 @@ router.get("/:marketType/new", dbController.getDbMarketProductPage);
 router.post(
   "/:marketType/new",
   roleMiddleware(["ADMIN"]),
-  body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
+  // body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
   productAddSanitizers,
   dbController.addUpdateDbMarketProduct
 );
@@ -131,7 +131,7 @@ router.get("/:marketType/:product_id", dbController.getDbMarketProductPage);
 router.post(
   "/:marketType/:product_id",
   roleMiddleware(["ADMIN"]),
-  body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
+  // body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
   productAddSanitizers,
   dbController.addUpdateDbMarketProduct
 );

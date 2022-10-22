@@ -1,5 +1,6 @@
 import authCheck from "./authCheck.js";
 import { addUpdateMarketProduct } from "./dbMarketProduct.js";
+import { addLoading } from "./loading-icon.js";
 
 const deleteProduct = (e) => {
   const form = e.target.parentElement;
@@ -10,6 +11,7 @@ const deleteProduct = (e) => {
   if (!productUpdateId) return alert("Не верно указан id для удаления.");
 
   if (confirm(`Удалить продукт?`)) {
+    const removeLoading = addLoading(form);
     fetch(`/stocks/db/product/${productUpdateId.value}/delete`, {
       method: "POST",
       headers: {
@@ -24,7 +26,8 @@ const deleteProduct = (e) => {
           alert("Продукт не удален.");
         }
       })
-      .catch((error) => console.log(error));
+      .catch((error) => console.log(error))
+      .finally(removeLoading);
   }
 };
 
@@ -53,6 +56,7 @@ const addUpdateProduct = (e) => {
     productUpdateId ? productUpdateId.value : "new"
   }`;
 
+  const removeLoading = addLoading(form);
   fetch(requestUrl, {
     method: "POST",
     headers: {
@@ -62,13 +66,12 @@ const addUpdateProduct = (e) => {
     body: JSON.stringify(updateProps),
   })
     .then((response) => {
-      if (response.ok) {
-        alert("Готово.");
-      } else {
+      if (!response.ok) {
         alert("Продукт не обновлен.");
       }
     })
-    .catch((error) => console.log(error));
+    .catch((error) => console.log(error))
+    .finally(removeLoading);
 };
 
 const deleteVariation = (e) => {
@@ -84,6 +87,7 @@ const deleteVariation = (e) => {
   if (!variationIdInput) return alert("Не верно указан id для удаления.");
 
   if (confirm(`Удалить Вариацию?`)) {
+    const removeLoading = addLoading(e.target.parentElement);
     fetch(`/stocks/db/variation/${variationIdInput.value}/delete`, {
       method: "POST",
       headers: {
@@ -98,7 +102,8 @@ const deleteVariation = (e) => {
           alert("Вариация не удалена.");
         }
       })
-      .catch((error) => console.log(error));
+      .catch((error) => console.log(error))
+      .finally(removeLoading);
   }
 };
 
@@ -186,7 +191,7 @@ addVariationForm.addEventListener("click", (e) => {
     FD.forEach((value, key) => {
       updateProps[key] = value;
     });
-
+    const removeLoading = addLoading(e.currentTarget.parentElement);
     fetch(`/stocks/db/variation/new`, {
       method: "POST",
       headers: {
@@ -203,6 +208,7 @@ addVariationForm.addEventListener("click", (e) => {
           alert("Вариация не создана.");
         }
       })
-      .catch((error) => console.log(error));
+      .catch((error) => console.log(error))
+      .finally(removeLoading);
   }
 });

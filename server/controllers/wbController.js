@@ -23,7 +23,7 @@ exports.getProductsListPage = async (req, res) => {
               },
               // List of all products from DB with reference of WB product sku to product name
               allDbVariations(callback) {
-                dbService.getAllVariations({}, "product wbProduct", callback);
+                dbService.getAllVariations({}, ["product wbProduct"], callback);
               },
               // List of wb products from DB
               wbDbProducts(callback) {
