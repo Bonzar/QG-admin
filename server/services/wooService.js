@@ -178,7 +178,7 @@ exports.updateProduct = async (
     let result;
     switch (productType) {
       case "simple":
-        result = await WooCommerce.put(`products/${id}`, updateData);
+        result = await WooCommerce.putAsync(`products/${id}`, updateData);
         break;
       case "variation":
         result = await WooCommerce.putAsync(
