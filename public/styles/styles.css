@@ -182,7 +182,9 @@ hr {
   display: block;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(2);
+  transform: translate(-50%, -50%);
+  zoom: 2;
+  -moz-transform: translate(-50%, -50%) scale(2);
   z-index: 11;
 }
 .tea-loading--icon #teabag {
@@ -324,7 +326,7 @@ header {
   margin: 0 0 1rem;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
   font-weight: 700;
 }
 
@@ -432,7 +434,7 @@ header a {
   position: sticky;
   top: 0;
   line-height: 22px;
-  z-index: 11;
+  z-index: 101;
 }
 
 /* table cells */

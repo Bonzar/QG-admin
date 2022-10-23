@@ -60,14 +60,14 @@ exports.getProductPage = (req, res) => {
             };
           });
 
-          async.parallel(variationStockRequests, (err, results) => {
+          async.parallel(variationStockRequests, (err, variations) => {
             if (err) {
               console.log(err);
               callback(err, null);
               return;
             }
 
-            callback(null, [product, results]);
+            callback(null, [product, variations]);
           });
         },
       ],
