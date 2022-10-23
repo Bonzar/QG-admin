@@ -823,7 +823,7 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
                         }
 
                         callback(null, {
-                          sku: yandexProduct.sku,
+                          identifier: yandexProduct.sku,
                           stock: result[0].warehouses?.[0].stocks.find(
                             (stockType) => stockType.type === "FIT"
                           )?.count,
@@ -833,7 +833,13 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
                   };
                 });
 
-              async.parallel(fbsYandexStocksRequests, callback);
+              async.parallel(fbsYandexStocksRequests, (err, result) => {
+                if (err) {
+                  console.log(err);
+                  return callback(null, { error: err });
+                }
+                callback(null, result);
+              });
             },
             fbsWooStocks(callback) {
               if (
@@ -853,7 +859,7 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
                       }
 
                       callback(null, {
-                        sku: wooProduct.sku,
+                        identifier: wooProduct.id,
                         stock: result.stock_quantity,
                       });
                     };
@@ -874,7 +880,13 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
                 }
               );
 
-              async.parallel(fbsWooStocksRequests, callback);
+              async.parallel(fbsWooStocksRequests, (err, result) => {
+                if (err) {
+                  console.log(err);
+                  return callback(null, { error: err });
+                }
+                callback(null, result);
+              });
             },
             fbsWbStocks(callback) {
               if (
@@ -896,7 +908,7 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
                         }
 
                         callback(null, {
-                          sku: wbProduct.sku,
+                          identifier: wbProduct.sku,
                           stock: result.stocks?.[0].stock ?? 0,
                         });
                       }
@@ -905,7 +917,13 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
                 }
               );
 
-              async.parallel(fbsWbStocksRequests, callback);
+              async.parallel(fbsWbStocksRequests, (err, result) => {
+                if (err) {
+                  console.log(err);
+                  return callback(null, { error: err });
+                }
+                callback(null, result);
+              });
             },
             fbsOzonStocks(callback) {
               if (
@@ -930,7 +948,7 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
                         }
 
                         callback(null, {
-                          sku: ozonProduct.sku,
+                          identifier: ozonProduct.sku,
                           stock: result.result.items[0].stocks[1]?.present,
                         });
                       }
@@ -939,7 +957,13 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
                 }
               );
 
-              async.parallel(fbsOzonStocksRequests, callback);
+              async.parallel(fbsOzonStocksRequests, (err, result) => {
+                if (err) {
+                  console.log(err);
+                  return callback(null, { error: err });
+                }
+                callback(null, result);
+              });
             },
           },
           (err, results) => {
