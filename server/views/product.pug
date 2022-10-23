@@ -104,4 +104,9 @@ block content
                                             input(name="stockFBS" type="number" min=0 value=(marketProductCardStock ? marketProductCardStock.stock : '') disabled=(marketProductCardStock === undefined))
                                           else
                                             input(name="stockFBS" type="number" min=0 placeholder="Ошибка получения остатка")
+                                      case marketType
+                                          when 'wb'
+                                          when 'ozon'
+                                              label FBM:#{" "}
+                                                  input(required name="stock" type="number" value=marketProductCard.stock disabled)
                                       input.btn.submit-button(type="button" value="Обновить" )
