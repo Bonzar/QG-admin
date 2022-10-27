@@ -55,7 +55,7 @@ const formatProductInfo = (
         updateBy:
           product.type === "simple"
             ? `simple-${product.id}`
-            : `variation-${wooDbProduct.parentVariable.id}-${product.id}`,
+            : `variation-${wooDbProduct?.parentVariable.id}-${product.id}`,
         name:
           (variation?.product.name ?? "") +
           (["3 мл", "10 мл"].includes(variation?.volume)
