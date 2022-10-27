@@ -166,12 +166,15 @@ addVariationForm.addEventListener("click", (e) => {
   if (!e.target.classList.contains("add-variation--btn")) return;
 
   const addVariationForm = e.currentTarget;
-  const volumeSelect = addVariationForm.querySelector(
-    ".add-variation--volume-select"
+  const volumeSelect = addVariationForm.querySelector("select");
+  const volumeLabel = addVariationForm.querySelector(
+    ".add-variation-volume--block"
   );
 
-  if (volumeSelect.hasAttribute("disabled")) {
-    volumeSelect.removeAttribute("disabled");
+  if (volumeLabel.hasAttribute("disabled")) {
+    volumeLabel.removeAttribute("disabled");
+  } else if (!volumeSelect.value) {
+    volumeLabel.setAttribute("disabled", "disabled");
   } else {
     if (!volumeSelect.reportValidity()) {
       return;

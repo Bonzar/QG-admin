@@ -120,6 +120,32 @@ input:not([type="radio"], [type="checkbox"], [type="button"], [type="submit"]) {
   margin-left: 5px;
 }
 
+.select--style {
+  appearance: none;
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
+  padding: 3px 2.5rem 3px 3px;
+  margin: auto auto auto 5px;
+}
+
+.select--arrow {
+  position: relative;
+}
+
+.select--arrow::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  width: 1.6rem;
+  height: 100%;
+  background: rgba(149, 149, 149, 1);
+  pointer-events: none;
+  -webkit-mask: url("../images/icon-arrow-down.png") center / contain no-repeat;
+}
+
 hr {
   border: 0.5px solid #b8b8b8;
 }
@@ -617,11 +643,6 @@ header a {
 
 
 /* DB pages */
-.market-product--form select {
-  width: 100%;
-  margin: auto auto auto 0.5rem;
-}
-
 .variation-market-products--block {
   display: grid;
   grid-gap: 1.6rem;
@@ -683,15 +704,19 @@ header a {
   right: 0;
 }
 
-.add-variation--volume-select {
+.add-variation-volume--block {
   position: absolute;
   top: 50%;
   right: 100%;
   transform: translateY(-50%);
-  margin-right: 0.5rem;
+  margin: 0 0.5rem;
 }
 
-.add-variation--volume-select[disabled] {
+.add-variation-volume--block .select--style {
+  width: auto;
+}
+
+.add-variation-volume--block[disabled] {
   display: none;
 }
 

@@ -23,8 +23,8 @@ block content
             when "woo"
                 label ID:#{" "}
                     input(required name="id" value=`${marketProduct ? marketProduct.id ? marketProduct.id : '' : ''}`)
-                label Type:#{" "}
-                    select( name="type")
+                label.select--arrow Type:#{" "}
+                    select.select--style( name="type")
                         option(value="") Выберете тип
                           each type in ['simple', 'variation']
                               option(value=type selected=(marketProduct ? type === marketProduct.type : false))= type
@@ -54,13 +54,13 @@ block content
 
         fieldset
             legend Связь с вариацией (необязательно)
-            label Продукт:#{" "}
-                select( name="product_id")
+            label.select--arrow Продукт:#{" "}
+                select.select--style( name="product_id")
                     option(value="") Выберете продукт
                       each product in allProducts
                           option(value=product._id selected=(variation ? product._id.toString() === variation.product._id.toString() : false))= product.name
-            label Объем:#{" "}
-                select( name="variation_volume")
+            label.select--arrow Объем:#{" "}
+                select.select--style( name="variation_volume")
                     option(value="") Выберете объем
                       each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
                           option(value=volume selected=(variation ? volume === variation.volume : false))= volume

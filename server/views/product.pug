@@ -25,10 +25,11 @@ block content
     if product
         form.add-variation--form
             a.btn.add-variation--btn
-            select.add-variation--volume-select( name="variation_volume" disabled)
-                option(value="") Выберете
-                  each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
-                      option(value=volume)= volume
+            label.select--arrow.add-variation-volume--block(disabled)
+                select.select--style( name="variation_volume" required)
+                    option(value="") Выберете
+                      each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
+                          option(value=volume)= volume
 
     if product
         input(required name="product_id" value=product._id hidden)
