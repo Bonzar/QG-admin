@@ -1,5 +1,5 @@
 const getWbShipmentButton = document.querySelector("#get-wb-shipment-button");
-getWbShipmentButton.addEventListener("click", (e) => {
+getWbShipmentButton.addEventListener("click", () => {
   try {
     alert(
       "1. Скачайте отчет бренда с маяка за год (с FBS)\n2. Оставьте в нем только столбцы с sku, sales, lost_sales\n3. Сохраните файл в формате CSV\n4. Скопируйте текстовое содержимое файла и вставьте во всплывающее окно"
