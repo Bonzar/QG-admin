@@ -83,11 +83,11 @@ block content
                                       label Article:#{" "}
                                           input(name="article" value=marketProductCard.article disabled)
                                           input(name="article" value=marketProductCard.article hidden)
-                                      fieldset.inline
-                                          legend Актуальность
-                                          label.inline Актуальный#{" "}
+                                      fieldset
+                                          legend Актуальный?
+                                          label.inline Да#{" "}
                                               input(required name="isActual" type="radio" value="true" checked=marketProductCard.isActual)
-                                          label.inline #{" "}Неактуальный#{" "}
+                                          label.inline #{" "}Нет#{" "}
                                               input(required name="isActual" type="radio" value="false" checked=!marketProductCard.isActual)
                                       label FBS:#{" "}
                                         - let marketProductCardStock;
