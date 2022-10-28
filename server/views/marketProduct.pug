@@ -24,14 +24,15 @@ block content
                 label ID:#{" "}
                     input(required name="id" value=`${marketProduct ? marketProduct.id ? marketProduct.id : '' : ''}`)
                 label.select--arrow Type:#{" "}
-                    select.select--style( name="type")
+                    select.select--style( name="type" required)
                         option(value="") Выберете тип
                           each type in ['simple', 'variation']
                               option(value=type selected=(marketProduct ? type === marketProduct.type : false))= type
-                if !marketProduct || marketProduct.type === 'variation'
-                    label Parent:#{" "}
-                        input(required name="parentVariable" value=`${marketProduct ? marketProduct.parentVariable ? marketProduct.parentVariable.id : '' : ''}`)
-
+                label.select--arrow Parent:#{" "}
+                    select.select--style( name="parentVariable" disabled=(marketProduct ? marketProduct.type !== "variation" : true) required)
+                        option(value="") Выберете связанный продукт
+                          each wooVariableProduct in wooVariableProducts
+                              option(value=wooVariableProduct.id selected=(marketProduct ? marketProduct.parentVariable ? wooVariableProduct.id === marketProduct.parentVariable.id : false : false))= wooVariableProduct.id
         label Article:#{" "}
             input(name="article" value=`${marketProduct ? marketProduct.article ? marketProduct.article : '' : ''}`)
         fieldset

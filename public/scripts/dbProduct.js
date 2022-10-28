@@ -1,5 +1,5 @@
 import authCheck from "./authCheck.js";
-import { addUpdateMarketProduct } from "./dbMarketProduct.js";
+import addUpdateMarketProduct from "./addUpdateMarketProduct.js";
 import { addLoading } from "./loading-icon.js";
 
 const deleteProduct = (e) => {

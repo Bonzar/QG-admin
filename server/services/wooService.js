@@ -173,8 +173,6 @@ exports.updateProduct = async (
   try {
     const WooCommerce = getWooCommerce();
 
-    console.log({ productType, variableId, id, updateData });
-
     let result;
     switch (productType) {
       case "simple":

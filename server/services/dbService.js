@@ -235,6 +235,53 @@ exports.addUpdateSell = async (
   }
 };
 
+exports.addUpdateWooProductVariable = async (_id = null, id, cbFunc) => {
+  try {
+    let wooProductVariable;
+    let wooProductVariableDetails = {
+      id: +id,
+    };
+
+    if (_id) {
+      wooProductVariable = await WooProductVariable.findById(_id).exec();
+      for (const [key, value] of Object.entries(wooProductVariableDetails)) {
+        wooProductVariable[key] = value;
+      }
+    } else {
+      wooProductVariable = new WooProductVariable(wooProductVariableDetails);
+    }
+
+    wooProductVariable.save((err) => {
+      if (err) {
+        console.log(err);
+        cbFunc(err, null);
+        return;
+      }
+
+      cbFunc(null, wooProductVariable);
+    });
+  } catch (e) {
+    console.log(e);
+    cbFunc(e, null);
+  }
+};
+
+exports.deleteWooProductVariable = async (id, cbFunc) => {
+  try {
+    const wooProductVariable = await WooProductVariable.findById(id).exec();
+
+    if (!wooProductVariable) {
+      cbFunc(new Error(`Woo Product Variable - ${id} не найден.`), null);
+      return;
+    }
+
+    wooProductVariable.delete(cbFunc);
+  } catch (e) {
+    console.log(e);
+    cbFunc(e, null);
+  }
+};
+
 exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
   const variationMarketProp = `${marketProductData.marketType}Product`;
 
@@ -289,7 +336,6 @@ exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
       });
 
       marketProduct = wooResults.marketProduct;
-      console.log(wooResults.apiProduct);
 
       isProductExistsOnMarketplace = wooResults.apiProduct.data?.status !== 404;
       marketProductData.parentVariable = wooResults.parentVariable;
@@ -336,6 +382,8 @@ exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
               if (marketProductData.parentVariable) {
                 marketProductDetails.parentVariable =
                   marketProductData.parentVariable;
+              } else if (marketProductData.marketType === "woo") {
+                marketProductDetails.parentVariable = undefined;
               }
 
               switch (marketProductData.marketType) {

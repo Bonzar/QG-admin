@@ -103,8 +103,9 @@ label {
 
 fieldset {
   border-radius: 15px;
-  border: 1px solid black;
   margin-block-end: 1rem;
+  margin-inline: 0;
+  border: 1px solid rgba(0, 0, 0, 0.28);
 }
 
 fieldset legend {
@@ -125,7 +126,7 @@ input:not([type="radio"], [type="checkbox"], [type="button"], [type="submit"]) {
   width: 100%;
   border: 1px solid rgba(0, 0, 0, 0.28);
   border-radius: 8px;
-  padding: 3px 2.5rem 3px 3px;
+  padding: 3px 2rem 3px 3px;
   margin: auto auto auto 5px;
 }
 
@@ -139,7 +140,7 @@ input:not([type="radio"], [type="checkbox"], [type="button"], [type="submit"]) {
   top: 50%;
   right: 0.5rem;
   transform: translateY(-50%);
-  width: 1.6rem;
+  width: 1.2rem;
   height: 100%;
   background: rgba(149, 149, 149, 1);
   pointer-events: none;
@@ -212,6 +213,7 @@ hr {
   zoom: 2;
   -moz-transform: translate(-50%, -50%) scale(2);
   z-index: 11;
+  max-height: 100%;
 }
 .tea-loading--icon #teabag {
   transform-origin: top center;

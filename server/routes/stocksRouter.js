@@ -112,6 +112,30 @@ router.post(
   dbController.addUpdateDbProduct
 );
 
+// Get request for list of all DB Woo Product Variables Page
+router.get("/db/wooVariables", dbController.getAllWooProductVariablesPage);
+
+// Get request for add DB Woo Product Variable Page
+router.get("/db/wooVariable/new", dbController.getWooProductVariablePage);
+
+// Get request DB Woo Product Variable Page
+router.get("/db/wooVariable/:id", dbController.getWooProductVariablePage);
+
+// Post request for add/update new Woo Product Variable to DB
+router.post(
+  "/db/wooVariable/:id",
+  roleMiddleware(["ADMIN"]),
+  body("id", "Id must not be empty.").trim().isLength({ min: 1 }).escape(),
+  dbController.addUpdateWooProductVariable
+);
+
+// Post request for delete Woo Product Variable to DB
+router.post(
+  "/db/wooVariable/:id/delete",
+  roleMiddleware(["ADMIN"]),
+  dbController.deleteWooProductVariable
+);
+
 // Get request for page - add new Marketplace product to DB
 router.get("/:marketType/new", dbController.getDbMarketProductPage);
 

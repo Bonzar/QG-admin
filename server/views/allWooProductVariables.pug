@@ -1,0 +1,19 @@
+extends stocks-table
+
+append scripts
+    script(src="/scripts/allWooProductVariables.js" type="module" defer)
+
+block table-stock-headers
+    th(class='col--name') ID
+
+block table-stock-body
+    if wooVariableProducts.length > 0
+        tbody
+          each wooVariableProduct in wooVariableProducts
+              tr
+                  td( class='col--id',
+                      id=wooVariableProduct._id )= wooVariableProduct.id
+
+block after-table
+    p
+        a.btn.addTokenToHref(href="/stocks/db/wooVariable/new") Новый вариативный товар Woo

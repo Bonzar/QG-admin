@@ -1,0 +1,17 @@
+extends layout
+
+append scripts
+    script(src="/scripts/dbWooProductVariable.js" type="module" defer)
+
+block content
+    h1= title
+    form.market-product--form
+        label ID:#{" "}
+            input(required name="id" value=`${wooProductVariable ? wooProductVariable.id ? wooProductVariable.id : '' : ''}`)
+
+
+        input.btn.submit-button.submit-button--woo-product-variable(type="button" value=(wooProductVariable ? "Обновить" : "Добавить") style="float: right;")
+
+        if wooProductVariable
+            input.btn.delete-button.delete-button--woo-product-variable.inline(type="button")
+            input(required name="_id" value=wooProductVariable._id hidden)
