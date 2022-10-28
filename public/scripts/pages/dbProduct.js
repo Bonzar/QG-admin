@@ -1,6 +1,6 @@
-import authCheck from "./authCheck.js";
-import addUpdateMarketProduct from "./addUpdateMarketProduct.js";
-import { addLoading } from "./loading-icon.js";
+import authCheck from "../functions/getAuthToken.js";
+import addUpdateMarketProduct from "../functions/addUpdateMarketProduct.js";
+import { addLoading } from "../functions/addLoadingIcon.js";
 
 const deleteProduct = (e) => {
   const form = e.target.parentElement;

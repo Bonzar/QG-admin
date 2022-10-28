@@ -1,8 +1,8 @@
 extends stocks-table
 
 append scripts
-    script(src="/scripts/allProducts.js" type="module" defer)
-    script(src="/scripts/table-filters.js" defer)
+    script(src="/scripts/pages/allProducts.js" type="module" defer)
+    script(src="/scripts/functions/registerTableFilters.js" defer)
 
 block filters
     div(class="table-filters")
@@ -24,9 +24,9 @@ block table-stock-body
                       |
                       if (product.name.includes("("))
                         - const [ , productName, productDescription] = product.name.match(/(.*) \((.*)\)/)
-                        | #{productName}
-                        br
-                        i.product-description #{productDescription}
+                            | #{productName}
+                            br
+                            i.product-description #{productDescription}
                       else
                           | #{product.name}
 

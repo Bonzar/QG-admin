@@ -19,19 +19,18 @@ block content
                         each prop in Object.entries(headers)
                             - let productId = (prop[0].toLowerCase() === 'name' && product.variationInnerId ? `variation-${product.variationInnerId}` : '')
                             - let marketProductId = (['article', 'sku', 'id', 'barcode'].includes(prop[0].toLowerCase()) && product.marketProductInnerId ? `marketProduct-${product.marketProductInnerId}` : '')
-
-                            td( class=`col--${prop[0].toLowerCase()}`
-                                id=(productId ? productId : marketProductId)
-                                updateBy=`${prop[0].toLowerCase() === 'name' ? product[updateBy] : ''}` )
-                                // if name has a parentheses, put within text to description tag attribute
-                                |
-                                if (prop[0].toLowerCase() === 'name' && product[prop[1]].includes("("))
-                                    - const [ , productName, productDescription] = product[prop[1]].match(/(.*) \((.*)\)/)
-                                    | #{productName}
-                                    br
-                                    i.product-description #{productDescription}
-                                else
-                                    | #{product[prop[1]]}
+                                td( class=`col--${prop[0].toLowerCase()}`
+                                    id=(productId ? productId : marketProductId)
+                                    updateBy=`${prop[0].toLowerCase() === 'name' ? product[updateBy] : ''}` )
+                                    // if name has a parentheses, put within text to description tag attribute
+                                    |
+                                    if (prop[0].toLowerCase() === 'name' && product[prop[1]].includes("("))
+                                        - const [ , productName, productDescription] = product[prop[1]].match(/(.*) \((.*)\)/)
+                                        | #{productName}
+                                        br
+                                        i.product-description #{productDescription}
+                                    else
+                                        | #{product[prop[1]]}
 
     div(class="table-after")
         block after-table

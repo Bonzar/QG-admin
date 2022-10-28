@@ -1,6 +1,6 @@
-import { updateMarketplaceStock } from "./marketplaceStockUpdateListener.js";
+import { updateMarketplaceStock } from "../functions/registerMarketplaceStockUpdateListener.js";
 
-const ozonTable = document.querySelector("#ozon-stocks");
+const ozonStocks = document.querySelector("#ozon-stocks");
 
 const ozonFetchUpdateFunction = async (
   cell,
@@ -37,4 +37,4 @@ const ozonFetchUpdateFunction = async (
     });
 };
 
-updateMarketplaceStock(ozonFetchUpdateFunction, ozonTable);
+updateMarketplaceStock(ozonFetchUpdateFunction, ozonStocks);

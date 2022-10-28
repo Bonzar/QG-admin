@@ -1,7 +1,7 @@
 import { formatAddUpdateMarketProductResult } from "./formatAddUpdateMarketProductResult.js";
-import { addLoading } from "./loading-icon.js";
+import { addLoading } from "./addLoadingIcon.js";
 import formatResponseBody from "./formatResponseBody.js";
-import authCheck from "./authCheck.js";
+import authCheck from "./getAuthToken.js";
 
 export default (e) => {
   if (!e.target.classList.contains("submit-button")) return;

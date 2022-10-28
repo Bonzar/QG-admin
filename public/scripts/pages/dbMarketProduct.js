@@ -1,4 +1,4 @@
-import addUpdateMarketProduct from "./addUpdateMarketProduct.js";
+import addUpdateMarketProduct from "../functions/addUpdateMarketProduct.js";
 
 document.addEventListener("click", addUpdateMarketProduct);
 

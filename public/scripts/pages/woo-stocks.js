@@ -1,6 +1,6 @@
-import { updateMarketplaceStock } from "./marketplaceStockUpdateListener.js";
+import { updateMarketplaceStock } from "../functions/registerMarketplaceStockUpdateListener.js";
 
-const wooTable = document.querySelector("#woo-stocks");
+const wooStocks = document.querySelector("#woo-stocks");
 
 const wooFetchUpdateFunction = async (
   cell,
@@ -30,4 +30,4 @@ const wooFetchUpdateFunction = async (
     .catch((error) => console.log(error));
 };
 
-updateMarketplaceStock(wooFetchUpdateFunction, wooTable);
+updateMarketplaceStock(wooFetchUpdateFunction, wooStocks);

@@ -1,5 +1,5 @@
-import authCheck from "./authCheck.js";
-import { addLoading } from "./loading-icon.js";
+import authCheck from "../functions/getAuthToken.js";
+import { addLoading } from "../functions/addLoadingIcon.js";
 
 const addUpdateWooProductVariable = (e) => {
   const authToken = authCheck();

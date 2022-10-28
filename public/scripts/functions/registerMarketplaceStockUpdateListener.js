@@ -1,4 +1,4 @@
-import authCheck from "./authCheck.js";
+import authCheck from "./getAuthToken.js";
 
 export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
   const updateStockListener = function (e) {

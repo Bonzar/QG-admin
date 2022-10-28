@@ -1,16 +1,16 @@
-import { updateMarketplaceStock } from "./marketplaceStockUpdateListener.js";
+import { updateMarketplaceStock } from "../functions/registerMarketplaceStockUpdateListener.js";
 
-const wbTable = document.querySelector("#wb-stocks");
+const yandexTable = document.querySelector("#yandex-stocks");
 
-const wbFetchUpdateFunction = async (
+const yandexFetchUpdateFunction = async (
   cell,
-  barcodeUpdate,
+  skuUpdate,
   newStockValue,
   oldValue,
   authToken
 ) => {
   return await fetch(
-    `/stocks/wb/update_stock?barcode=${barcodeUpdate}&stock=${newStockValue}`,
+    `/stocks/yandex/update_stock?sku=${skuUpdate}&stock=${newStockValue}`,
     {
       method: "post",
       headers: {
@@ -30,4 +30,4 @@ const wbFetchUpdateFunction = async (
     .catch((error) => console.log(error));
 };
 
-updateMarketplaceStock(wbFetchUpdateFunction, wbTable);
+updateMarketplaceStock(yandexFetchUpdateFunction, yandexTable);
