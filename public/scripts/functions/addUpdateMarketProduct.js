@@ -67,7 +67,7 @@ export default (e) => {
           alert(resultFormat.message);
         }
 
-        // window.location.href = "";
+        window.location.href = "";
       } else {
         alert(JSON.parse(await result.textBody).message);
       }

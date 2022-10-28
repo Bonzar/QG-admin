@@ -727,6 +727,39 @@ exports.deleteProductVariation = async (id, cbFunc) => {
   }
 };
 
+exports.deleteMarketProduct = async (marketType, id, cbFunc) => {
+  try {
+    let marketProduct;
+    switch (marketType) {
+      case "wb":
+        marketProduct = await WbProduct.findById(id).exec();
+        break;
+      case "ozon":
+        marketProduct = await OzonProduct.findById(id).exec();
+        break;
+      case "yandex":
+        marketProduct = await YandexProduct.findById(id).exec();
+        break;
+      case "woo":
+        marketProduct = await WooProduct.findById(id).exec();
+        break;
+    }
+
+    const variation = await ProductVariation.findOne({
+      [`${marketType}Product`]: marketProduct,
+    }).exec();
+    if (variation) {
+      cbFunc(new Error("Товар связан с вариацией"), null);
+      return;
+    }
+
+    marketProduct.delete(cbFunc);
+  } catch (e) {
+    console.log(e);
+    cbFunc(e, null);
+  }
+};
+
 exports.updateYandexStocks = async (productsApiList) => {
   try {
     if (!productsApiList) {

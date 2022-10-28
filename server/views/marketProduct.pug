@@ -69,5 +69,6 @@ block content
         input(required name="marketType" value=marketType hidden)
         if marketProduct
             input(required name="_id" value=marketProduct._id hidden)
+            input.btn.delete-button.delete-button--market-product.inline(type="button")
 
         input.btn.submit-button.market-product--submit-button(type="button" value=(marketProduct ? "Обновить" : "Добавить") style="float: right;")

@@ -160,4 +160,12 @@ router.post(
   dbController.addUpdateDbMarketProduct
 );
 
+// Post request for update new Marketplace product (DB)
+router.post(
+  "/:marketType/:_id/delete",
+  roleMiddleware(["ADMIN"]),
+  productAddSanitizers,
+  dbController.deleteDbMarketProduct
+);
+
 module.exports = router;

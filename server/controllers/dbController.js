@@ -519,6 +519,36 @@ exports.deleteDbProductVariation = async (req, res) => {
   }
 };
 
+exports.deleteDbMarketProduct = async (req, res) => {
+  try {
+    await dbService.deleteMarketProduct(
+      req.params.marketType,
+      req.params._id,
+      (err, results) => {
+        if (err) {
+          console.log(err);
+
+          res.status(400).json({
+            message: "Error while deleting market product. Try again later.",
+            code: err.code,
+            status: err.response?.status,
+          });
+          return;
+        }
+
+        res.json(results);
+      }
+    );
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message: "Error while deleting market product from DB. Try again later.",
+      code: err.code,
+      status: err.response?.status,
+    });
+  }
+};
+
 exports.getAllProductsPage = (req, res) => {
   try {
     async.parallel(
