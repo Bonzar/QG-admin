@@ -1,14 +1,4 @@
-import { updateMarketplaceStock } from "../functions/registerMarketplaceStockUpdateListener.js";
-
-const ozonStocks = document.querySelector("#ozon-stocks");
-
-const ozonFetchUpdateFunction = async (
-  cell,
-  skuUpdate,
-  newStockValue,
-  oldValue,
-  authToken
-) => {
+export default async (cell, skuUpdate, newStockValue, oldValue, authToken) => {
   return await fetch(
     `/stocks/ozon/update_stock?id=${skuUpdate}&stock=${newStockValue}`,
     {
@@ -36,5 +26,3 @@ const ozonFetchUpdateFunction = async (
       console.log({ error });
     });
 };
-
-updateMarketplaceStock(ozonFetchUpdateFunction, ozonStocks);

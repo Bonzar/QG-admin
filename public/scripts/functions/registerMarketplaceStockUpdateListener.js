@@ -1,34 +1,38 @@
 import authCheck from "./getAuthToken.js";
+import yandexStockUpdate from "./yandexStockUpdate.js";
+import wbStockUpdate from "./wbStockUpdate.js";
+import ozonStockUpdate from "./ozonStockUpdate.js";
+import wooStockUpdate from "./wooStockUpdate.js";
 
-export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
+const updateMarketplaceStock = () => {
   const updateStockListener = function (e) {
     const cell = e.target;
+
+    const refLink = cell.getAttribute("ref");
+    const updateIdentify = cell.getAttribute("updateBy");
 
     // redirect to Product page
     if (
       cell.classList.value.includes("col--name") &&
       cell.nodeName === "TD" &&
-      cell.id
+      refLink
     ) {
-      window.location.href = `/stocks/db/product/${cell.id.split("-")[1]}`;
-    }
-
-    // redirect to market product page
-    if (
+      window.location.href = `/stocks/db/product/${refLink}`;
+      // redirect to market product page
+    } else if (
       cell === cell.parentElement.firstElementChild &&
       cell.nodeName === "TD" &&
-      cell.id
+      refLink
     ) {
-      window.location.href = `/stocks/${tableHtml.id.split("-")[0]}/${
-        cell.id.split("-")[1]
-      }`;
+      window.location.href = `/stocks/${tableHtml.id}/${refLink}`;
     }
 
     // stock change form on stock click
     if (
       cell.classList.value.includes("col--fbs") &&
       cell.nodeName === "TD" &&
-      !cell.querySelector(".change-stock--form")
+      !cell.querySelector(".change-stock--form") &&
+      updateIdentify
     ) {
       const oldValue = cell.textContent;
 
@@ -46,17 +50,30 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
           const newStockValue = form.querySelector(
             ".change-stock--input-number"
           ).value;
-          const idUpdate = cell.parentElement
-            .querySelector("td.col--name")
-            .getAttribute("updateBy");
 
           document.removeEventListener("click", exitUpdateStockListener);
 
           const authToken = authCheck();
 
+          let fetchUpdateFunction;
+          switch (cell.getAttribute("marketType")) {
+            case "yandex":
+              fetchUpdateFunction = yandexStockUpdate;
+              break;
+            case "wb":
+              fetchUpdateFunction = wbStockUpdate;
+              break;
+            case "ozon":
+              fetchUpdateFunction = ozonStockUpdate;
+              break;
+            case "woo":
+              fetchUpdateFunction = wooStockUpdate;
+              break;
+          }
+
           fetchUpdateFunction(
             cell,
-            idUpdate,
+            updateIdentify,
             newStockValue,
             oldValue,
             authToken
@@ -80,5 +97,8 @@ export const updateMarketplaceStock = (fetchUpdateFunction, tableHtml) => {
     }
   };
 
+  const tableHtml = document.querySelector(".stocks-table");
   tableHtml.addEventListener("click", updateStockListener);
 };
+
+updateMarketplaceStock();

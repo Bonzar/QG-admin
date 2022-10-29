@@ -1,14 +1,4 @@
-import { updateMarketplaceStock } from "../functions/registerMarketplaceStockUpdateListener.js";
-
-const wooStocks = document.querySelector("#woo-stocks");
-
-const wooFetchUpdateFunction = async (
-  cell,
-  updateBy,
-  newStockValue,
-  oldValue,
-  authToken
-) => {
+export default async (cell, updateBy, newStockValue, oldValue, authToken) => {
   return await fetch(
     `/stocks/woo/update_stock?updateBy=${updateBy}&stock=${newStockValue}`,
     {
@@ -29,5 +19,3 @@ const wooFetchUpdateFunction = async (
     })
     .catch((error) => console.log(error));
 };
-
-updateMarketplaceStock(wooFetchUpdateFunction, wooStocks);

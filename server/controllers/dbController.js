@@ -592,9 +592,17 @@ exports.getAllProductsPage = (req, res) => {
           product1.name.localeCompare(product2.name, "ru")
         );
 
+        const products = filtratedProducts.map((product) => {
+          product.productInnerId = product._id;
+          return product;
+        });
+
         res.render("allProductsPage", {
           title: `Все продукты (БД)`,
-          products: filtratedProducts,
+          headers: {
+            Name: { type: "name", field: "name" },
+          },
+          products,
         });
       }
     );
@@ -644,6 +652,337 @@ exports.getAllWooProductVariablesPage = (req, res) => {
     console.log(err);
     res.status(400).json({
       message: "Error while getting page",
+      code: err.code,
+      status: err.response?.status,
+    });
+  }
+};
+
+exports.getAllProductsStockPage = async (req, res) => {
+  try {
+    let allVariationsStockList = [];
+
+    const connectYandexDataResultFormatter = (
+      variation,
+      yandexDbProduct,
+      yandexApiProduct,
+      yandexStock
+    ) => {
+      const variationStock = allVariationsStockList.find(
+        (variationStock) =>
+          variationStock.variationInnerId === variation._id &&
+          variationStock.yandexStock === undefined
+      );
+
+      if (variationStock) {
+        variationStock.yandexStock = {
+          stock: yandexStock,
+          updateBy: yandexDbProduct.sku,
+          marketType: "yandex",
+        };
+      } else {
+        allVariationsStockList.push({
+          variationInnerId: variation?._id,
+          productInnerId: variation?.product._id,
+          volume: variation?.volume,
+          productName:
+            (variation?.product.name ?? "") +
+            (["3 мл", "10 мл"].includes(variation?.volume)
+              ? ` - ${variation?.volume}`
+              : ""),
+          yandexStock: {
+            stock: yandexStock,
+            updateBy: yandexDbProduct.sku,
+            marketType: "yandex",
+          },
+        });
+      }
+    };
+
+    const connectWooDataResultFormatter = (
+      variation,
+      wooDbProduct,
+      wooApiProduct,
+      wooStock
+    ) => {
+      const variationStock = allVariationsStockList.find(
+        (variationStock) =>
+          variationStock.variationInnerId === variation._id &&
+          variationStock.wooStock === undefined
+      );
+
+      if (variationStock) {
+        variationStock.wooStock = {
+          stock: wooStock,
+          updateBy:
+            wooApiProduct.type === "simple"
+              ? `simple-${wooApiProduct.id}`
+              : `variation-${wooDbProduct?.parentVariable.id}-${wooApiProduct.id}`,
+          marketType: "woo",
+        };
+      } else {
+        allVariationsStockList.push({
+          variationInnerId: variation?._id,
+          productInnerId: variation?.product._id,
+          volume: variation?.volume,
+          productName:
+            (variation?.product.name ?? "") +
+            (["3 мл", "10 мл"].includes(variation?.volume)
+              ? ` - ${variation?.volume}`
+              : ""),
+          wooStock: {
+            stock: wooStock,
+            updateBy:
+              wooApiProduct.type === "simple"
+                ? `simple-${wooApiProduct.id}`
+                : `variation-${wooDbProduct?.parentVariable.id}-${wooApiProduct.id}`,
+            marketType: "woo",
+          },
+        });
+      }
+    };
+
+    const connectWbDataResultFormatter = (
+      variation,
+      wbDbProduct,
+      wbApiProduct,
+      stockFBW,
+      stockFBS
+    ) => {
+      const variationStock = allVariationsStockList.find(
+        (variationStock) =>
+          variationStock.variationInnerId === variation?._id &&
+          variationStock.wbStock === undefined &&
+          variationStock.FBW === undefined
+      );
+
+      if (variationStock) {
+        variationStock.wbStock = {
+          stock: stockFBS,
+          updateBy: wbDbProduct?.barcode ?? "",
+          marketType: "wb",
+        };
+
+        variationStock.FBW = stockFBW;
+      } else {
+        allVariationsStockList.push({
+          variationInnerId: variation?._id,
+          productInnerId: variation?.product._id,
+          volume: variation?.volume,
+          productName:
+            (variation?.product.name ?? "") +
+            (["3 мл", "10 мл"].includes(variation?.volume)
+              ? ` - ${variation?.volume}`
+              : ""),
+          wbStock: {
+            stock: stockFBS,
+            updateBy: wbDbProduct?.barcode ?? "",
+            marketType: "wb",
+          },
+          FBW: stockFBW,
+        });
+      }
+    };
+
+    const connectOzonDataResultFormatter = (
+      variation,
+      ozonDbProduct,
+      ozonApiProduct,
+      stockFBO,
+      stockFBS
+    ) => {
+      const variationStock = allVariationsStockList.find(
+        (variationStock) =>
+          variationStock.variationInnerId === variation._id &&
+          variationStock.ozonStock === undefined &&
+          variationStock.FBO === undefined
+      );
+
+      if (variationStock) {
+        variationStock.ozonStock = {
+          stock: stockFBS,
+          updateBy: ozonApiProduct.offer_id,
+          marketType: "ozon",
+        };
+
+        variationStock.FBO = stockFBO;
+      } else {
+        allVariationsStockList.push({
+          variationInnerId: variation?._id,
+          productInnerId: variation?.product._id,
+          volume: variation?.volume,
+          productName:
+            (variation?.product.name ?? "") +
+            (["3 мл", "10 мл"].includes(variation?.volume)
+              ? ` - ${variation?.volume}`
+              : ""),
+          ozonStock: {
+            stock: stockFBS,
+            updateBy: ozonApiProduct.offer_id,
+            marketType: "ozon",
+          },
+          FBO: stockFBO,
+        });
+      }
+    };
+
+    async.waterfall(
+      [
+        (cb) => {
+          async.parallel(
+            {
+              // Yandex products
+              yandexApiProducts(callback) {
+                yandexService.getApiProductsList([], callback);
+              },
+              // Ozon products
+              ozonApiProductsInfo(callback) {
+                ozonService.getApiProductsList({ visibility: "ALL" }, callback);
+              },
+              // Woo products
+              wooApiProducts(callback) {
+                wooService.getProductList("", callback);
+              },
+              // Wb products
+              wbApiProducts(callback) {
+                wbService.getApiProductsInfoList(null, callback);
+              },
+              // Wb Stocks on our warehouse
+              wbApiFbsStocks(callback) {
+                wbService.getApiProductFbsStocks("", callback);
+              },
+              // Wb Stocks on Wb warehouse
+              wbApiFbwStocks(callback) {
+                wbService.getApiProductFbwStocks(callback);
+              },
+              // List of all products from DB with reference of Yandex product sku to product name
+              allDbVariations(callback) {
+                dbService.getAllVariations(
+                  {},
+                  [
+                    {
+                      path: "wooProduct",
+                      populate: { path: "parentVariable" },
+                    },
+                    "product yandexProduct ozonProduct wbProduct",
+                  ],
+                  callback
+                );
+              },
+            },
+            cb
+          );
+        },
+
+        (results, cb) => {
+          const {
+            allDbVariations,
+            yandexApiProducts,
+            wooApiProducts,
+            ozonApiProductsInfo,
+            wbApiProducts,
+            wbApiFbwStocks,
+            wbApiFbsStocks,
+          } = results;
+
+          const yandexProductConnectRequests =
+            yandexService.getConnectYandexDataRequests(
+              req.query,
+              yandexApiProducts,
+              allDbVariations,
+              connectYandexDataResultFormatter
+            );
+
+          const wbProductConnectRequests = wbService.getConnectWbDataRequests(
+            req.query,
+            wbApiProducts,
+            wbApiFbsStocks,
+            wbApiFbwStocks,
+            allDbVariations,
+            connectWbDataResultFormatter
+          );
+
+          const wooProductConnectRequests =
+            wooService.getConnectWooDataRequests(
+              req.query,
+              wooApiProducts,
+              allDbVariations,
+              connectWooDataResultFormatter
+            );
+
+          const {
+            productsInfo: ozonApiProducts,
+            productsStockList: ozonApiStocks,
+          } = ozonApiProductsInfo;
+          const ozonProductConnectRequests =
+            ozonService.getConnectOzonDataRequests(
+              req.query,
+              ozonApiProducts,
+              ozonApiStocks,
+              allDbVariations,
+              connectOzonDataResultFormatter
+            );
+
+          async.parallel(
+            [
+              (callback) => {
+                async.parallel(yandexProductConnectRequests, callback);
+              },
+              (callback) => {
+                async.parallel(ozonProductConnectRequests, callback);
+              },
+              (callback) => {
+                async.parallel(wbProductConnectRequests, callback);
+              },
+              (callback) => {
+                async.parallel(wooProductConnectRequests, callback);
+              },
+            ],
+            cb
+          );
+        },
+      ],
+      (err) => {
+        if (err) {
+          console.log(err);
+          return res.status(400).json({
+            message: "Error while getting list of products. Try again later.",
+            code: err.code,
+            status: err.response?.status,
+          });
+        }
+
+        // Clear product list of undefined after async
+        allVariationsStockList = allVariationsStockList.filter(
+          (variation) => !!variation
+        );
+
+        // Sorting
+        allVariationsStockList.sort((variation1, variation2) =>
+          variation1.productName.localeCompare(variation2.productName, "ru")
+        );
+
+        res.render("allVariationsStock", {
+          title: "All Stocks",
+          headers: {
+            Name: { type: "name", field: "productName" },
+            Yand: { type: "fbs", field: "yandexStock" },
+            Ozon: { type: "fbs", field: "ozonStock" },
+            FBO: { type: "fbm", field: "FBO" },
+            WB: { type: "fbs", field: "wbStock" },
+            FBW: { type: "fbm", field: "FBW" },
+            Woo: { type: "fbs", field: "wooStock" },
+          },
+          splitTablesBy: "volume",
+          products: allVariationsStockList,
+        });
+      }
+    );
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message:
+        "Error while getting all variations stock page. Try again later.",
       code: err.code,
       status: err.response?.status,
     });

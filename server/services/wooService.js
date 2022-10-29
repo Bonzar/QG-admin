@@ -30,7 +30,7 @@ exports.getProductList = async (tableFilters, callback) => {
       return async function getProductsPack(page = currentPage) {
         // Request it self
         return await WooCommerce.getAsync(
-          `products?per_page=7&page=${page}&order=asc${tableFilters}`
+          `products?per_page=10&page=${page}&order=asc${tableFilters}`
         )
           .then(async (response) => {
             let productsPack = JSON.parse(response.body);
@@ -209,4 +209,100 @@ exports.getOrders = async () => {
       return JSON.parse(response.body);
     }
   );
+};
+
+const getConnectWooDataRequest = (
+  filters,
+  wooApiProduct,
+  allDbVariations,
+  connectWooDataResultFormatter
+) => {
+  return async () => {
+    let wooDbProduct;
+    // Search variation for market product from api
+    const variation = allDbVariations.find(
+      (variation) =>
+        // Search market product in db for market product from api
+        variation.wooProduct?.filter((variationWooDbProduct) => {
+          const isMarketProductMatch =
+            variationWooDbProduct.id === wooApiProduct.id;
+
+          // find -> save market product
+          if (isMarketProductMatch) {
+            wooDbProduct = variationWooDbProduct;
+          }
+
+          return isMarketProductMatch;
+        }).length > 0
+    );
+
+    const wooStock = wooApiProduct["stock_quantity"];
+
+    // Filtration
+    let isPassFilterArray = [];
+    // by stock status
+    switch (filters.stock_status) {
+      // Filter only outofstock products (by FBS)
+      case "outofstock":
+        isPassFilterArray.push(wooStock <= 0);
+        break;
+    }
+
+    // by actual (manual setup in DB)
+    switch (filters.isActual) {
+      case "notActual":
+        isPassFilterArray.push(wooDbProduct?.isActual === false);
+        break;
+      case "all":
+        isPassFilterArray.push(true);
+        break;
+      // Only actual by default
+      default:
+        isPassFilterArray.push(wooDbProduct?.isActual !== false);
+    }
+
+    if (!isPassFilterArray.every((pass) => pass)) return;
+
+    return connectWooDataResultFormatter(
+      variation,
+      wooDbProduct,
+      wooApiProduct,
+      wooStock
+    );
+  };
+};
+
+exports.getConnectWooDataRequests = (
+  filters,
+  wooApiProducts,
+  allDbVariations,
+  connectWooDataResultFormatter
+) => {
+  const connectWooDataRequests = [];
+
+  wooApiProducts.forEach((wooApiProduct) => {
+    if (wooApiProduct.type === "simple") {
+      connectWooDataRequests.push(
+        getConnectWooDataRequest(
+          filters,
+          wooApiProduct,
+          allDbVariations,
+          connectWooDataResultFormatter
+        )
+      );
+    } else {
+      for (const wooApiProductVariation of wooApiProduct.product_variations) {
+        connectWooDataRequests.push(
+          getConnectWooDataRequest(
+            filters,
+            wooApiProductVariation,
+            allDbVariations,
+            connectWooDataResultFormatter
+          )
+        );
+      }
+    }
+  });
+
+  return connectWooDataRequests;
 };

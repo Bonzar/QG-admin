@@ -418,3 +418,98 @@ exports.getWbShipment = (mayakSellsPerYear, cbFunc) => {
     cbFunc(e, null);
   }
 };
+
+exports.getConnectWbDataRequests = (
+  filters,
+  wbApiProducts,
+  wbApiFbsStocks,
+  wbApiFbwStocks,
+  allDbVariations,
+  connectWbDataResultFormatter
+) => {
+  return wbApiProducts.data["cards"].map((wbApiProduct) => {
+    return async function () {
+      let wbDbProduct;
+      // Search variation for market product from api
+      const variation = allDbVariations.find(
+        (variation) =>
+          // Search market product in db for market product from api
+          variation.wbProduct?.filter((variationWbDbProduct) => {
+            const isMarketProductMatch =
+              variationWbDbProduct.sku === wbApiProduct["nmID"];
+
+            // find -> save market product
+            if (isMarketProductMatch) {
+              wbDbProduct = variationWbDbProduct;
+            }
+
+            return isMarketProductMatch;
+          }).length > 0
+      );
+
+      const stockFBS =
+        wbApiFbsStocks["stocks"].find(
+          (fbsStock) => fbsStock["nmId"] === wbApiProduct["nmID"]
+        )?.stock ?? 0;
+
+      let stockFBW;
+      if (wbApiFbwStocks) {
+        stockFBW =
+          wbApiFbwStocks
+            .filter((fbwStock) => fbwStock["nmId"] === wbApiProduct["nmID"])
+            .reduce((total, current) => total + current.quantity, 0) ?? 0;
+      } else {
+        stockFBW = wbDbProduct?.stock;
+      }
+
+      // Filtration
+      let isPassFilterArray = [];
+      // by stock status
+      switch (filters.stock_status) {
+        // Filter only outofstock products (by FBS)
+        case "outofstock":
+          isPassFilterArray.push(stockFBS <= 0);
+          break;
+        // Filter only outofstock products (by FBO and FBS)
+        case "outofstockall":
+          isPassFilterArray.push(stockFBS <= 0 && stockFBW <= 0);
+          break;
+        // Filter only instock on FBS products
+        case "instockFBS":
+          isPassFilterArray.push(stockFBS > 0);
+          break;
+        // Filter only instock on FBW products
+        case "instockFBM":
+          isPassFilterArray.push(stockFBW > 0);
+          break;
+        // Filter only instock on FBW or FBS products (some of them)
+        case "instockSome":
+          isPassFilterArray.push(stockFBS > 0 || stockFBW > 0);
+          break;
+      }
+
+      // by actual (manual setup in DB)
+      switch (filters.isActual) {
+        case "notActual":
+          isPassFilterArray.push(wbDbProduct?.isActual === false);
+          break;
+        case "all":
+          isPassFilterArray.push(true);
+          break;
+        // Only actual or not specified by default
+        default:
+          isPassFilterArray.push(wbDbProduct?.isActual !== false);
+      }
+
+      if (isPassFilterArray.every((pass) => pass)) {
+        return connectWbDataResultFormatter(
+          variation,
+          wbDbProduct,
+          wbApiProduct,
+          stockFBW,
+          stockFBS
+        );
+      }
+    };
+  });
+};

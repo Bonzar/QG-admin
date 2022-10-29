@@ -18,6 +18,8 @@ html {
 
 body {
   margin: 0;
+  /*width: 100vw;*/
+  /*min-width: max-content;*/
 }
 
 main {
@@ -356,6 +358,7 @@ header {
   top: 0;
   z-index: 100;
   font-weight: 700;
+  /*width: 100%;*/
 }
 
 .header--body {
@@ -365,6 +368,9 @@ header {
   justify-content: space-between;
   align-items: center;
   padding: 0 3vw;
+  /*max-width: 100vw;*/
+  /*position: sticky;*/
+  /*left: 0;*/
 }
 
 nav ul {
@@ -401,16 +407,28 @@ header a {
 }
 
 /* Stocks and Orders Table */
+.stocks-table--wrapper {
+  filter: drop-shadow(0 0 10px rgb(212, 206, 215));
+  border-radius: 25px;
+  overflow: hidden;
+  margin: 0 1rem 1.75rem;
+}
+
+.stocks-table--inner {
+  max-width: calc(100vw - min(2vw, 20px));
+  overflow: auto;
+  max-height: 70vh;
+}
+
+
 .stocks-table,
 .orders-table {
   border-collapse: collapse;
   background-color: rgba(225, 167, 255, 0.2);
-  border-radius: 25px;
   table-layout: fixed;
   width: 100%;
   font-size: 1.6rem;
   position: relative;
-  margin: 0 0 1.75rem;
   text-align: center;
 }
 
@@ -421,9 +439,7 @@ header a {
   display: block;
   height: 100%;
   width: 100%;
-  box-shadow: 0 0 10px -3px rgb(0, 0, 0, 0.3);
   position: absolute;
-  border-radius: 25px;
   top: 0;
   left: 0;
   z-index: -1;
@@ -432,19 +448,19 @@ header a {
 /* table border radius */
 .stocks-table tr:first-of-type th:first-of-type,
 .orders-table tr:first-of-type th:first-of-type {
-  border-top-left-radius: 25px;
+  /*! border-top-left-radius: 25px; */
 }
 .stocks-table tr:first-of-type th:last-of-type,
 .orders-table tr:first-of-type th:last-of-type {
-  border-top-right-radius: 25px;
+  /*! border-top-right-radius: 25px; */
 }
 .stocks-table tr:last-of-type td:first-of-type,
 .orders-table tr:last-of-type td:first-of-type {
-  border-bottom-left-radius: 25px;
+  /*! border-bottom-left-radius: 25px; */
 }
 .stocks-table tr:last-of-type td:last-of-type,
 .orders-table tr:last-of-type td:last-of-type {
-  border-bottom-right-radius: 25px;
+  /*! border-bottom-right-radius: 25px; */
 }
 /* if in table only one headers row */
 .stocks-table thead:last-child th:last-of-type,
@@ -480,14 +496,15 @@ header a {
   padding: 7px;
 }
 
-.stocks-table tr:nth-child(even),
-.orders-table tr:nth-child(even) {
+.stocks-table tr:nth-child(odd),
+.orders-table tr:nth-child(odd) {
   background: rgba(255, 255, 255, 0.85);
 }
 
+
 .stocks-table tr:hover,
 .orders-table tr:hover {
-  background: #ce60ff26;
+  background: #d8b0ea;
 }
 
 /* Order table cols */
@@ -526,27 +543,27 @@ header a {
 }
 
 /* Stocks table cols */
-.stocks-table .col--sku,
-.stocks-table .col--article,
-.stocks-table .col--barcode {
+.stocks-table .col--name {
+  width: 25rem;
+}
+
+.stocks-table .col--identifier {
   width: 13rem;
   word-break: break-all;
 }
 
-.stocks-table td.col--sku,
-.stocks-table td.col--article {
+.stocks-table td.col--identifier {
   text-align: left;
   overflow: hidden;
 }
 
-.stocks-table .col--fbm {
-  width: 5.5rem;
-}
+.stocks-table .col--fbm,
 .stocks-table .col--fbs {
-  width: 13rem;
-}
-.stocks-table .col--fbm ~ .col--fbs {
   width: 5.5rem;
+}
+
+#yandex.stocks-table .col--fbs {
+  width: 13rem;
 }
 
 .stocks-table .col--id {
@@ -586,7 +603,7 @@ header a {
   padding-right: 20px;
 }
 
-.stocks-table td.col--fbs::after {
+.stocks-table td.col--fbs:not([updateBy=""])::after {
   content: "\2807";
   position: absolute;
   font-size: 1.5rem;
@@ -740,7 +757,7 @@ header a {
 
 .delete-button {
   background: url("../images/icon-trash.png") center / 50% no-repeat,
-    rgba(255, 0, 0, 0.34);
+  rgba(255, 0, 0, 0.34);
 }
 
 .navigate-btn:not(.navigate-btn--back) + .delete-button,
@@ -750,17 +767,6 @@ header a {
 
 /* MOBILE LAYOUT */
 @media screen and (max-width: 420px) {
-  .stocks-table tr th:first-of-type:not(:last-of-type),
-  .stocks-table tr td:first-of-type:not(:last-of-type) {
-    display: none;
-  }
-  .stocks-table tr:first-of-type th:nth-of-type(2) {
-    border-top-left-radius: 25px;
-  }
-  .stocks-table tr:last-of-type td:nth-of-type(2) {
-    border-bottom-left-radius: 25px;
-  }
-
   .stocks-table td.col--name:not(:first-of-type:last-of-type) {
     text-align: left;
   }

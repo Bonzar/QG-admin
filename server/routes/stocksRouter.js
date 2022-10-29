@@ -23,6 +23,9 @@ router.get("/", (req, res) => {
   }
 });
 
+// Get request for list of all variations stock
+router.get("/all", dbController.getAllProductsStockPage);
+
 // Get request for list of all Yandex products
 router.get("/yandex", yandex_controller.getProductsListPage);
 

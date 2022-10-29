@@ -3,6 +3,32 @@ const async = require("async");
 const dbService = require("../services/dbService");
 
 exports.getProductsListPage = async (req, res) => {
+  const connectOzonDataResultFormatter = (
+    variation,
+    ozonDbProduct,
+    ozonApiProduct,
+    stockFBO,
+    stockFBS
+  ) => {
+    return {
+      productInnerId: variation?.product._id,
+      marketProductInnerId: ozonDbProduct?._id,
+      sku: ozonApiProduct.id,
+      article: ozonApiProduct.offer_id,
+      name:
+        (variation?.product.name ?? "") +
+        (["3 мл", "10 мл"].includes(variation?.volume)
+          ? ` - ${variation?.volume}`
+          : ""),
+      stockFBO,
+      stockFBS: {
+        stock: stockFBS,
+        updateBy: ozonApiProduct.offer_id,
+        marketType: "ozon",
+      },
+    };
+  };
+
   try {
     async.waterfall(
       [
@@ -10,7 +36,7 @@ exports.getProductsListPage = async (req, res) => {
           async.parallel(
             {
               // Stocks on WB warehouse
-              productsApiList(callback) {
+              ozonApiProductsInfo(callback) {
                 ozonService.getApiProductsList({ visibility: "ALL" }, callback);
               },
               // List of all products from DB with reference of WB product sku to product name
@@ -21,105 +47,35 @@ exports.getProductsListPage = async (req, res) => {
                   callback
                 );
               },
-              // List of yandex products from DB
-              ozonDbProducts(callback) {
-                dbService.getOzonProducts({}, callback);
-              },
             },
             cb
           );
         },
         (results, cb) => {
-          const { ozonDbProducts, allDbVariations, productsApiList } = results;
+          const { allDbVariations, ozonApiProductsInfo } = results;
 
-          const { productsInfo, productsStockList } = productsApiList;
+          const {
+            productsInfo: ozonApiProducts,
+            productsStockList: ozonApiStocks,
+          } = ozonApiProductsInfo;
 
-          const productsFormatRequests = productsInfo.map((product) => {
-            return async function () {
-              // Search fetched product from wb in DB
-              const ozonDbProduct = ozonDbProducts.find(
-                (ozonDbProduct) => ozonDbProduct.sku === product["id"]
-              );
-
-              const variation = allDbVariations.find(
-                (variation) =>
-                  variation.ozonProduct?.filter(
-                    (ozonProduct) => ozonProduct.sku === product["id"]
-                  ).length > 0
-              );
-
-              const productStocks = productsStockList.find(
-                (stockInfo) => stockInfo.product_id === product.id
-              );
-
-              const stockFBO = productStocks.stocks[0]?.present ?? 0;
-              const stockFBS = productStocks.stocks[1]?.present ?? 0;
-
-              // Filtration
-              let isPassFilterArray = [];
-              // by stock status
-              switch (req.query.stock_status) {
-                // Filter only outofstock products (by FBS)
-                case "outofstock":
-                  isPassFilterArray.push(stockFBS <= 0);
-                  break;
-                // Filter only outofstock products (by FBO and FBS)
-                case "outofstockall":
-                  isPassFilterArray.push(stockFBS <= 0 && stockFBO <= 0);
-                  break;
-                // Filter only instock on FBS products
-                case "instockFBS":
-                  isPassFilterArray.push(stockFBS > 0);
-                  break;
-                // Filter only instock on FBW products
-                case "instockFBM":
-                  isPassFilterArray.push(stockFBO > 0);
-                  break;
-                // Filter only instock on FBW or FBS products (some of them)
-                case "instockSome":
-                  isPassFilterArray.push(stockFBS > 0 || stockFBO > 0);
-                  break;
+          async.parallel(
+            ozonService.getConnectOzonDataRequests(
+              req.query,
+              ozonApiProducts,
+              ozonApiStocks,
+              allDbVariations,
+              connectOzonDataResultFormatter
+            ),
+            (err, products) => {
+              if (err) {
+                cb(err, null);
+                return;
               }
-
-              // by actual (manual setup in DB)
-              switch (req.query.isActual) {
-                case "notActual":
-                  isPassFilterArray.push(ozonDbProduct?.isActual === false);
-                  break;
-                case "all":
-                  isPassFilterArray.push(true);
-                  break;
-                // Only actual by default
-                default:
-                  isPassFilterArray.push(ozonDbProduct?.isActual !== false);
-              }
-
-              if (isPassFilterArray.every((pass) => pass)) {
-                return {
-                  variationInnerId: variation?.product._id,
-                  marketProductInnerId: ozonDbProduct?._id,
-                  sku: product.id,
-                  article: product.offer_id,
-                  name:
-                    (variation?.product.name ?? "") +
-                    (["3 мл", "10 мл"].includes(variation?.volume)
-                      ? ` - ${variation?.volume}`
-                      : ""),
-                  stockFBO,
-                  stockFBS,
-                };
-              }
-            };
-          });
-
-          async.parallel(productsFormatRequests, (err, products) => {
-            if (err) {
-              cb(err, null);
-              return;
+              // Ok
+              cb(null, [products, ozonApiStocks]);
             }
-            // Ok
-            cb(null, [products, productsApiList]);
-          });
+          );
         },
       ],
       (err, results) => {
@@ -144,13 +100,13 @@ exports.getProductsListPage = async (req, res) => {
 
         res.render("ozon-stocks", {
           title: "Ozon stocks",
+          marketType: "ozon",
           headers: {
-            Article: "article",
-            Name: "name",
-            FBM: "stockFBO",
-            FBS: "stockFBS",
+            Article: { type: "identifier", field: "article" },
+            Name: { type: "name", field: "name" },
+            FBM: { type: "fbm", field: "stockFBO" },
+            FBS: { type: "fbs", field: "stockFBS" },
           },
-          updateBy: "article",
           products,
         });
         dbService.updateOzonStocks(productsApiList);

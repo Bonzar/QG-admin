@@ -1,0 +1,53 @@
+extends stocks-table
+
+append scripts
+    script(src="/scripts/functions/registerMarketplaceStockUpdateListener.js" type="module" defer)
+    script(src="/scripts/functions/registerTableFilters.js" defer)
+
+block content
+  h1= title
+  block filters
+
+  for variationVolume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
+    h2= variationVolume
+    div.stocks-table--wrapper
+        div.stocks-table--inner
+            table(id=marketType, class="stocks-table")
+                thead
+                    tr
+                        block table-stock-headers
+                          each column in Object.entries(headers)
+                            -let [headerName, headerData] = column;
+                                th(class=`col--${headerData.type}`)= headerName
+                block table-stock-body
+                    if products.length > 0
+                        tbody
+                          each product in products
+                            if product.volume === variationVolume
+                              tr
+                                each headerData in Object.values(headers)
+                                  - let productId = headerData.type === 'name' && product.productInnerId ? `${product.productInnerId}` : ''
+                                  - let marketProductId = headerData.type === 'identifier' && product.marketProductInnerId ? `${product.marketProductInnerId}` : ''
+                                  - let updateBy = product[headerData.field] ? product[headerData.field].updateBy : ''
+                                  - let marketType = product[headerData.field] ? product[headerData.field].marketType : ''
+                                      td( class=`col--${headerData.type}`
+                                          ref=(productId ? productId : marketProductId)
+                                          updateBy=`${headerData.type === 'fbs' ? updateBy : ''}`
+                                          marketType=`${headerData.type === 'fbs' ? marketType : ''}`)
+                                          // if name has a parentheses, put within text to description tag attribute
+                                          |
+                                          if (headerData.type === 'name' && product[headerData.field].includes("("))
+                                            - const [ , productName, productDescription] = product[headerData.field].match(/(.*) \((.*)\)/)
+                                            | #{productName}
+                                            br
+                                            i.product-description #{productDescription}
+                                          else
+                                              if headerData.type === 'fbs'
+                                                  =product[headerData.field] ? product[headerData.field].stock : ''
+                                              else
+                                                  | #{product[headerData.field]}
+
+block filters
+    div(class="table-filters")
+        a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--notActual") Не актуальные
+        a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--all") Все

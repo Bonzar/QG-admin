@@ -369,3 +369,89 @@ exports.getOzonShipment = async () => {
 
   return products;
 };
+
+exports.getConnectOzonDataRequests = (
+  filters,
+  ozonApiProducts,
+  ozonApiStocks,
+  allDbVariations,
+  connectOzonDataResultFormatter
+) => {
+  return ozonApiProducts.map((ozonApiProduct) => {
+    return async function () {
+      let ozonDbProduct;
+      // Search variation for market product from api
+      const variation = allDbVariations.find(
+        (variation) =>
+          // Search market product in db for market product from api
+          variation.ozonProduct?.filter((variationOzonDbProduct) => {
+            const isMarketProductMatch =
+              variationOzonDbProduct.sku === ozonApiProduct["id"];
+
+            // find -> save market product
+            if (isMarketProductMatch) {
+              ozonDbProduct = variationOzonDbProduct;
+            }
+
+            return isMarketProductMatch;
+          }).length > 0
+      );
+
+      const productStocks = ozonApiStocks.find(
+        (stockInfo) => stockInfo.product_id === ozonApiProduct.id
+      );
+
+      const stockFBO = productStocks.stocks[0]?.present ?? 0;
+      const stockFBS = productStocks.stocks[1]?.present ?? 0;
+
+      // Filtration
+      let isPassFilterArray = [];
+      // by stock status
+      switch (filters.stock_status) {
+        // Filter only outofstock products (by FBS)
+        case "outofstock":
+          isPassFilterArray.push(stockFBS <= 0);
+          break;
+        // Filter only outofstock products (by FBO and FBS)
+        case "outofstockall":
+          isPassFilterArray.push(stockFBS <= 0 && stockFBO <= 0);
+          break;
+        // Filter only instock on FBS products
+        case "instockFBS":
+          isPassFilterArray.push(stockFBS > 0);
+          break;
+        // Filter only instock on FBW products
+        case "instockFBM":
+          isPassFilterArray.push(stockFBO > 0);
+          break;
+        // Filter only instock on FBW or FBS products (some of them)
+        case "instockSome":
+          isPassFilterArray.push(stockFBS > 0 || stockFBO > 0);
+          break;
+      }
+
+      // by actual (manual setup in DB)
+      switch (filters.isActual) {
+        case "notActual":
+          isPassFilterArray.push(ozonDbProduct?.isActual === false);
+          break;
+        case "all":
+          isPassFilterArray.push(true);
+          break;
+        // Only actual by default
+        default:
+          isPassFilterArray.push(ozonDbProduct?.isActual !== false);
+      }
+
+      if (isPassFilterArray.every((pass) => pass)) {
+        return connectOzonDataResultFormatter(
+          variation,
+          ozonDbProduct,
+          ozonApiProduct,
+          stockFBO,
+          stockFBS
+        );
+      }
+    };
+  });
+};
