@@ -9,27 +9,6 @@ block filters
         a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--notActual") Не актуальные
         a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--all") Все
 
-
-block table-stock-headers
-    th(class='col--name') Наименование
-
-block table-stock-body
-    if products.length > 0
-        tbody
-          each product in products
-              tr
-                  td( class='col--name',
-                      id=product._id )
-                      // if name has a parentheses, put within text to description tag attribute
-                      |
-                      if (product.name.includes("("))
-                        - const [ , productName, productDescription] = product.name.match(/(.*) \((.*)\)/)
-                            | #{productName}
-                            br
-                            i.product-description #{productDescription}
-                      else
-                          | #{product.name}
-
 block after-table
     p
         a.btn.addTokenToHref(href="/stocks/db/product/new") Новый товар

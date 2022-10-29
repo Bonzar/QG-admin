@@ -7,8 +7,8 @@ table.addEventListener("click", (e) => {
   if (
     cell.classList.value.includes("col--name") &&
     cell.nodeName === "TD" &&
-    cell.id
+    cell.getAttribute("ref")
   ) {
-    window.location.href = `/stocks/db/product/${cell.id}`;
+    window.location.href = `/stocks/db/product/${cell.getAttribute("ref")}`;
   }
 });

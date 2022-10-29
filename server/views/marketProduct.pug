@@ -25,12 +25,12 @@ block content
                     input(required name="id" value=`${marketProduct ? marketProduct.id ? marketProduct.id : '' : ''}`)
                 label.select--arrow Type:#{" "}
                     select.select--style( name="type" required)
-                        option(value="") Выберете тип
+                        option(value="" disabled selected hidden) Выберете тип
                           each type in ['simple', 'variation']
                               option(value=type selected=(marketProduct ? type === marketProduct.type : false))= type
                 label.select--arrow Parent:#{" "}
                     select.select--style( name="parentVariable" disabled=(marketProduct ? marketProduct.type !== "variation" : true) required)
-                        option(value="") Выберете связанный продукт
+                        option(value="" disabled selected hidden) Выберете связанный продукт
                           each wooVariableProduct in wooVariableProducts
                               option(value=wooVariableProduct.id selected=(marketProduct ? marketProduct.parentVariable ? wooVariableProduct.id === marketProduct.parentVariable.id : false : false))= wooVariableProduct.id
         label Article:#{" "}

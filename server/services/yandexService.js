@@ -125,3 +125,65 @@ exports.getApiTodayOrders = async () => {
     return response.data;
   });
 };
+
+exports.getConnectYandexDataRequests = (
+  filters,
+  yandexApiProducts,
+  allDbVariations,
+  connectYandexDataResultFormatter
+) => {
+  return yandexApiProducts.map((yandexApiProduct) => {
+    return async () => {
+      let yandexDbProduct;
+      // Search variation for market product from api
+      const variation = allDbVariations.find(
+        (variation) =>
+          // Search market product in db for market product from api
+          variation.yandexProduct?.filter((variationYandexDbProduct) => {
+            const isMarketProductMatch =
+              variationYandexDbProduct.sku === yandexApiProduct["shopSku"];
+
+            // find -> save market product
+            if (isMarketProductMatch) {
+              yandexDbProduct = variationYandexDbProduct;
+            }
+
+            return isMarketProductMatch;
+          }).length > 0
+      );
+
+      const yandexStock =
+        yandexApiProduct.warehouses?.[0].stocks.find(
+          (stockType) => stockType.type === "FIT"
+        )?.count ?? 0;
+
+      // Filtration
+      let isPassFilterArray = [];
+      // by stock status
+      if (filters.stock_status === "outofstock") {
+        isPassFilterArray.push(yandexStock <= 0);
+      }
+      // by actual (manual setup in DB)
+      switch (filters.isActual) {
+        case "notActual":
+          isPassFilterArray.push(yandexDbProduct?.isActual === false);
+          break;
+        case "all":
+          isPassFilterArray.push(true);
+          break;
+        // Only actual by default
+        default:
+          isPassFilterArray.push(yandexDbProduct?.isActual !== false);
+      }
+
+      if (!isPassFilterArray.every((pass) => pass)) return;
+
+      return connectYandexDataResultFormatter(
+        variation,
+        yandexDbProduct,
+        yandexApiProduct,
+        yandexStock
+      );
+    };
+  });
+};

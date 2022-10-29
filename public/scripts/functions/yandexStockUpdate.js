@@ -1,14 +1,4 @@
-import { updateMarketplaceStock } from "../functions/registerMarketplaceStockUpdateListener.js";
-
-const yandexTable = document.querySelector("#yandex-stocks");
-
-const yandexFetchUpdateFunction = async (
-  cell,
-  skuUpdate,
-  newStockValue,
-  oldValue,
-  authToken
-) => {
+export default async (cell, skuUpdate, newStockValue, oldValue, authToken) => {
   return await fetch(
     `/stocks/yandex/update_stock?sku=${skuUpdate}&stock=${newStockValue}`,
     {
@@ -29,5 +19,3 @@ const yandexFetchUpdateFunction = async (
     })
     .catch((error) => console.log(error));
 };
-
-updateMarketplaceStock(yandexFetchUpdateFunction, yandexTable);

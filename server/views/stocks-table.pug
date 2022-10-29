@@ -2,35 +2,43 @@ extends layout
 
 block content
     h1= title
-    //div(class="table-filters")
     block filters
 
-    table(id=title.toLowerCase().replace(" ", "-"), class="stocks-table")
-        thead
-            tr
-                block table-stock-headers
-                  each header in Object.keys(headers)
-                      th(class=`col--${header.toLowerCase()}`) #{header}
-        block table-stock-body
-            if products.length > 0
-                tbody
-                  each product in products
-                      tr
-                        each prop in Object.entries(headers)
-                            - let productId = (prop[0].toLowerCase() === 'name' && product.variationInnerId ? `variation-${product.variationInnerId}` : '')
-                            - let marketProductId = (['article', 'sku', 'id', 'barcode'].includes(prop[0].toLowerCase()) && product.marketProductInnerId ? `marketProduct-${product.marketProductInnerId}` : '')
-                                td( class=`col--${prop[0].toLowerCase()}`
-                                    id=(productId ? productId : marketProductId)
-                                    updateBy=`${prop[0].toLowerCase() === 'name' ? product[updateBy] : ''}` )
-                                    // if name has a parentheses, put within text to description tag attribute
-                                    |
-                                    if (prop[0].toLowerCase() === 'name' && product[prop[1]].includes("("))
-                                        - const [ , productName, productDescription] = product[prop[1]].match(/(.*) \((.*)\)/)
-                                        | #{productName}
-                                        br
-                                        i.product-description #{productDescription}
-                                    else
-                                        | #{product[prop[1]]}
 
+    div.stocks-table--wrapper
+        div.stocks-table--inner
+            table(id=marketType, class="stocks-table")
+                thead
+                    tr
+                        block table-stock-headers
+                          each column in Object.entries(headers)
+                            -let [headerName, headerData] = column;
+                              th(class=`col--${headerData.type}`)= headerName
+                block table-stock-body
+                    if products.length > 0
+                        tbody
+                          each product in products
+                              tr
+                                each headerData in Object.values(headers)
+                                    - let productId = headerData.type === 'name' && product.productInnerId ? `${product.productInnerId}` : ''
+                                    - let marketProductId = headerData.type === 'identifier' && product.marketProductInnerId ? `${product.marketProductInnerId}` : ''
+                                    - let updateBy = product[headerData.field] ? product[headerData.field].updateBy : ''
+                                    - let marketType = product[headerData.field] ? product[headerData.field].marketType : ''
+                                        td( class=`col--${headerData.type}`
+                                            ref=(productId ? productId : marketProductId)
+                                            updateBy=`${headerData.type === 'fbs' ? updateBy : ''}`
+                                            marketType=`${headerData.type === 'fbs' ? marketType : ''}`)
+                                            // if name has a parentheses, put within text to description tag attribute
+                                            |
+                                            if (headerData.type === 'name' && product[headerData.field].includes("("))
+                                                - const [ , productName, productDescription] = product[headerData.field].match(/(.*) \((.*)\)/)
+                                                | #{productName}
+                                                br
+                                                i.product-description #{productDescription}
+                                            else
+                                                if headerData.type === 'fbs'
+                                                    =product[headerData.field] ? product[headerData.field].stock : ''
+                                                else
+                                                    | #{product[headerData.field]}
     div(class="table-after")
         block after-table

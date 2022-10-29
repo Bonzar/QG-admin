@@ -1,8 +1,4 @@
-import { updateMarketplaceStock } from "../functions/registerMarketplaceStockUpdateListener.js";
-
-const wbStocks = document.querySelector("#wb-stocks");
-
-const wbFetchUpdateFunction = async (
+export default async (
   cell,
   barcodeUpdate,
   newStockValue,
@@ -29,5 +25,3 @@ const wbFetchUpdateFunction = async (
     })
     .catch((error) => console.log(error));
 };
-
-updateMarketplaceStock(wbFetchUpdateFunction, wbStocks);

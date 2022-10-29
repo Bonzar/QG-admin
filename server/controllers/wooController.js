@@ -2,74 +2,34 @@ const wooService = require("../services/wooService");
 const async = require("async");
 const dbService = require("../services/dbService");
 
-const formatProductInfo = (
-  product,
-  allDbVariations,
-  wooDbProducts,
-  filtersQuery
-) => {
-  return (callback) => {
-    // Search fetched product from woo in DB
-    const wooDbProduct = wooDbProducts.find(
-      (wooDbProduct) => wooDbProduct.id === product.id
-    );
-
-    const variation = allDbVariations.find(
-      (variation) =>
-        variation.wooProduct?.filter(
-          (wooProduct) => wooProduct.id === product.id
-        ).length > 0
-    );
-
-    const stock = product["stock_quantity"];
-
-    // Filtration
-    let isPassFilterArray = [];
-    // by stock status
-    switch (filtersQuery.stock_status) {
-      // Filter only outofstock products (by FBS)
-      case "outofstock":
-        isPassFilterArray.push(stock <= 0);
-        break;
-    }
-
-    // by actual (manual setup in DB)
-    switch (filtersQuery.isActual) {
-      case "notActual":
-        isPassFilterArray.push(wooDbProduct?.isActual === false);
-        break;
-      case "all":
-        isPassFilterArray.push(true);
-        break;
-      // Only actual by default
-      default:
-        isPassFilterArray.push(wooDbProduct?.isActual !== false);
-    }
-
-    if (isPassFilterArray.every((pass) => pass)) {
-      callback(null, {
-        variationInnerId: variation?.product._id,
+exports.getProductsList = async (req, res) => {
+  try {
+    const connectWooDataResultFormatter = (
+      variation,
+      wooDbProduct,
+      wooApiProduct,
+      wooStock
+    ) => {
+      return {
+        productInnerId: variation?.product._id,
         marketProductInnerId: wooDbProduct?._id,
-        id: product.id,
-        stock,
-        updateBy:
-          product.type === "simple"
-            ? `simple-${product.id}`
-            : `variation-${wooDbProduct?.parentVariable.id}-${product.id}`,
+        id: wooApiProduct.id,
         name:
           (variation?.product.name ?? "") +
           (["3 мл", "10 мл"].includes(variation?.volume)
             ? ` - ${variation?.volume}`
             : ""),
-      });
-    } else {
-      callback(null, null);
-    }
-  };
-};
+        inStock: {
+          stock: wooStock,
+          updateBy:
+            wooApiProduct.type === "simple"
+              ? `simple-${wooApiProduct.id}`
+              : `variation-${wooDbProduct?.parentVariable.id}-${wooApiProduct.id}`,
+          marketType: "woo",
+        },
+      };
+    };
 
-exports.getProductsList = async (req, res) => {
-  try {
     async.waterfall(
       [
         (cb) => {
@@ -89,49 +49,25 @@ exports.getProductsList = async (req, res) => {
                   callback
                 );
               },
-
               // List of all products fetched from Woo server
-              productsApiList(callback) {
+              wooApiProducts(callback) {
                 wooService.getProductList("", callback);
-              },
-              // List of wb products from DB
-              wooDbProducts(callback) {
-                dbService.getWooProducts({}, "parentVariable", callback);
               },
             },
             cb
           );
         },
         (results, cb) => {
-          const { productsApiList, wooDbProducts, allDbVariations } = results;
-
-          const productsFormatRequests = [];
-
-          productsApiList.forEach((productApi) => {
-            if (productApi.type === "simple") {
-              productsFormatRequests.push(
-                formatProductInfo(
-                  productApi,
-                  allDbVariations,
-                  wooDbProducts,
-                  req.query
-                )
-              );
-            } else {
-              for (const variationApi of productApi.product_variations) {
-                productsFormatRequests.push(
-                  formatProductInfo(
-                    variationApi,
-                    allDbVariations,
-                    wooDbProducts,
-                    req.query
-                  )
-                );
-              }
-            }
-          });
-
-          async.parallel(productsFormatRequests, cb);
+          const { wooApiProducts, allDbVariations } = results;
+          async.parallel(
+            wooService.getConnectWooDataRequests(
+              req.query,
+              wooApiProducts,
+              allDbVariations,
+              connectWooDataResultFormatter
+            ),
+            cb
+          );
         },
       ],
       (err, products) => {
@@ -153,12 +89,12 @@ exports.getProductsList = async (req, res) => {
 
         res.render("woo-stocks", {
           title: "Woo Stocks",
+          marketType: "woo",
           headers: {
-            ID: "id",
-            Name: "name",
-            FBS: "stock",
+            ID: { type: "identifier", field: "id" },
+            Name: { type: "name", field: "name" },
+            FBS: { type: "fbs", field: "inStock" },
           },
-          updateBy: "updateBy",
           products,
         });
       }

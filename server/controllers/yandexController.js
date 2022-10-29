@@ -2,6 +2,29 @@ const yandexService = require("../services/yandexService");
 const async = require("async");
 const dbService = require("../services/dbService");
 
+const connectYandexDataResultFormatter = (
+  variation,
+  yandexDbProduct,
+  yandexApiProduct,
+  yandexStock
+) => {
+  return {
+    productInnerId: variation?.product._id,
+    marketProductInnerId: yandexDbProduct?._id,
+    productSku: yandexApiProduct.shopSku,
+    productName:
+      (variation?.product.name ?? "") +
+      (["3 мл", "10 мл"].includes(variation?.volume)
+        ? ` - ${variation?.volume}`
+        : ""),
+    productStock: {
+      stock: yandexStock,
+      updateBy: yandexDbProduct.sku,
+      marketType: "yandex",
+    },
+  };
+};
+
 exports.getProductsListPage = async (req, res) => {
   try {
     async.waterfall(
@@ -9,11 +32,11 @@ exports.getProductsListPage = async (req, res) => {
         (cb) => {
           async.parallel(
             {
-              // Stocks on WB warehouse
-              productsApiList(callback) {
+              // Stocks on Yandex warehouse
+              yandexApiProducts(callback) {
                 yandexService.getApiProductsList([], callback);
               },
-              // List of all products from DB with reference of WB product sku to product name
+              // List of all products from DB with reference of Yandex product sku to product name
               allDbVariations(callback) {
                 dbService.getAllVariations(
                   {},
@@ -21,80 +44,29 @@ exports.getProductsListPage = async (req, res) => {
                   callback
                 );
               },
-              // List of yandex products from DB
-              yandexDbProducts(callback) {
-                dbService.getYandexProducts({}, callback);
-              },
             },
             cb
           );
         },
         (results, cb) => {
-          const { productsApiList, allDbVariations, yandexDbProducts } =
-            results;
+          const { yandexApiProducts, allDbVariations } = results;
 
-          const productsFormatRequests = productsApiList.map((product) => {
-            return async function () {
-              // Search fetched product from wb in DB
-              const yandexDbProduct = yandexDbProducts.find(
-                (yandexDbProduct) => yandexDbProduct.sku === product["shopSku"]
-              );
-
-              const variation = allDbVariations.find(
-                (variation) =>
-                  variation.yandexProduct?.filter(
-                    (yandexProduct) => yandexProduct.sku === product["shopSku"]
-                  ).length > 0
-              );
-
-              const stock =
-                product.warehouses?.[0].stocks.find(
-                  (stockType) => stockType.type === "FIT"
-                )?.count ?? 0;
-
-              // Filtration
-              let isPassFilterArray = [];
-              // by stock status
-              if (req.query.stock_status === "outofstock") {
-                isPassFilterArray.push(stock <= 0);
+          async.parallel(
+            yandexService.getConnectYandexDataRequests(
+              req.query,
+              yandexApiProducts,
+              allDbVariations,
+              connectYandexDataResultFormatter
+            ),
+            (err, products) => {
+              if (err) {
+                cb(err, null);
+                return;
               }
-              // by actual (manual setup in DB)
-              switch (req.query.isActual) {
-                case "notActual":
-                  isPassFilterArray.push(yandexDbProduct?.isActual === false);
-                  break;
-                case "all":
-                  isPassFilterArray.push(true);
-                  break;
-                // Only actual by default
-                default:
-                  isPassFilterArray.push(yandexDbProduct?.isActual !== false);
-              }
-
-              if (isPassFilterArray.every((pass) => pass)) {
-                return {
-                  variationInnerId: variation?.product._id,
-                  marketProductInnerId: yandexDbProduct?._id,
-                  productSku: product.shopSku,
-                  productName:
-                    (variation?.product.name ?? "") +
-                    (["3 мл", "10 мл"].includes(variation?.volume)
-                      ? ` - ${variation?.volume}`
-                      : ""),
-                  productStock: stock,
-                };
-              }
-            };
-          });
-
-          async.parallel(productsFormatRequests, (err, products) => {
-            if (err) {
-              cb(err, null);
-              return;
+              // Ok
+              cb(null, [products, yandexApiProducts]);
             }
-            // Ok
-            cb(null, [products, productsApiList]);
-          });
+          );
         },
       ],
       (err, results) => {
@@ -107,7 +79,7 @@ exports.getProductsListPage = async (req, res) => {
           });
         }
 
-        let [products, productsApiList] = results;
+        let [products, yandexApiProducts] = results;
 
         // Clear product list of undefined after async
         products = products.filter((product) => !!product);
@@ -119,15 +91,15 @@ exports.getProductsListPage = async (req, res) => {
 
         res.render("yandex-stocks", {
           title: "Yandex Stocks",
+          marketType: "yandex",
           headers: {
-            SKU: "productSku",
-            Name: "productName",
-            FBS: "productStock",
+            SKU: { type: "identifier", field: "productSku" },
+            Name: { type: "name", field: "productName" },
+            FBS: { type: "fbs", field: "productStock" },
           },
-          updateBy: "productSku",
           products,
         });
-        dbService.updateYandexStocks(productsApiList);
+        dbService.updateYandexStocks(yandexApiProducts);
       }
     );
   } catch (err) {
