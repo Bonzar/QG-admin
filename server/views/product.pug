@@ -3,7 +3,8 @@ extends layout
 append scripts
     script(src="/scripts/pages/dbProduct.js" type="module" defer)
 
-block section
+block content
+  section
     h1= title
     form.product--form
         if product
@@ -31,10 +32,12 @@ block section
                       each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
                           option(value=volume)= volume
 
+  section.section--wide
     if product
         input(required name="product_id" value=product._id hidden)
-        each variation in variations
-            div.product-variation--block
+        div.product-variation--container
+          each variation in variations
+            div.product-variation--cell
                 h2= variation.volume
                 input(required name="variation_volume" value=variation.volume hidden)
                 input(required name="variation_id" value=variation._id hidden)

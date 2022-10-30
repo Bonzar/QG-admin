@@ -701,7 +701,7 @@ header a {
 }
 
 .variation-market-products--block .market-product--form,
-.product-variation--block {
+.product-variation--cell {
   position: relative;
 }
 
@@ -777,9 +777,19 @@ header a {
   right: unset;
 }
 
-.product-variation--block,
-.product-variation--block .variation-market-products--block {
+.product-variation--container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.product-variation--cell,
+.product-variation--cell .variation-market-products--block {
   margin-top: 2rem;
+}
+
+.product-variation--container {
+
 }
 
 .delete-button {
@@ -839,6 +849,10 @@ header a {
   }
 }
 
+.variation-market-products--block {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
 /* DESKTOP LAYOUT */
 @media screen and (min-width: 421px) {
   /* Font */
@@ -852,6 +866,7 @@ header a {
     width: 6.4rem;
   }
 
+
   nav ul {
     height: 40px;
   }
@@ -864,10 +879,6 @@ header a {
 
   .change-stock--submit-button {
     top: calc(100% + 4.5px);
-  }
-
-  .variation-market-products--block {
-    grid-template-columns: 1fr 1fr;
   }
 }
 @media screen and (min-width: 576px) {
