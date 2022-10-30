@@ -47,12 +47,17 @@ exports.getProductsListPage = async (req, res) => {
                   callback
                 );
               },
+              // List of yandex products from DB
+              ozonDbProducts(callback) {
+                dbService.getOzonProducts({}, callback);
+              },
             },
             cb
           );
         },
         (results, cb) => {
-          const { allDbVariations, ozonApiProductsInfo } = results;
+          const { allDbVariations, ozonApiProductsInfo, ozonDbProducts } =
+            results;
 
           const {
             productsInfo: ozonApiProducts,
@@ -64,6 +69,7 @@ exports.getProductsListPage = async (req, res) => {
               req.query,
               ozonApiProducts,
               ozonApiStocks,
+              ozonDbProducts,
               allDbVariations,
               connectOzonDataResultFormatter
             ),

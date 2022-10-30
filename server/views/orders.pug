@@ -1,6 +1,6 @@
 extends layout
 
-block content
+block section
     h1= title
     each market in allOrders
               if market.today.status || market.overdue.status

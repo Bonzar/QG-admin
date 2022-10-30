@@ -6,7 +6,8 @@ for (const { param, value } of [
     param: "stock_status",
     value: [
       "outofstock",
-      "outofstockall",
+      "outofstockFBS",
+      "outofstockFBM",
       "instockFBS",
       "instockFBM",
       "instockSome",

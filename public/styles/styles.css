@@ -22,11 +22,15 @@ body {
   /*min-width: max-content;*/
 }
 
-main {
+section {
+  padding: 0 min(2vw, 20px) 20px;
   max-width: 800px;
   margin: 0 auto;
-  padding: 0 min(2vw, 20px) 20px;
   position: relative;
+}
+
+.section--wide {
+  max-width: unset;
 }
 
 h1 {
@@ -407,19 +411,28 @@ header a {
 }
 
 /* Stocks and Orders Table */
+.stocks-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+
 .stocks-table--wrapper {
   filter: drop-shadow(0 0 10px rgb(212, 206, 215));
   border-radius: 25px;
   overflow: hidden;
-  margin: 0 1rem 1.75rem;
+  margin-bottom: 1.75rem;
 }
 
 .stocks-table--inner {
   max-width: calc(100vw - min(2vw, 20px));
-  overflow: auto;
   max-height: 70vh;
+  overflow: scroll;
 }
-
+.stocks-table--inner::-webkit-scrollbar {
+  display: none;
+}
 
 .stocks-table,
 .orders-table {
@@ -443,33 +456,6 @@ header a {
   top: 0;
   left: 0;
   z-index: -1;
-}
-
-/* table border radius */
-.stocks-table tr:first-of-type th:first-of-type,
-.orders-table tr:first-of-type th:first-of-type {
-  /*! border-top-left-radius: 25px; */
-}
-.stocks-table tr:first-of-type th:last-of-type,
-.orders-table tr:first-of-type th:last-of-type {
-  /*! border-top-right-radius: 25px; */
-}
-.stocks-table tr:last-of-type td:first-of-type,
-.orders-table tr:last-of-type td:first-of-type {
-  /*! border-bottom-left-radius: 25px; */
-}
-.stocks-table tr:last-of-type td:last-of-type,
-.orders-table tr:last-of-type td:last-of-type {
-  /*! border-bottom-right-radius: 25px; */
-}
-/* if in table only one headers row */
-.stocks-table thead:last-child th:last-of-type,
-.orders-table thead:last-child th:last-of-type {
-  border-bottom-right-radius: 25px;
-}
-.stocks-table thead:last-child th:first-of-type,
-.orders-table thead:last-child th:first-of-type {
-  border-bottom-left-radius: 25px;
 }
 
 /* Table headers */
@@ -498,7 +484,12 @@ header a {
 
 .stocks-table tr:nth-child(odd),
 .orders-table tr:nth-child(odd) {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(252, 250, 254, 1);
+}
+
+.stocks-table tr:nth-child(even),
+.orders-table tr:nth-child(even) {
+  background: rgba(245, 222, 255, 1);
 }
 
 
@@ -544,7 +535,12 @@ header a {
 
 /* Stocks table cols */
 .stocks-table .col--name {
-  width: 25rem;
+  width: min(50vw, 25rem);
+  position: sticky;
+  left: 0;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 5;
 }
 
 .stocks-table .col--identifier {
@@ -560,6 +556,42 @@ header a {
 .stocks-table .col--fbm,
 .stocks-table .col--fbs {
   width: 5.5rem;
+  position: relative;
+  z-index: 3;
+}
+
+.stocks-table .col--fbs.col--fbs--changing {
+  z-index: 4;
+}
+
+.stocks-table .col--fbs.out-of-stock::before {
+  content: "";
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: rgba(250, 30, 30, 0.38);
+  padding: 0.5rem;
+  background-clip: content-box;
+  border-radius: 20px;
+  z-index: -1;
+}
+.stocks-table .col--fbs.out-of-stock {
+  color: white;
+}
+
+
+.col--fbm.out-of-stock + .col--fbs.out-of-stock::before {
+  width: 200%;
+}
+
+
+.col--fbm:not(.out-of-stock) + .col--fbs.out-of-stock::before {
+  content: unset;
+}
+.col--fbm:not(.out-of-stock) + .col--fbs.out-of-stock {
+  color: inherit;
 }
 
 #yandex.stocks-table .col--fbs {
@@ -568,11 +600,6 @@ header a {
 
 .stocks-table .col--id {
   width: 7rem;
-}
-
-.stocks-table td.col--fbs {
-  text-align: right;
-  position: relative;
 }
 
 .table-filters {
@@ -600,15 +627,15 @@ header a {
 }
 
 .stocks-table .col--fbs {
-  padding-right: 20px;
+  /* padding-right: 20px; */
 }
 
 .stocks-table td.col--fbs:not([updateBy=""])::after {
   content: "\2807";
   position: absolute;
   font-size: 1.5rem;
-  right: 2px;
-  top: calc(50% + 1px);
+  right: 8px;
+  top: calc(50% + 0px);
   transform: translateY(-50%);
 }
 
@@ -841,5 +868,17 @@ header a {
 
   .variation-market-products--block {
     grid-template-columns: 1fr 1fr;
+  }
+}
+@media screen and (min-width: 576px) {
+  .stocks-tables {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(375px, 1fr));
+  }
+}
+@media screen and (min-width: 768px) {
+  .stocks-tables {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
   }
 }

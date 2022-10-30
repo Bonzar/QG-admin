@@ -52,6 +52,10 @@ exports.getProductsListPage = async (req, res) => {
               allDbVariations(callback) {
                 dbService.getAllVariations({}, ["product wbProduct"], callback);
               },
+              // List of Wb products from DB
+              wbDbProducts(callback) {
+                dbService.getWbProducts({}, callback);
+              },
             },
             cb
           );
@@ -61,6 +65,7 @@ exports.getProductsListPage = async (req, res) => {
             wbApiProducts,
             wbApiFbsStocks,
             wbApiFbwStocks,
+            wbDbProducts,
             allDbVariations,
           } = results;
 
@@ -70,6 +75,7 @@ exports.getProductsListPage = async (req, res) => {
               wbApiProducts,
               wbApiFbsStocks,
               wbApiFbwStocks,
+              wbDbProducts,
               allDbVariations,
               connectWbDataResultFormatter
             ),

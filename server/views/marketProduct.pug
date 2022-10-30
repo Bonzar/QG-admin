@@ -3,7 +3,7 @@ extends layout
 append scripts
     script(src="/scripts/pages/dbMarketProduct.js" type="module" defer)
 
-block content
+block section
     h1= title
         if variation
             a.btn.navigate-btn.navigate-btn--back(href=`/stocks/db/product/${variation.product._id}`)

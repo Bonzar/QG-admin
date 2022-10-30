@@ -835,13 +835,25 @@ exports.getAllProductsStockPage = async (req, res) => {
               yandexApiProducts(callback) {
                 yandexService.getApiProductsList([], callback);
               },
+              // List of yandex products from DB
+              yandexDbProducts(callback) {
+                dbService.getYandexProducts({}, callback);
+              },
               // Ozon products
               ozonApiProductsInfo(callback) {
                 ozonService.getApiProductsList({ visibility: "ALL" }, callback);
               },
+              // List of yandex products from DB
+              ozonDbProducts(callback) {
+                dbService.getOzonProducts({}, callback);
+              },
               // Woo products
               wooApiProducts(callback) {
                 wooService.getProductList("", callback);
+              },
+              // List of Woo products from DB
+              wooDbProducts(callback) {
+                dbService.getWooProducts({}, "parentVariable", callback);
               },
               // Wb products
               wbApiProducts(callback) {
@@ -854,6 +866,10 @@ exports.getAllProductsStockPage = async (req, res) => {
               // Wb Stocks on Wb warehouse
               wbApiFbwStocks(callback) {
                 wbService.getApiProductFbwStocks(callback);
+              },
+              // List of Wb products from DB
+              wbDbProducts(callback) {
+                dbService.getWbProducts({}, callback);
               },
               // List of all products from DB with reference of Yandex product sku to product name
               allDbVariations(callback) {
@@ -878,17 +894,22 @@ exports.getAllProductsStockPage = async (req, res) => {
           const {
             allDbVariations,
             yandexApiProducts,
+            yandexDbProducts,
             wooApiProducts,
+            wooDbProducts,
             ozonApiProductsInfo,
+            ozonDbProducts,
             wbApiProducts,
             wbApiFbwStocks,
             wbApiFbsStocks,
+            wbDbProducts,
           } = results;
 
           const yandexProductConnectRequests =
             yandexService.getConnectYandexDataRequests(
               req.query,
               yandexApiProducts,
+              yandexDbProducts,
               allDbVariations,
               connectYandexDataResultFormatter
             );
@@ -898,6 +919,7 @@ exports.getAllProductsStockPage = async (req, res) => {
             wbApiProducts,
             wbApiFbsStocks,
             wbApiFbwStocks,
+            wbDbProducts,
             allDbVariations,
             connectWbDataResultFormatter
           );
@@ -906,6 +928,7 @@ exports.getAllProductsStockPage = async (req, res) => {
             wooService.getConnectWooDataRequests(
               req.query,
               wooApiProducts,
+              wooDbProducts,
               allDbVariations,
               connectWooDataResultFormatter
             );
@@ -919,6 +942,7 @@ exports.getAllProductsStockPage = async (req, res) => {
               req.query,
               ozonApiProducts,
               ozonApiStocks,
+              ozonDbProducts,
               allDbVariations,
               connectOzonDataResultFormatter
             );
@@ -962,19 +986,46 @@ exports.getAllProductsStockPage = async (req, res) => {
           variation1.productName.localeCompare(variation2.productName, "ru")
         );
 
+        const splitTables = {};
+        allVariationsStockList.forEach((variation) => {
+          if (!variation.volume) return;
+          if (!splitTables[variation.volume]) {
+            splitTables[variation.volume] = [];
+          }
+
+          splitTables[variation.volume].push(variation);
+        });
+
+        const tablesArray = Object.keys(splitTables).map((tableName) => ({
+          tableName,
+          products: splitTables[tableName],
+        }));
+
+        const volumeSortRating = {
+          "3 мл": 50,
+          "6 мл": 40,
+          "10 мл": 30,
+          Набор: 20,
+          Стикеры: 10,
+        };
+        tablesArray.sort(
+          (table1, table2) =>
+            volumeSortRating[table2.tableName] -
+            volumeSortRating[table1.tableName]
+        );
+
         res.render("allVariationsStock", {
-          title: "All Stocks",
+          title: "Все остатки",
           headers: {
             Name: { type: "name", field: "productName" },
             Yand: { type: "fbs", field: "yandexStock" },
-            Ozon: { type: "fbs", field: "ozonStock" },
             FBO: { type: "fbm", field: "FBO" },
-            WB: { type: "fbs", field: "wbStock" },
+            Ozon: { type: "fbs", field: "ozonStock" },
             FBW: { type: "fbm", field: "FBW" },
+            WB: { type: "fbs", field: "wbStock" },
             Woo: { type: "fbs", field: "wooStock" },
           },
-          splitTablesBy: "volume",
-          products: allVariationsStockList,
+          tables: tablesArray,
         });
       }
     );

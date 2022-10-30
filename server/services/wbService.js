@@ -424,6 +424,7 @@ exports.getConnectWbDataRequests = (
   wbApiProducts,
   wbApiFbsStocks,
   wbApiFbwStocks,
+  wbDbProducts,
   allDbVariations,
   connectWbDataResultFormatter
 ) => {
@@ -447,6 +448,13 @@ exports.getConnectWbDataRequests = (
           }).length > 0
       );
 
+      if (!wbDbProduct) {
+        // Search fetched product from wb in DB
+        wbDbProduct = wbDbProducts.find(
+          (wbDbProduct) => wbDbProduct.sku === wbApiProduct["nmID"]
+        );
+      }
+
       const stockFBS =
         wbApiFbsStocks["stocks"].find(
           (fbsStock) => fbsStock["nmId"] === wbApiProduct["nmID"]
@@ -466,13 +474,17 @@ exports.getConnectWbDataRequests = (
       let isPassFilterArray = [];
       // by stock status
       switch (filters.stock_status) {
-        // Filter only outofstock products (by FBS)
+        // Filter only outofstock products (by FBM and FBS)
         case "outofstock":
+          isPassFilterArray.push(stockFBS <= 0 && stockFBW <= 0);
+          break;
+        // Filter only outofstock products (by FBS)
+        case "outofstockFBS":
           isPassFilterArray.push(stockFBS <= 0);
           break;
-        // Filter only outofstock products (by FBO and FBS)
-        case "outofstockall":
-          isPassFilterArray.push(stockFBS <= 0 && stockFBW <= 0);
+        // Filter only outofstock products (by FBM)
+        case "outofstockFBM":
+          isPassFilterArray.push(stockFBW <= 0);
           break;
         // Filter only instock on FBS products
         case "instockFBS":

@@ -44,17 +44,23 @@ exports.getProductsListPage = async (req, res) => {
                   callback
                 );
               },
+              // List of yandex products from DB
+              yandexDbProducts(callback) {
+                dbService.getYandexProducts({}, callback);
+              },
             },
             cb
           );
         },
         (results, cb) => {
-          const { yandexApiProducts, allDbVariations } = results;
+          const { yandexApiProducts, allDbVariations, yandexDbProducts } =
+            results;
 
           async.parallel(
             yandexService.getConnectYandexDataRequests(
               req.query,
               yandexApiProducts,
+              yandexDbProducts,
               allDbVariations,
               connectYandexDataResultFormatter
             ),

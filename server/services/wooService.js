@@ -214,6 +214,7 @@ exports.getOrders = async () => {
 const getConnectWooDataRequest = (
   filters,
   wooApiProduct,
+  wooDbProducts,
   allDbVariations,
   connectWooDataResultFormatter
 ) => {
@@ -235,6 +236,13 @@ const getConnectWooDataRequest = (
           return isMarketProductMatch;
         }).length > 0
     );
+
+    if (!wooDbProduct) {
+      // Search fetched product from woo in DB
+      wooDbProduct = wooDbProducts.find(
+        (wooDbProduct) => wooDbProduct.id === wooApiProduct.id
+      );
+    }
 
     const wooStock = wooApiProduct["stock_quantity"];
 
@@ -275,6 +283,7 @@ const getConnectWooDataRequest = (
 exports.getConnectWooDataRequests = (
   filters,
   wooApiProducts,
+  wooDbProducts,
   allDbVariations,
   connectWooDataResultFormatter
 ) => {
@@ -286,6 +295,7 @@ exports.getConnectWooDataRequests = (
         getConnectWooDataRequest(
           filters,
           wooApiProduct,
+          wooDbProducts,
           allDbVariations,
           connectWooDataResultFormatter
         )
@@ -296,6 +306,7 @@ exports.getConnectWooDataRequests = (
           getConnectWooDataRequest(
             filters,
             wooApiProductVariation,
+            wooDbProducts,
             allDbVariations,
             connectWooDataResultFormatter
           )

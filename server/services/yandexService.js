@@ -129,6 +129,7 @@ exports.getApiTodayOrders = async () => {
 exports.getConnectYandexDataRequests = (
   filters,
   yandexApiProducts,
+  yandexDbProducts,
   allDbVariations,
   connectYandexDataResultFormatter
 ) => {
@@ -151,6 +152,13 @@ exports.getConnectYandexDataRequests = (
             return isMarketProductMatch;
           }).length > 0
       );
+
+      if (!yandexDbProduct) {
+        yandexDbProduct = yandexDbProducts.find(
+          (yandexDbProduct) =>
+            yandexDbProduct.sku === yandexApiProduct["shopSku"]
+        );
+      }
 
       const yandexStock =
         yandexApiProduct.warehouses?.[0].stocks.find(

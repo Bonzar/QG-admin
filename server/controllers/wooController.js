@@ -53,16 +53,21 @@ exports.getProductsList = async (req, res) => {
               wooApiProducts(callback) {
                 wooService.getProductList("", callback);
               },
+              // List of Woo products from DB
+              wooDbProducts(callback) {
+                dbService.getWooProducts({}, "parentVariable", callback);
+              },
             },
             cb
           );
         },
         (results, cb) => {
-          const { wooApiProducts, allDbVariations } = results;
+          const { wooApiProducts, allDbVariations, wooDbProducts } = results;
           async.parallel(
             wooService.getConnectWooDataRequests(
               req.query,
               wooApiProducts,
+              wooDbProducts,
               allDbVariations,
               connectWooDataResultFormatter
             ),

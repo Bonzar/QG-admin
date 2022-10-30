@@ -374,6 +374,7 @@ exports.getConnectOzonDataRequests = (
   filters,
   ozonApiProducts,
   ozonApiStocks,
+  ozonDbProducts,
   allDbVariations,
   connectOzonDataResultFormatter
 ) => {
@@ -397,6 +398,13 @@ exports.getConnectOzonDataRequests = (
           }).length > 0
       );
 
+      if (!ozonDbProduct) {
+        // Search fetched product from ozon in DB
+        ozonDbProduct = ozonDbProducts.find(
+          (ozonDbProduct) => ozonDbProduct.sku === ozonApiProduct["id"]
+        );
+      }
+
       const productStocks = ozonApiStocks.find(
         (stockInfo) => stockInfo.product_id === ozonApiProduct.id
       );
@@ -408,23 +416,27 @@ exports.getConnectOzonDataRequests = (
       let isPassFilterArray = [];
       // by stock status
       switch (filters.stock_status) {
-        // Filter only outofstock products (by FBS)
+        // Filter only outofstock products (by FBM and FBS)
         case "outofstock":
+          isPassFilterArray.push(stockFBS <= 0 && stockFBO <= 0);
+          break;
+        // Filter only outofstock products (by FBS)
+        case "outofstockFBS":
           isPassFilterArray.push(stockFBS <= 0);
           break;
-        // Filter only outofstock products (by FBO and FBS)
-        case "outofstockall":
-          isPassFilterArray.push(stockFBS <= 0 && stockFBO <= 0);
+        // Filter only outofstock products (by FBM)
+        case "outofstockFBM":
+          isPassFilterArray.push(stockFBO <= 0);
           break;
         // Filter only instock on FBS products
         case "instockFBS":
           isPassFilterArray.push(stockFBS > 0);
           break;
-        // Filter only instock on FBW products
+        // Filter only instock on FBM products
         case "instockFBM":
           isPassFilterArray.push(stockFBO > 0);
           break;
-        // Filter only instock on FBW or FBS products (some of them)
+        // Filter only instock on FBM or FBS products (some of them)
         case "instockSome":
           isPassFilterArray.push(stockFBS > 0 || stockFBO > 0);
           break;
