@@ -1,3 +1,8 @@
+:root {
+  --table-row-even: rgba(245, 222, 255, 1);
+  --table-row-odd: rgba(252, 250, 254, 1);
+}
+
 html {
   box-sizing: border-box;
 }
@@ -484,12 +489,12 @@ header a {
 
 .stocks-table tr:nth-child(odd),
 .orders-table tr:nth-child(odd) {
-  background: rgba(252, 250, 254, 1);
+  background:  var(--table-row-odd, rgba(252, 250, 254, 1));
 }
 
 .stocks-table tr:nth-child(even),
 .orders-table tr:nth-child(even) {
-  background: rgba(245, 222, 255, 1);
+  background: var(--table-row-even, rgba(245, 222, 255, 1));
 }
 
 
@@ -538,9 +543,14 @@ header a {
   width: min(50vw, 25rem);
   position: sticky;
   left: 0;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   z-index: 5;
+}
+
+tr:nth-child(even) td.col--name {
+  background: var(--table-row-even);
+}
+tr:nth-child(odd) td.col--name {
+  background: var(--table-row-odd);
 }
 
 .stocks-table .col--identifier {

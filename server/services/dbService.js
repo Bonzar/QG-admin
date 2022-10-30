@@ -905,9 +905,10 @@ exports.getVariationProductsStocks = (id, cbFunc) => {
 
                         callback(null, {
                           identifier: yandexProduct.sku,
-                          stock: result[0].warehouses?.[0].stocks.find(
-                            (stockType) => stockType.type === "FIT"
-                          )?.count,
+                          stock:
+                            result[0].warehouses?.[0].stocks.find(
+                              (stockType) => stockType.type === "FIT"
+                            )?.count ?? 0,
                         });
                       }
                     );

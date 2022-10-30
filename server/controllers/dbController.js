@@ -161,11 +161,12 @@ exports.getDbMarketProductPage = async (req, res) => {
             marketProduct = (
               await dbService.getYandexProducts({ _id: productId })
             )[0];
-            fbsStocks = (
-              await yandexService.getApiProductsList([marketProduct.sku])
-            )[0].warehouses?.[0].stocks.find(
-              (stockType) => stockType.type === "FIT"
-            )?.count;
+            fbsStocks =
+              (
+                await yandexService.getApiProductsList([marketProduct.sku])
+              )[0].warehouses?.[0].stocks.find(
+                (stockType) => stockType.type === "FIT"
+              )?.count ?? 0;
 
             break;
           case "ozon":

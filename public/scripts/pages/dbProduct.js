@@ -140,7 +140,7 @@ const productSubmitButton = document.querySelector(".submit-button--product");
 if (productSubmitButton)
   productSubmitButton.addEventListener("click", addUpdateProduct);
 
-const variationBlocks = document.querySelectorAll(".product-variation--block");
+const variationBlocks = document.querySelectorAll(".product-variation--cell");
 for (const variationBlock of variationBlocks) {
   variationBlock.addEventListener("click", addUpdateMarketProduct);
 }

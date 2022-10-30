@@ -88,7 +88,11 @@ const updateStockListener = function (e) {
               cell.textContent === newStockValue &&
               newStockValue !== oldValue
             ) {
-              cell.classList.toggle("out-of-stock");
+              if (+newStockValue <= 0) {
+                cell.classList.add("out-of-stock");
+              } else {
+                cell.classList.remove("out-of-stock");
+              }
             }
           });
       },
