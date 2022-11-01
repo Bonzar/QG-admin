@@ -708,6 +708,7 @@ tr:nth-child(odd) td.col--name {
   border-radius: 25px;
   padding: 1rem;
   box-shadow: 0.359375px 0 9px 4px rgb(237, 193, 255);
+  width: min(400px, max(250px, 100%));
 }
 
 .variation-market-products--block .market-product--form,
@@ -791,11 +792,19 @@ tr:nth-child(odd) td.col--name {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 2rem;
+  justify-items: center;
+}
+
+@media screen and (min-width: 992px) {
+  .product-variation--container {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
 }
 
 .product-variation--cell,
 .product-variation--cell .variation-market-products--block {
   margin-top: 2rem;
+  width: min(max(250px, 100%), 800px);
 }
 
 .product-variation--container {
@@ -861,6 +870,7 @@ tr:nth-child(odd) td.col--name {
 
 .variation-market-products--block {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  justify-items: center;
 }
 
 /* DESKTOP LAYOUT */
