@@ -24,7 +24,7 @@ exports.getProductsList = async (req, res) => {
           updateBy:
             wooApiProduct.type === "simple"
               ? `simple-${wooApiProduct.id}`
-              : `variation-${wooDbProduct?.parentVariable.id}-${wooApiProduct.id}`,
+              : `variation-${wooApiProduct.id}-${wooDbProduct?.parentVariable.id}`,
           marketType: "woo",
         },
       };
@@ -126,10 +126,10 @@ exports.getStockUpdateInfo = async (req, res) => {
 
 exports.updateStock = (req, res) => {
   try {
-    const [productType, productId, variationId] = req.query.updateBy.split("-");
+    const [productType, productId, variableId] = req.query.updateBy.split("-");
 
     wooService
-      .updateProduct(productType, productId, variationId, {
+      .updateProduct(productType, productId, variableId, {
         stock_quantity: req.query.stock,
       })
       .then(() => {

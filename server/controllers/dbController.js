@@ -718,7 +718,7 @@ exports.getAllProductsStockPage = async (req, res) => {
           updateBy:
             wooApiProduct.type === "simple"
               ? `simple-${wooApiProduct.id}`
-              : `variation-${wooDbProduct?.parentVariable.id}-${wooApiProduct.id}`,
+              : `variation-${wooApiProduct.id}-${wooDbProduct?.parentVariable.id}`,
           marketType: "woo",
         };
       } else {
@@ -736,7 +736,7 @@ exports.getAllProductsStockPage = async (req, res) => {
             updateBy:
               wooApiProduct.type === "simple"
                 ? `simple-${wooApiProduct.id}`
-                : `variation-${wooDbProduct?.parentVariable.id}-${wooApiProduct.id}`,
+                : `variation-${wooApiProduct.id}-${wooDbProduct?.parentVariable.id}`,
             marketType: "woo",
           },
         });

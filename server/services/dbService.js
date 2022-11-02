@@ -496,8 +496,8 @@ exports.addUpdateMarketProduct = async (marketProductData, cbFunc) => {
           case "woo":
             wooService.updateProduct(
               marketProductData.type,
-              marketProductData.parentVariable?.id,
               marketProductData.id,
+              marketProductData.parentVariable?.id,
               { stock_quantity: +marketProductData.stockFBS },
               cbPart
             );

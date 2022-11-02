@@ -165,8 +165,8 @@ exports.getProductInfo = async (productId, callback) => {
 
 exports.updateProduct = async (
   productType,
-  variableId,
   id,
+  variableId,
   updateData,
   callback
 ) => {
