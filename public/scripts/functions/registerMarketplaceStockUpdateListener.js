@@ -78,7 +78,7 @@ const updateStockListener = function (e) {
           authToken
         )
           .then((response) => {
-            if (response.status === 403) {
+            if (response?.status === 403) {
               alert("Вы не авторизованы!");
             }
           })
