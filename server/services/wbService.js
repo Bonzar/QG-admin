@@ -84,11 +84,25 @@ exports.getApiProductFbsStocks = async (search, callback) => {
 
 exports.getApiProductFbwStocks = async (cb) => {
   try {
+    const today = new Date();
+    const todayUtcYear = today.getUTCFullYear();
+
+    let todayUtcMonth = today.getUTCMonth() + 1;
+    if (todayUtcMonth < 10) {
+      todayUtcMonth = "0" + todayUtcMonth;
+    }
+
+    let todayUtcDate = today.getUTCDate();
+    if (todayUtcDate < 10) {
+      todayUtcDate = "0" + todayUtcDate;
+    }
+
     const config = {
       method: "get",
-      url: `https://suppliers-stats.wildberries.ru/api/v1/supplier/stocks?key=${process.env.WB_APISTATKEY}&dateFrom=2022-10-09`,
+      url: `https://suppliers-stats.wildberries.ru/api/v1/supplier/stocks?key=${
+        process.env.WB_APISTATKEY
+      }&dateFrom=${`${todayUtcYear}-${todayUtcMonth}-${todayUtcDate}`}`,
     };
-
     const fbwStocks = await axios(config).then((response) => {
       return response.data;
     });
