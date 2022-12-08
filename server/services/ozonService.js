@@ -1,6 +1,7 @@
 const axios = require("axios");
-const { clearName } = require("./nameFormatter");
 const async = require("async");
+const { format: formatDate, sub: subFromDate } = require("date-fns");
+const dbService = require("./dbService");
 
 const getHeadersRequire = () => {
   return {
@@ -221,22 +222,19 @@ exports.getOverdueOrders = async () => {
 };
 
 exports.getOzonShipment = async () => {
-  // format date for analytics requests
+  // format date for requests
   const today = new Date();
-  today.setDate(today.getDate() - 1);
-  const filterStartMonth = `${today.getFullYear()}-${
-    today.getMonth() < 10 ? `0${today.getMonth()}` : today.getMonth()
-  }-${today.getDate() < 10 ? `0${today.getDate()}` : today.getDate()}`;
-  const filterStartYear = `${today.getFullYear() - 1}-${
-    today.getMonth() + 1 < 10
-      ? `0${today.getMonth() + 1}`
-      : today.getMonth() + 1
-  }-${today.getDate() < 10 ? `0${today.getDate()}` : today.getDate()}`;
-  const filterEnd = `${today.getFullYear()}-${
-    today.getMonth() + 1 < 10
-      ? `0${today.getMonth() + 1}`
-      : today.getMonth() + 1
-  }-${today.getDate() < 10 ? `0${today.getDate()}` : today.getDate()}`;
+
+  // don't take today orders
+  const yesterday = subFromDate(today, { days: 1 });
+  // date month ago
+  const monthAgo = subFromDate(yesterday, { months: 1 });
+  // date 11 month ago
+  const elevenMonthsAgo = subFromDate(yesterday, { months: 11 });
+  // date year ago
+  const yearAgo = subFromDate(yesterday, { years: 1 });
+  // date 13 month ago
+  const thirteenMonthsAgo = subFromDate(yesterday, { months: 13 });
 
   const config = {
     method: "post",
@@ -246,7 +244,7 @@ exports.getOzonShipment = async () => {
     },
     data: {
       date_from: null,
-      date_to: filterEnd,
+      date_to: null,
       metrics: ["ordered_units"],
       dimension: ["sku"],
       filters: [],
@@ -265,11 +263,15 @@ exports.getOzonShipment = async () => {
     }
   };
 
-  const getMonthData = async (callback) => {
+  const getMonthAgoData = async (callback) => {
     try {
-      const monthData = await axios({
+      const monthAgoData = await axios({
         ...config,
-        data: { ...config.data, date_from: filterStartMonth },
+        data: {
+          ...config.data,
+          date_to: formatDate(yesterday, "yyyy-MM-dd"),
+          date_from: formatDate(monthAgo, "yyyy-MM-dd"),
+        },
       })
         .then((response) => {
           return response.data;
@@ -278,18 +280,22 @@ exports.getOzonShipment = async () => {
           console.log(e);
         });
 
-      callback(null, monthData);
+      callback(null, monthAgoData);
     } catch (e) {
       console.log(e);
       callback(e, null);
     }
   };
 
-  const getYearData = async (callback) => {
+  const getPartYearAgoData = async (callback) => {
     try {
-      const yearData = await axios({
+      const yearAgoData = await axios({
         ...config,
-        data: { ...config.data, date_from: filterStartYear },
+        data: {
+          ...config.data,
+          date_to: formatDate(monthAgo, "yyyy-MM-dd"),
+          date_from: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
+        },
       })
         .then((response) => {
           return response.data;
@@ -298,7 +304,55 @@ exports.getOzonShipment = async () => {
           console.log(e);
         });
 
-      callback(null, yearData);
+      callback(null, yearAgoData);
+    } catch (e) {
+      console.log(e);
+      callback(e, null);
+    }
+  };
+
+  const getNextMonthYearAgoData = async (callback) => {
+    try {
+      const nextMonthYearAgoData = await axios({
+        ...config,
+        data: {
+          ...config.data,
+          date_to: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
+          date_from: formatDate(yearAgo, "yyyy-MM-dd"),
+        },
+      })
+        .then((response) => {
+          return response.data;
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+
+      callback(null, nextMonthYearAgoData);
+    } catch (e) {
+      console.log(e);
+      callback(e, null);
+    }
+  };
+
+  const getPreviousMonthYearAgoData = async (callback) => {
+    try {
+      const previousMonthYearAgoData = await axios({
+        ...config,
+        data: {
+          ...config.data,
+          date_to: formatDate(yearAgo, "yyyy-MM-dd"),
+          date_from: formatDate(thirteenMonthsAgo, "yyyy-MM-dd"),
+        },
+      })
+        .then((response) => {
+          return response.data;
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+
+      callback(null, previousMonthYearAgoData);
     } catch (e) {
       console.log(e);
       callback(e, null);
@@ -307,62 +361,161 @@ exports.getOzonShipment = async () => {
 
   const requestsData = await async.parallel({
     // Orders number for month by product
-    monthData(callback) {
-      getMonthData(callback);
+    monthAgoData(callback) {
+      getMonthAgoData(callback);
     },
     // Orders number for year by product
-    yearData(callback) {
-      getYearData(callback);
+    partYearAgoData(callback) {
+      getPartYearAgoData(callback);
+    },
+    //
+    nextMonthYearAgoData(callback) {
+      getNextMonthYearAgoData(callback);
+    },
+    //
+    previousMonthYearAgoData(callback) {
+      getPreviousMonthYearAgoData(callback);
     },
     // Product detailed info list and product-id/stock list
     productsFullInfo(callback) {
       getProductsFullInfo(callback);
     },
+    ozonDbProducts(callback) {
+      dbService.getOzonProducts({}, callback);
+    },
+    // List of all products from DB
+    allDbVariations(callback) {
+      dbService.getAllVariations({}, ["product ozonProduct"], callback);
+    },
   });
 
-  const { productsInfo, productsStockList } = requestsData.productsFullInfo;
-  const monthData = requestsData.monthData;
-  const yearData = requestsData.yearData;
+  const {
+    monthAgoData,
+    partYearAgoData,
+    nextMonthYearAgoData,
+    previousMonthYearAgoData,
+    ozonDbProducts,
+    allDbVariations,
+    productsFullInfo: { productsInfo, productsStockList },
+  } = requestsData;
 
   // Joining data and return only products with positive onShipment value
   const products = [];
+
+  const allSellsNextMonthYearAgo = nextMonthYearAgoData.result.data.reduce(
+    (total, currentProduct) => total + currentProduct["metrics"][0] ?? 0,
+    0
+  );
+
+  const allSellsPreviousMonthYearAgo =
+    previousMonthYearAgoData.result.data.reduce(
+      (total, currentProduct) => total + currentProduct["metrics"][0] ?? 0,
+      0
+    );
+
+  const previousYearNextMonthRise =
+    allSellsNextMonthYearAgo / allSellsPreviousMonthYearAgo;
+
   productsInfo.forEach((product) => {
-    const name = clearName(product.name);
+    let ozonDbProduct;
+    // Search variation for market product from api
+    const variation = allDbVariations.find(
+      (variation) =>
+        // Search market product in db for market product from api
+        variation.ozonProduct?.filter((variationOzonDbProduct) => {
+          const isMarketProductMatch =
+            variationOzonDbProduct.sku === product["id"];
+
+          // find -> save market product
+          if (isMarketProductMatch) {
+            ozonDbProduct = variationOzonDbProduct;
+          }
+
+          return isMarketProductMatch;
+        }).length > 0
+    );
+
+    if (!ozonDbProduct) {
+      // Search fetched product from ozon in DB
+      ozonDbProduct = ozonDbProducts.find(
+        (ozonDbProduct) => ozonDbProduct.sku === product["id"]
+      );
+    }
+
+    // Skip not actual products
+    if (!ozonDbProduct.isActual) {
+      return;
+    }
 
     const stock =
       productsStockList.find((stockInfo) => stockInfo.product_id === product.id)
         .stocks[0]?.present ?? 0;
 
-    const sellPerMonth = product.sources.reduce((total, currentSource) => {
+    const sellsMonthAgo = product.sources.reduce((total, currentSource) => {
       total +=
-        monthData.result.data.find((productData) => {
+        monthAgoData.result.data.find((productData) => {
           return +productData["dimensions"][0].id === currentSource.sku;
         })?.metrics[0] ?? 0;
 
       return total;
     }, 0);
 
-    const sellPerYear = product.sources.reduce((total, currentSource) => {
-      total +=
-        yearData.result.data.find((productData) => {
-          return +productData["dimensions"][0].id === currentSource.sku;
-        })?.metrics[0] ?? 0;
-      return total;
-    }, 0);
+    const sellsNextMonthYearAgo = product.sources.reduce(
+      (total, currentSource) => {
+        total +=
+          nextMonthYearAgoData.result.data.find((productData) => {
+            return +productData["dimensions"][0].id === currentSource.sku;
+          })?.metrics[0] ?? 0;
 
-    const onShipment = Math.round(
-      (sellPerMonth >= sellPerYear / 12 ? sellPerMonth : sellPerYear / 12) -
-        stock
+        return total;
+      },
+      0
     );
+
+    const sellsPreviousMonthYearAgo = product.sources.reduce(
+      (total, currentSource) => {
+        total +=
+          previousMonthYearAgoData.result.data.find((productData) => {
+            return +productData["dimensions"][0].id === currentSource.sku;
+          })?.metrics[0] ?? 0;
+
+        return total;
+      },
+      0
+    );
+
+    // Only 10 months from year
+    const partSellsYearAgo = product.sources.reduce((total, currentSource) => {
+      total +=
+        partYearAgoData.result.data.find((productData) => {
+          return +productData["dimensions"][0].id === currentSource.sku;
+        })?.metrics[0] ?? 0;
+
+      return total;
+    }, 0);
+
+    const sellsYearAgoMonthAvg = Math.round(
+      (partSellsYearAgo + sellsMonthAgo + sellsNextMonthYearAgo) / 12
+    );
+
+    const predictedSells = Math.round(
+      (sellsMonthAgo > 0 ? sellsMonthAgo : 1) * previousYearNextMonthRise
+    );
+
+    const onShipment = predictedSells - stock;
 
     if (onShipment > 0) {
       products.push({
         article: product.offer_id,
-        name,
+        name: variation.product.name,
         stock,
-        sellPerMonth,
-        sellPerYear,
-        onShipment,
+        sellsYearAgoMonthAvg,
+        sellsPreviousMonthYearAgo,
+        sellsNextMonthYearAgo,
+        sellsMonthAgo,
+        rise: (sellsNextMonthYearAgo / sellsPreviousMonthYearAgo).toFixed(2),
+        predictedSells,
+        onShipment: onShipment > 0 ? onShipment : 0,
       });
     }
   });
@@ -409,8 +562,12 @@ exports.getConnectOzonDataRequests = (
         (stockInfo) => stockInfo.product_id === ozonApiProduct.id
       );
 
-      const stockFBO = productStocks.stocks[0]?.present ?? 0;
-      const stockFBS = productStocks.stocks[1]?.present ?? 0;
+      const stockFBO =
+        productStocks.stocks.find((stock) => stock.type === "fbo")?.present ??
+        0;
+      const stockFBS =
+        productStocks.stocks.find((stock) => stock.type === "fbs")?.present ??
+        0;
 
       // Filtration
       let isPassFilterArray = [];
