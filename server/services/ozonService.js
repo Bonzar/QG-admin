@@ -3,35 +3,29 @@ const async = require("async");
 const { format: formatDate, sub: subFromDate } = require("date-fns");
 const dbService = require("./dbService");
 
-const getHeadersRequire = () => {
-  return {
+const ozonAPI = axios.create({
+  baseURL: "https://api-seller.ozon.ru/",
+  headers: {
     "Content-Type": "application/json",
     "Client-Id": process.env.OZON_CLIENTID,
     "Api-Key": process.env.OZON_APIKEY,
-  };
-};
+  },
+});
 
 exports.getProductsStockList = async (
   filter = { visibility: "ALL" },
   callback
 ) => {
   try {
-    const config = {
-      method: "post",
-      url: "https://api-seller.ozon.ru/v3/product/info/stocks",
-      headers: {
-        ...getHeadersRequire(),
-      },
-      data: {
+    const result = await ozonAPI
+      .post("v3/product/info/stocks", {
         filter,
         last_id: "",
         limit: 1000,
-      },
-    };
-
-    const result = await axios(config).then((response) => {
-      return response.data;
-    });
+      })
+      .then((response) => {
+        return response.data;
+      });
 
     if (!callback) {
       return result;
@@ -47,19 +41,11 @@ exports.getProductsStockList = async (
   }
 };
 
-exports.getProductsInfo = async (ids) => {
-  const config = {
-    method: "post",
-    url: "https://api-seller.ozon.ru/v2/product/info/list",
-    headers: {
-      ...getHeadersRequire(),
-    },
-    data: {
+exports.getProductsInfo = (ids) => {
+  return ozonAPI
+    .post("v2/product/info/list", {
       product_id: ids,
-    },
-  };
-
-  return await axios(config)
+    })
     .then((response) => {
       return response.data;
     })
@@ -96,25 +82,18 @@ exports.getApiProductsList = async (filter, callback) => {
 
 exports.updateApiStock = async (offer_id, stock, callback) => {
   try {
-    const config = {
-      method: "post",
-      url: "https://api-seller.ozon.ru/v1/product/import/stocks",
-      headers: {
-        ...getHeadersRequire(),
-      },
-      data: {
+    const result = await ozonAPI
+      .post("v1/product/import/stocks", {
         stocks: [
           {
             offer_id,
             stock,
           },
         ],
-      },
-    };
-
-    const result = await axios(config).then((response) => {
-      return response.data;
-    });
+      })
+      .then((response) => {
+        return response.data;
+      });
 
     if (!callback) {
       return result;
@@ -137,13 +116,8 @@ exports.getTodayOrders = async () => {
     today.setHours(23, 59, 59, 999);
     const todayEnd = today.toISOString();
 
-    const config = {
-      method: "post",
-      url: "https://api-seller.ozon.ru/v3/posting/fbs/unfulfilled/list",
-      headers: {
-        ...getHeadersRequire(),
-      },
-      data: {
+    return await ozonAPI
+      .post("v3/posting/fbs/unfulfilled/list", {
         dir: "ASC",
         filter: {
           cutoff_from: todayStart,
@@ -152,12 +126,10 @@ exports.getTodayOrders = async () => {
         limit: 100,
         offset: 0,
         with: {},
-      },
-    };
-
-    return await axios(config).then((response) => {
-      return response.data.result.postings;
-    });
+      })
+      .then((response) => {
+        return response.data.result.postings;
+      });
   } catch (e) {
     console.log(e.code);
   }
@@ -176,13 +148,8 @@ exports.getOverdueOrders = async () => {
     date.setHours(0, 0, 0, 0);
     const dateStart = date.toISOString();
 
-    const config = {
-      method: "post",
-      url: "https://api-seller.ozon.ru/v3/posting/fbs/list",
-      headers: {
-        ...getHeadersRequire(),
-      },
-      data: {
+    const overdueOrders = await ozonAPI
+      .post("v3/posting/fbs/list", {
         dir: "ASC",
         filter: {
           since: dateStart,
@@ -191,12 +158,10 @@ exports.getOverdueOrders = async () => {
         limit: 100,
         offset: 0,
         with: {},
-      },
-    };
-
-    const overdueOrders = await axios(config).then((response) => {
-      return response.data.result.postings;
-    });
+      })
+      .then((response) => {
+        return response.data.result.postings;
+      });
 
     return overdueOrders.filter((order) => {
       const orderShipmentDate = new Date(order.shipment_date).setHours(
@@ -238,10 +203,7 @@ exports.getOzonShipment = async () => {
 
   const config = {
     method: "post",
-    url: "https://api-seller.ozon.ru/v1/analytics/data",
-    headers: {
-      ...getHeadersRequire(),
-    },
+    url: "v1/analytics/data",
     data: {
       date_from: null,
       date_to: null,
@@ -265,14 +227,15 @@ exports.getOzonShipment = async () => {
 
   const getMonthAgoData = async (callback) => {
     try {
-      const monthAgoData = await axios({
-        ...config,
-        data: {
-          ...config.data,
-          date_to: formatDate(yesterday, "yyyy-MM-dd"),
-          date_from: formatDate(monthAgo, "yyyy-MM-dd"),
-        },
-      })
+      const monthAgoData = await ozonAPI
+        .request({
+          ...config,
+          data: {
+            ...config.data,
+            date_to: formatDate(yesterday, "yyyy-MM-dd"),
+            date_from: formatDate(monthAgo, "yyyy-MM-dd"),
+          },
+        })
         .then((response) => {
           return response.data;
         })
@@ -289,14 +252,15 @@ exports.getOzonShipment = async () => {
 
   const getPartYearAgoData = async (callback) => {
     try {
-      const yearAgoData = await axios({
-        ...config,
-        data: {
-          ...config.data,
-          date_to: formatDate(monthAgo, "yyyy-MM-dd"),
-          date_from: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
-        },
-      })
+      const yearAgoData = await ozonAPI
+        .request({
+          ...config,
+          data: {
+            ...config.data,
+            date_to: formatDate(monthAgo, "yyyy-MM-dd"),
+            date_from: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
+          },
+        })
         .then((response) => {
           return response.data;
         })
@@ -313,14 +277,15 @@ exports.getOzonShipment = async () => {
 
   const getNextMonthYearAgoData = async (callback) => {
     try {
-      const nextMonthYearAgoData = await axios({
-        ...config,
-        data: {
-          ...config.data,
-          date_to: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
-          date_from: formatDate(yearAgo, "yyyy-MM-dd"),
-        },
-      })
+      const nextMonthYearAgoData = await ozonAPI
+        .request({
+          ...config,
+          data: {
+            ...config.data,
+            date_to: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
+            date_from: formatDate(yearAgo, "yyyy-MM-dd"),
+          },
+        })
         .then((response) => {
           return response.data;
         })
@@ -337,14 +302,15 @@ exports.getOzonShipment = async () => {
 
   const getPreviousMonthYearAgoData = async (callback) => {
     try {
-      const previousMonthYearAgoData = await axios({
-        ...config,
-        data: {
-          ...config.data,
-          date_to: formatDate(yearAgo, "yyyy-MM-dd"),
-          date_from: formatDate(thirteenMonthsAgo, "yyyy-MM-dd"),
-        },
-      })
+      const previousMonthYearAgoData = await ozonAPI
+        .request({
+          ...config,
+          data: {
+            ...config.data,
+            date_to: formatDate(yearAgo, "yyyy-MM-dd"),
+            date_from: formatDate(thirteenMonthsAgo, "yyyy-MM-dd"),
+          },
+        })
         .then((response) => {
           return response.data;
         })
