@@ -1,9 +1,6 @@
 const path = require("path");
 const express = require("express");
 
-// if (process.env.NODE_ENV !== "production") {
-require("dotenv").config();
-// }
 try {
   //Устанавливаем соединение с mongoose
   const mongoose = require("mongoose");
@@ -14,9 +11,6 @@ try {
 } catch (e) {
   console.log(e);
 }
-
-// eslint-disable-next-line no-unused-vars
-const Product = require("./models/Product");
 
 const indexRouter = require("./routes/indexRouter");
 const authRouter = require("./routes/authRouter");
