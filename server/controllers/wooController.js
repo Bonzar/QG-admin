@@ -114,16 +114,6 @@ exports.getProductsList = async (req, res) => {
   }
 };
 
-exports.getStockUpdateInfo = async (req, res) => {
-  try {
-    res.json(await wooService.getStockUpdateInfo(req.params.id));
-  } catch (e) {
-    res
-      .status(400)
-      .send("Error while getting stock info of product. Try again later.");
-  }
-};
-
 exports.updateStock = (req, res) => {
   try {
     const [productType, productId, variableId] = req.query.updateBy.split("-");

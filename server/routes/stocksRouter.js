@@ -59,9 +59,6 @@ router.post("/wb/update_stock", authMiddleware, wb_controller.updateApiStock);
 // Get request for list of all Woo products
 router.get("/woo", woocommerce_controller.getProductsList);
 
-// Get request for Wop stock info depending on product type
-router.get("/woo/:id/info", woocommerce_controller.getStockUpdateInfo);
-
 // Post request for update Woo stock info of product
 router.post(
   "/woo/update_stock",
