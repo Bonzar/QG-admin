@@ -1,6 +1,10 @@
 const path = require("path");
 const express = require("express");
 
+if (process.env.NODE_ENV === "production") {
+  require("dotenv").config();
+}
+
 try {
   //Устанавливаем соединение с mongoose
   const mongoose = require("mongoose");
