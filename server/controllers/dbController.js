@@ -6,72 +6,72 @@ const yandexService = require("../services/yandexService");
 const ozonService = require("../services/ozonService");
 const wooService = require("../services/wooService");
 
+const isValidationPass = (req, res) => {
+  let errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    // There are errors.
+    console.log(errors);
+    const message = errors.errors.map((error) => error.msg).join(". ");
+    res.status(400).json({ errors, message });
+    return false;
+  }
+
+  return true;
+};
+
 exports.getProductPage = (req, res) => {
   try {
     async.waterfall(
       [
         (callback) => {
-          dbService.getProductById(req.params.id, callback);
+          dbService
+            .getProductById(req.params.id)
+            .then((product) => callback(null, product))
+            .catch((error) => callback(error, null));
         },
         (product, callback) => {
-          dbService.getAllVariations(
-            { product },
-            [
+          dbService
+            .getAllVariations({ product }, [
               {
                 path: "wooProduct",
                 populate: { path: "parentVariable" },
               },
               "product yandexProduct wbProduct ozonProduct",
-            ],
-            (err, variations) => {
-              if (err) {
-                console.log(err);
-                callback(err, null);
-                return;
-              }
-
-              callback(null, product, variations);
-            }
-          );
+            ])
+            .then((variations) => callback(null, product, variations))
+            .catch((error) => callback(error, null));
         },
         (product, variations, callback) => {
           const variationStockRequests = variations.map((variation) => {
             return (callback) => {
-              try {
-                dbService.getVariationProductsStocks(
-                  variation._id,
-                  (err, results) => {
-                    if (err) {
-                      console.log(err);
-                      callback(err, null);
-                      return;
-                    }
+              dbService
+                .getVariationProductsStocks(variation._id)
+                .then((results) => {
+                  variation = results[0];
+                  variation.stocks = results[1];
 
-                    variation = results[0];
-                    variation.stocks = results[1];
-
-                    callback(null, variation);
-                  }
-                );
-              } catch (e) {
-                console.log(e);
-                callback(e, null);
-              }
+                  callback(null, variation);
+                })
+                .catch((error) => {
+                  console.log(error);
+                  callback(error, null);
+                });
             };
           });
 
-          async.parallel(variationStockRequests, (err, variations) => {
-            if (err) {
-              console.log(err);
-              callback(err, null);
-              return;
-            }
-
-            callback(null, [product, variations]);
-          });
+          async
+            .parallel(variationStockRequests)
+            .then((variations) => {
+              callback(null, [product, variations]);
+            })
+            .catch((error) => {
+              console.log(error);
+              callback(error, null);
+            });
         },
       ],
-      async (err, results) => {
+      (err, results) => {
         if (err) {
           console.log(err);
           res.status(400).json({
@@ -282,272 +282,178 @@ exports.getWooProductVariablePage = async (req, res) => {
   }
 };
 
-exports.addUpdateDbMarketProduct = async (req, res) => {
+exports.addUpdateDbMarketProduct = (req, res) => {
   try {
-    let errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      // There are errors.
-      console.log(errors);
-      errors = errors.errors.map((error) => error.msg).join(". ");
-      res.status(400).json(errors);
+    if (!isValidationPass(req, res)) {
       return;
     }
 
-    await dbService.addUpdateMarketProduct(req.body, (err, results) => {
-      if (err) {
-        console.log(err);
-
-        if (err.code === 11000) {
-          err.message = `Продукт с ${Object.keys(err.keyValue)[0]} - ${
-            err.keyValue[Object.keys(err.keyValue)[0]]
+    dbService
+      .addUpdateMarketProduct(req.body)
+      .then((results) => {
+        res.json({ marketType: req.body.marketType, results });
+      })
+      .catch((error) => {
+        if (error.code === 11000) {
+          error.message = `Продукт с ${Object.keys(error.keyValue)[0]} - ${
+            error.keyValue[Object.keys(error.keyValue)[0]]
           } уже существует`;
         }
-        res.status(400).json({
-          message: "Error while adding product to DB. Try again later.",
-          code: err.code,
-          status: err.response?.status,
-        });
-        return;
-      }
-
-      res.json({ marketType: req.body.marketType, results });
-    });
-  } catch (err) {
-    console.log(err);
+        res.status(400).json({ error, message: error.message });
+      });
+  } catch (error) {
+    console.log(error);
     res.status(400).json({
-      message: "Error while adding product to DB. Try again later.",
-      code: err.code,
-      status: err.response?.status,
+      error,
+      message: `Error while add/update DB market product. – ${error.message}`,
     });
   }
 };
 
-exports.addUpdateDbProduct = async (req, res) => {
+exports.addUpdateDbProduct = (req, res) => {
   try {
-    let errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      // There are errors.
-      console.log(errors);
-      errors = errors.errors.map((error) => error.msg).join(". ");
-      res.status(400).json(errors);
+    if (!isValidationPass(req, res)) {
       return;
     }
 
-    await dbService.addUpdateProduct(req.body, (err, results) => {
-      if (err) {
-        console.log(err);
-
-        if (err.code === 11000) {
-          err.message = `Продукт с ${Object.keys(err.keyValue)[0]} - ${
-            err.keyValue[Object.keys(err.keyValue)[0]]
-          } уже существует`;
-        }
-        res.status(400).json({
-          message: "Error while adding product to DB. Try again later.",
-          code: err.code,
-          status: err.response?.status,
-        });
-        return;
-      }
-
-      res.json(results);
-    });
-  } catch (err) {
-    console.log(err);
-    res.status(400).json({
-      message: "Error while adding product to DB. Try again later.",
-      code: err.code,
-      status: err.response?.status,
-    });
-  }
-};
-
-exports.addUpdateWooProductVariable = async (req, res) => {
-  try {
-    let errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      // There are errors.
-      console.log(errors);
-      errors = errors.errors.map((error) => error.msg).join(". ");
-      res.status(400).json(errors);
-      return;
-    }
-
-    await dbService.addUpdateWooProductVariable(
-      req.body._id,
-      req.body.id,
-      (err, results) => {
-        if (err) {
-          console.log(err);
-
-          if (err.code === 11000) {
-            err.message = `Woo Product Variable с ${
-              Object.keys(err.keyValue)[0]
-            } - ${err.keyValue[Object.keys(err.keyValue)[0]]} уже существует`;
-          }
-          res.status(400).json({
-            message:
-              "Error while adding/update Woo Product Variable to DB. Try again later.",
-            code: err.code,
-            status: err.response?.status,
-          });
-          return;
-        }
-
+    dbService
+      .addUpdateProduct(req.body)
+      .then((results) => {
         res.json(results);
-      }
-    );
-  } catch (err) {
-    console.log(err);
-    res.status(400).json({
-      message:
-        "Error while adding/update Woo Product Variable to DB. Try again later.",
-      code: err.code,
-      status: err.response?.status,
-    });
-  }
-};
+      })
+      .catch((error) => {
+        console.error(error);
 
-exports.deleteWooProductVariable = async (req, res) => {
-  try {
-    await dbService.deleteWooProductVariable(req.params.id, (err, results) => {
-      if (err) {
-        console.log(err);
-        res.status(400).json({
-          message: "Error while deleting Product from DB. Try again later.",
-          code: err.code,
-          status: err.response?.status,
-        });
-        return;
-      }
-
-      res.json(results);
-    });
-  } catch (err) {
-    console.log(err);
-    res.status(400).json({
-      message:
-        "Error while deleting Woo Product Variable from DB. Try again later.",
-      code: err.code,
-      status: err.response?.status,
-    });
-  }
-};
-
-exports.addDbProductVariation = async (req, res) => {
-  try {
-    await dbService.addProductVariation(req.body, (err, results) => {
-      if (err) {
-        console.log(err);
-
-        if (err.code === 11000) {
-          err.message = `Вариация с ${Object.keys(err.keyValue)[0]} - ${
-            err.keyValue[Object.keys(err.keyValue)[0]]
+        if (error.code === 11000) {
+          error.message = `Продукт с ${Object.keys(error.keyValue)[0]} - ${
+            error.keyValue[Object.keys(error.keyValue)[0]]
           } уже существует`;
         }
-        res.status(400).json({
-          message: "Error while adding variation to DB. Try again later.",
-          code: err.code,
-          status: err.response?.status,
-        });
-        return;
-      }
-
-      res.json(results);
-    });
-  } catch (err) {
-    console.log(err);
+        res.status(400).json({ error, message: error.message });
+      });
+  } catch (error) {
+    console.log(error);
     res.status(400).json({
-      message: "Error while adding variation to DB. Try again later.",
-      code: err.code,
-      status: err.response?.status,
+      error,
+      message: `Error while add/update DB product. – ${error.message}`,
     });
   }
 };
 
-exports.deleteDbProduct = async (req, res) => {
+exports.addUpdateWooProductVariable = (req, res) => {
   try {
-    await dbService.deleteProduct(req.params.id, (err, results) => {
-      if (err) {
-        console.log(err);
-        res.status(400).json({
-          message: "Error while deleting Product from DB. Try again later.",
-          code: err.code,
-          status: err.response?.status,
-        });
-        return;
-      }
+    if (!isValidationPass(req, res)) {
+      return;
+    }
 
-      res.json(results);
-    });
-  } catch (err) {
-    console.log(err);
+    dbService
+      .addUpdateWooProductVariable(req.body._id, req.body.id)
+      .then((result) => {
+        res.json(result);
+      })
+      .catch((error) => {
+        console.error(error);
+        res.status(400).json({ error, message: error.message });
+      });
+  } catch (error) {
+    console.log(error);
     res.status(400).json({
-      message: "Error while deleting Product from DB. Try again later.",
-      code: err.code,
-      status: err.response?.status,
+      error,
+      message: `Error while add/update DB Woo Product Variable. – ${error.message}`,
     });
   }
 };
 
-exports.deleteDbProductVariation = async (req, res) => {
+exports.deleteWooProductVariable = (req, res) => {
   try {
-    await dbService.deleteProductVariation(req.params.id, (err, results) => {
-      if (err) {
-        console.log(err);
-
-        res.status(400).json({
-          message: "Error while deleting product variation. Try again later.",
-          code: err.code,
-          status: err.response?.status,
-        });
-        return;
-      }
-
-      res.json(results);
-    });
-  } catch (err) {
-    console.log(err);
+    dbService
+      .deleteWooProductVariable(req.params.id)
+      .then((result) => {
+        res.json(result);
+      })
+      .catch((error) => {
+        console.log(error);
+        res.status(400).json({ error, message: error.message });
+      });
+  } catch (error) {
+    console.log(error);
     res.status(400).json({
-      message:
-        "Error while deleting product variation from DB. Try again later.",
-      code: err.code,
-      status: err.response?.status,
+      error,
+      message: `Error while deleting Woo Product Variable from DB. – ${error.message}`,
     });
   }
 };
 
-exports.deleteDbMarketProduct = async (req, res) => {
+exports.addDbProductVariation = (req, res) => {
   try {
-    await dbService.deleteMarketProduct(
-      req.params.marketType,
-      req.params._id,
-      (err, results) => {
-        if (err) {
-          console.log(err);
+    dbService
+      .addProductVariation(req.body)
+      .then((result) => {
+        res.json(result);
+      })
+      .catch((error) => {
+        console.log(error);
 
-          res.status(400).json({
-            message: "Error while deleting market product. Try again later.",
-            code: err.code,
-            status: err.response?.status,
-          });
-          return;
+        if (error.code === 11000) {
+          error.message = `Вариация с ${Object.keys(error.keyValue)[0]} - ${
+            error.keyValue[Object.keys(error.keyValue)[0]]
+          } уже существует`;
         }
 
-        res.json(results);
-      }
-    );
-  } catch (err) {
-    console.log(err);
+        res.status(400).json({ error, message: error.message });
+      });
+  } catch (error) {
+    console.log(error);
     res.status(400).json({
-      message: "Error while deleting market product from DB. Try again later.",
-      code: err.code,
-      status: err.response?.status,
+      error,
+      message: `Error while adding variation to DB. – ${error.message}`,
     });
   }
+};
+
+exports.deleteDbProduct = (req, res) => {
+  dbService
+    .deleteProduct(req.params.id)
+    .then((result) => {
+      res.json(result);
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(400).json({
+        error,
+        message: `Error while deleting product from DB. – ${error.message}`,
+      });
+    });
+};
+
+exports.deleteDbProductVariation = (req, res) => {
+  dbService
+    .deleteProductVariation(req.params.id)
+    .then((result) => {
+      res.json(result);
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(400).json({
+        error,
+        message: `Error while deleting product variation from DB. – ${error.message}`,
+      });
+    });
+};
+
+exports.deleteDbMarketProduct = (req, res) => {
+  dbService
+    .deleteMarketProduct(req.params.marketType, req.params._id)
+    .then((result) => {
+      res.json(result);
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(400).json({
+        error,
+        message: `Error while deleting market product from DB. – ${error.message}`,
+      });
+    });
 };
 
 exports.getAllProductsPage = (req, res) => {
@@ -555,16 +461,18 @@ exports.getAllProductsPage = (req, res) => {
     async.parallel(
       {
         allProducts(callback) {
-          dbService.getAllProducts(callback);
+          dbService
+            .getAllProducts()
+            .then((products) => callback(null, products))
+            .catch((error) => callback(error, null));
         },
       },
-      async (err, results) => {
-        if (err) {
-          console.log(err);
+      (error, results) => {
+        if (error) {
+          console.log(error);
           res.status(400).json({
-            message: "Error while getting product page. Try again later.",
-            code: err.code,
-            status: err.response?.status,
+            error,
+            message: `Error while getting product page. – ${error.message}`,
           });
           return;
         }
@@ -607,54 +515,33 @@ exports.getAllProductsPage = (req, res) => {
         });
       }
     );
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.log(error);
     res.status(400).json({
-      message: "Error while getting all products page",
-      code: err.code,
-      status: err.response?.status,
+      error,
+      message: `Error while getting all products page. – ${error.message}`,
     });
   }
 };
 
-exports.getAllWooProductVariablesPage = (req, res) => {
+exports.getAllWooProductVariablesPage = async (req, res) => {
   try {
-    async.parallel(
-      {
-        allWooVariableProducts(callback) {
-          dbService.getWooVariableProducts({}, callback);
-        },
-      },
-      async (err, results) => {
-        if (err) {
-          console.log(err);
-          res.status(400).json({
-            message: "Error while getting page. Try again later.",
-            code: err.code,
-            status: err.response?.status,
-          });
-          return;
-        }
+    const allWooVariableProducts = await dbService.getWooVariableProducts({});
 
-        const { allWooVariableProducts } = results;
-
-        allWooVariableProducts.sort(
-          (wooVariableProduct1, wooVariableProduct2) =>
-            wooVariableProduct1.id - wooVariableProduct2.id
-        );
-
-        res.render("allWooProductVariables", {
-          title: `Woo Variables`,
-          wooVariableProducts: allWooVariableProducts,
-        });
-      }
+    allWooVariableProducts.sort(
+      (wooVariableProduct1, wooVariableProduct2) =>
+        wooVariableProduct1.id - wooVariableProduct2.id
     );
-  } catch (err) {
-    console.log(err);
+
+    res.render("allWooProductVariables", {
+      title: `Woo Variables`,
+      wooVariableProducts: allWooVariableProducts,
+    });
+  } catch (error) {
+    console.log(error);
     res.status(400).json({
-      message: "Error while getting page",
-      code: err.code,
-      status: err.response?.status,
+      error,
+      message: `Error while getting All Woo Variables page. – ${error.message}`,
     });
   }
 };
@@ -834,63 +721,95 @@ exports.getAllProductsStockPage = async (req, res) => {
             {
               // Yandex products
               yandexApiProducts(callback) {
-                yandexService.getApiProductsList([], callback);
+                yandexService
+                  .getApiProductsList([])
+                  .then((result) => callback(null, result))
+                  .catch((error) => callback(error, null));
               },
               // List of yandex products from DB
               yandexDbProducts(callback) {
-                dbService.getYandexProducts({}, callback);
+                dbService
+                  .getYandexProducts({})
+                  .then((products) => callback(null, products))
+                  .catch((error) => callback(error, null));
               },
               // Ozon products
               ozonApiProductsInfo(callback) {
-                ozonService.getApiProductsList({ visibility: "ALL" }, callback);
+                ozonService
+                  .getApiProductsList({ visibility: "ALL" })
+                  .then((result) => callback(null, result))
+                  .catch((error) => callback(error, null));
               },
               // List of yandex products from DB
               ozonDbProducts(callback) {
-                dbService.getOzonProducts({}, callback);
+                dbService
+                  .getOzonProducts({})
+                  .then((products) => callback(null, products))
+                  .catch((error) => callback(error, null));
               },
               // Woo products
               wooApiProducts(callback) {
-                wooService.getProductList("", callback);
+                wooService
+                  .getProductList("")
+                  .then((products) => callback(null, products))
+                  .catch((error) => callback(error, null));
               },
               // List of Woo products from DB
               wooDbProducts(callback) {
-                dbService.getWooProducts({}, "parentVariable", callback);
+                dbService
+                  .getWooProducts({}, "parentVariable")
+                  .then((products) => callback(null, products))
+                  .catch((error) => callback(error, null));
               },
               // Wb products
               wbApiProducts(callback) {
-                wbService.getApiProductsInfoList(null, callback);
+                wbService
+                  .getApiProductsInfoList(null)
+                  .then((result) => callback(null, result))
+                  .catch((error) => callback(error, null));
               },
               // Wb Stocks on our warehouse
               wbApiFbsStocks(callback) {
-                wbService.getApiProductFbsStocks("", callback);
+                wbService
+                  .getApiProductFbsStocks("")
+                  .then((products) => callback(null, products))
+                  .catch((error) => callback(error, null));
               },
               // Wb Stocks on Wb warehouse
               wbApiFbwStocks(callback) {
-                wbService.getApiProductFbwStocks(callback);
+                wbService
+                  .getApiProductFbwStocks()
+                  .then((result) => callback(null, result))
+                  .catch((error) => {
+                    // if request unsuccessful leave wbApiFbwStocks empty.
+                    console.error(error);
+                    callback(null, null);
+                  });
               },
               // List of Wb products from DB
               wbDbProducts(callback) {
-                dbService.getWbProducts({}, callback);
+                dbService
+                  .getWbProducts({})
+                  .then((products) => callback(null, products))
+                  .catch((error) => callback(error, null));
               },
-              // List of all products from DB with reference of Yandex product sku to product name
+              // List of all products from DB
               allDbVariations(callback) {
-                dbService.getAllVariations(
-                  {},
-                  [
+                dbService
+                  .getAllVariations({}, [
                     {
                       path: "wooProduct",
                       populate: { path: "parentVariable" },
                     },
                     "product yandexProduct ozonProduct wbProduct",
-                  ],
-                  callback
-                );
+                  ])
+                  .then((variations) => callback(null, variations))
+                  .catch((error) => callback(error, null));
               },
             },
             cb
           );
         },
-
         (results, cb) => {
           const {
             allDbVariations,
@@ -898,7 +817,10 @@ exports.getAllProductsStockPage = async (req, res) => {
             yandexDbProducts,
             wooApiProducts,
             wooDbProducts,
-            ozonApiProductsInfo,
+            ozonApiProductsInfo: {
+              productsInfo: ozonApiProducts,
+              productsStockList: ozonApiStocks,
+            },
             ozonDbProducts,
             wbApiProducts,
             wbApiFbwStocks,
@@ -934,10 +856,6 @@ exports.getAllProductsStockPage = async (req, res) => {
               connectWooDataResultFormatter
             );
 
-          const {
-            productsInfo: ozonApiProducts,
-            productsStockList: ozonApiStocks,
-          } = ozonApiProductsInfo;
           const ozonProductConnectRequests =
             ozonService.getConnectOzonDataRequests(
               req.query,

@@ -158,7 +158,10 @@ async function getWbOrders(callback) {
     async.waterfall(
       [
         (callback) => {
-          wbService.getApiTodayOrders(callback);
+          wbService
+            .getApiTodayOrders()
+            .then((result) => callback(null, result))
+            .catch((error) => callback(error, null));
         },
         (todayOrders, callback) => {
           const ordersInfoRequests = todayOrders.map((order) => {

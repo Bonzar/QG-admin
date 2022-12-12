@@ -12,33 +12,16 @@ const ozonAPI = axios.create({
   },
 });
 
-exports.getProductsStockList = async (
-  filter = { visibility: "ALL" },
-  callback
-) => {
-  try {
-    const result = await ozonAPI
-      .post("v3/product/info/stocks", {
-        filter,
-        last_id: "",
-        limit: 1000,
-      })
-      .then((response) => {
-        return response.data;
-      });
-
-    if (!callback) {
-      return result;
-    }
-    callback(null, result);
-  } catch (e) {
-    console.log(e);
-    if (callback) {
-      callback(e, null);
-      return;
-    }
-    return e;
-  }
+exports.getProductsStockList = (filter = { visibility: "ALL" }) => {
+  return ozonAPI
+    .post("v3/product/info/stocks", {
+      filter,
+      last_id: "",
+      limit: 1000,
+    })
+    .then((response) => {
+      return response.data;
+    });
 };
 
 exports.getProductsInfo = (ids) => {
@@ -48,142 +31,101 @@ exports.getProductsInfo = (ids) => {
     })
     .then((response) => {
       return response.data;
-    })
-    .catch((e) => {
-      console.log(e);
     });
 };
 
-exports.getApiProductsList = async (filter, callback) => {
-  try {
-    const productsStockList = (
-      await module.exports.getProductsStockList(filter)
-    ).result.items;
+exports.getApiProductsList = async (filter) => {
+  const productsStockList = (await module.exports.getProductsStockList(filter))
+    .result.items;
 
-    const productsIds = productsStockList.map((product) => product.product_id);
+  const productsIds = productsStockList.map((product) => product.product_id);
 
-    const productsInfo = (await module.exports.getProductsInfo(productsIds))
-      .result.items;
+  const productsInfo = (await module.exports.getProductsInfo(productsIds))
+    .result.items;
 
-    // Products list with article, name and stocks fields
-    if (callback) {
-      return callback(null, { productsInfo, productsStockList });
-    }
-    return { productsInfo, productsStockList };
-  } catch (e) {
-    console.log(e);
-    if (callback) {
-      callback(e, null);
-      return;
-    }
-    return e;
-  }
+  return { productsInfo, productsStockList };
 };
 
-exports.updateApiStock = async (offer_id, stock, callback) => {
-  try {
-    const result = await ozonAPI
-      .post("v1/product/import/stocks", {
-        stocks: [
-          {
-            offer_id,
-            stock,
-          },
-        ],
-      })
-      .then((response) => {
-        return response.data;
-      });
-
-    if (!callback) {
-      return result;
-    }
-    callback(null, result);
-  } catch (e) {
-    console.log(e);
-    if (!callback) {
-      return new Error(e);
-    }
-    callback(e, null);
-  }
-};
-
-exports.getTodayOrders = async () => {
-  try {
-    const today = new Date();
-    today.setHours(0, 0, 0);
-    const todayStart = today.toISOString();
-    today.setHours(23, 59, 59, 999);
-    const todayEnd = today.toISOString();
-
-    return await ozonAPI
-      .post("v3/posting/fbs/unfulfilled/list", {
-        dir: "ASC",
-        filter: {
-          cutoff_from: todayStart,
-          cutoff_to: todayEnd,
+exports.updateApiStock = (offer_id, stock) => {
+  return ozonAPI
+    .post("v1/product/import/stocks", {
+      stocks: [
+        {
+          offer_id,
+          stock,
         },
-        limit: 100,
-        offset: 0,
-        with: {},
-      })
-      .then((response) => {
-        return response.data.result.postings;
-      });
-  } catch (e) {
-    console.log(e.code);
-  }
+      ],
+    })
+    .then((response) => {
+      return response.data;
+    });
+};
+
+exports.getTodayOrders = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0);
+  const todayStart = today.toISOString();
+  today.setHours(23, 59, 59, 999);
+  const todayEnd = today.toISOString();
+
+  return ozonAPI
+    .post("v3/posting/fbs/unfulfilled/list", {
+      dir: "ASC",
+      filter: {
+        cutoff_from: todayStart,
+        cutoff_to: todayEnd,
+      },
+      limit: 100,
+      offset: 0,
+      with: {},
+    })
+    .then((response) => {
+      return response.data.result.postings;
+    });
 };
 
 exports.getOverdueOrders = async () => {
-  try {
-    const date = new Date();
-    const today = date.setHours(0, 0, 0, 0);
+  const date = new Date();
+  const today = date.setHours(0, 0, 0, 0);
 
-    date.setDate(date.getDate() - 1);
-    date.setHours(23, 59, 59, 999);
-    const dateEnd = date.toISOString();
+  date.setDate(date.getDate() - 1);
+  date.setHours(23, 59, 59, 999);
+  const dateEnd = date.toISOString();
 
-    date.setDate(date.getDate() - 30);
-    date.setHours(0, 0, 0, 0);
-    const dateStart = date.toISOString();
+  date.setDate(date.getDate() - 30);
+  date.setHours(0, 0, 0, 0);
+  const dateStart = date.toISOString();
 
-    const overdueOrders = await ozonAPI
-      .post("v3/posting/fbs/list", {
-        dir: "ASC",
-        filter: {
-          since: dateStart,
-          to: dateEnd,
-        },
-        limit: 100,
-        offset: 0,
-        with: {},
-      })
-      .then((response) => {
-        return response.data.result.postings;
-      });
+  let overdueOrders = await ozonAPI.post("v3/posting/fbs/list", {
+    dir: "ASC",
+    filter: {
+      since: dateStart,
+      to: dateEnd,
+    },
+    limit: 100,
+    offset: 0,
+    with: {},
+  });
+  overdueOrders = overdueOrders.data.result.postings;
 
-    return overdueOrders.filter((order) => {
-      const orderShipmentDate = new Date(order.shipment_date).setHours(
-        0,
-        0,
-        0,
-        0
-      );
+  return overdueOrders.filter((order) => {
+    const orderShipmentDate = new Date(order.shipment_date).setHours(
+      0,
+      0,
+      0,
+      0
+    );
 
-      return (
-        [
-          "awaiting_registration",
-          "acceptance_in_progress",
-          "awaiting_approve",
-          "awaiting_packaging",
-          "awaiting_deliver",
-        ].includes(order.status) && orderShipmentDate < today
-      );
-    });
-  } catch (e) {
-    console.log(e);
-  }
+    return (
+      [
+        "awaiting_registration",
+        "acceptance_in_progress",
+        "awaiting_approve",
+        "awaiting_packaging",
+        "awaiting_deliver",
+      ].includes(order.status) && orderShipmentDate < today
+    );
+  });
 };
 
 exports.getOzonShipment = async () => {
@@ -215,143 +157,110 @@ exports.getOzonShipment = async () => {
     },
   };
 
-  const getProductsFullInfo = async (callback) => {
-    try {
-      const ProductsFullInfo = await module.exports.getApiProductsList();
-      return callback(null, ProductsFullInfo);
-    } catch (e) {
-      console.log(e);
-      return callback(e, null);
-    }
+  const getMonthAgoData = () => {
+    return ozonAPI
+      .request({
+        ...config,
+        data: {
+          ...config.data,
+          date_to: formatDate(yesterday, "yyyy-MM-dd"),
+          date_from: formatDate(monthAgo, "yyyy-MM-dd"),
+        },
+      })
+      .then((response) => {
+        return response.data;
+      });
   };
 
-  const getMonthAgoData = async (callback) => {
-    try {
-      const monthAgoData = await ozonAPI
-        .request({
-          ...config,
-          data: {
-            ...config.data,
-            date_to: formatDate(yesterday, "yyyy-MM-dd"),
-            date_from: formatDate(monthAgo, "yyyy-MM-dd"),
-          },
-        })
-        .then((response) => {
-          return response.data;
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-
-      callback(null, monthAgoData);
-    } catch (e) {
-      console.log(e);
-      callback(e, null);
-    }
+  const getPartYearAgoData = () => {
+    return ozonAPI
+      .request({
+        ...config,
+        data: {
+          ...config.data,
+          date_to: formatDate(monthAgo, "yyyy-MM-dd"),
+          date_from: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
+        },
+      })
+      .then((response) => {
+        return response.data;
+      });
   };
 
-  const getPartYearAgoData = async (callback) => {
-    try {
-      const yearAgoData = await ozonAPI
-        .request({
-          ...config,
-          data: {
-            ...config.data,
-            date_to: formatDate(monthAgo, "yyyy-MM-dd"),
-            date_from: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
-          },
-        })
-        .then((response) => {
-          return response.data;
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-
-      callback(null, yearAgoData);
-    } catch (e) {
-      console.log(e);
-      callback(e, null);
-    }
+  const getNextMonthYearAgoData = () => {
+    return ozonAPI
+      .request({
+        ...config,
+        data: {
+          ...config.data,
+          date_to: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
+          date_from: formatDate(yearAgo, "yyyy-MM-dd"),
+        },
+      })
+      .then((response) => {
+        return response.data;
+      });
   };
 
-  const getNextMonthYearAgoData = async (callback) => {
-    try {
-      const nextMonthYearAgoData = await ozonAPI
-        .request({
-          ...config,
-          data: {
-            ...config.data,
-            date_to: formatDate(elevenMonthsAgo, "yyyy-MM-dd"),
-            date_from: formatDate(yearAgo, "yyyy-MM-dd"),
-          },
-        })
-        .then((response) => {
-          return response.data;
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-
-      callback(null, nextMonthYearAgoData);
-    } catch (e) {
-      console.log(e);
-      callback(e, null);
-    }
-  };
-
-  const getPreviousMonthYearAgoData = async (callback) => {
-    try {
-      const previousMonthYearAgoData = await ozonAPI
-        .request({
-          ...config,
-          data: {
-            ...config.data,
-            date_to: formatDate(yearAgo, "yyyy-MM-dd"),
-            date_from: formatDate(thirteenMonthsAgo, "yyyy-MM-dd"),
-          },
-        })
-        .then((response) => {
-          return response.data;
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-
-      callback(null, previousMonthYearAgoData);
-    } catch (e) {
-      console.log(e);
-      callback(e, null);
-    }
+  const getPreviousMonthYearAgoData = () => {
+    return ozonAPI
+      .request({
+        ...config,
+        data: {
+          ...config.data,
+          date_to: formatDate(yearAgo, "yyyy-MM-dd"),
+          date_from: formatDate(thirteenMonthsAgo, "yyyy-MM-dd"),
+        },
+      })
+      .then((response) => {
+        return response.data;
+      });
   };
 
   const requestsData = await async.parallel({
     // Orders number for month by product
     monthAgoData(callback) {
-      getMonthAgoData(callback);
+      getMonthAgoData()
+        .then((results) => callback(null, results))
+        .catch((error) => callback(error, null));
     },
     // Orders number for year by product
     partYearAgoData(callback) {
-      getPartYearAgoData(callback);
+      getPartYearAgoData()
+        .then((results) => callback(null, results))
+        .catch((error) => callback(error, null));
     },
     //
     nextMonthYearAgoData(callback) {
-      getNextMonthYearAgoData(callback);
+      getNextMonthYearAgoData()
+        .then((results) => callback(null, results))
+        .catch((error) => callback(error, null));
     },
     //
     previousMonthYearAgoData(callback) {
-      getPreviousMonthYearAgoData(callback);
+      getPreviousMonthYearAgoData()
+        .then((results) => callback(null, results))
+        .catch((error) => callback(error, null));
     },
     // Product detailed info list and product-id/stock list
     productsFullInfo(callback) {
-      getProductsFullInfo(callback);
+      module.exports
+        .getApiProductsList()
+        .then((results) => callback(null, results))
+        .catch((error) => callback(error, null));
     },
     ozonDbProducts(callback) {
-      dbService.getOzonProducts({}, callback);
+      dbService
+        .getOzonProducts({})
+        .then((products) => callback(null, products))
+        .catch((error) => callback(error, null));
     },
     // List of all products from DB
     allDbVariations(callback) {
-      dbService.getAllVariations({}, ["product ozonProduct"], callback);
+      dbService
+        .getAllVariations({}, ["product ozonProduct"])
+        .then((variations) => callback(null, variations))
+        .catch((error) => callback(error, null));
     },
   });
 

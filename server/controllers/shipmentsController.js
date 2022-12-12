@@ -6,8 +6,6 @@ exports.getOzonShipment = async (req, res) => {
   try {
     const ozonShipmentProducts = await ozonService.getOzonShipment();
 
-    console.log(ozonShipmentProducts);
-
     ozonShipmentProducts.sort((product1, product2) => {
       return product1.name.localeCompare(product2.name);
     });
@@ -18,48 +16,34 @@ exports.getOzonShipment = async (req, res) => {
       .status(200)
       .attachment(`ozonShipment.csv`)
       .send(await csvOzonShipment.toString());
-  } catch (err) {
-    console.log(err);
-    res
-      .status(400)
-      .json({
-        message: "Ошибка при получении поставки Ozon.",
-        code: err.code,
-        status: err.response?.status,
-      });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      error,
+      message: `Ошибка при получении поставки Ozon. - ${error.message}`,
+    });
   }
 };
 
-exports.getWbShipment = (req, res) => {
+exports.getWbShipment = async (req, res) => {
   try {
-    wbService.getWbShipment(req.body, async (err, wbShipmentProducts) => {
-      if (err) {
-        console.log(err);
-        res.status(400).json({
-          message: "Ошибка при получении поставки WB",
-          code: err.code,
-          status: err.response?.status,
-        });
-        return;
-      }
+    const wbShipmentProducts = await wbService.getWbShipment(req.body);
 
-      wbShipmentProducts.sort((product1, product2) => {
-        return product1.name.localeCompare(product2.name);
-      });
-
-      const csvWbShipment = new ObjectsToCsv(wbShipmentProducts);
-
-      res
-        .status(200)
-        .attachment(`wbShipment.csv`)
-        .send(await csvWbShipment.toString());
+    wbShipmentProducts.sort((product1, product2) => {
+      return product1.name.localeCompare(product2.name);
     });
-  } catch (err) {
-    console.log(err);
+
+    const csvWbShipment = new ObjectsToCsv(wbShipmentProducts);
+
+    res
+      .status(200)
+      .attachment(`wbShipment.csv`)
+      .send(await csvWbShipment.toString());
+  } catch (error) {
+    console.log(error);
     res.status(400).json({
-      message: "Ошибка при получении поставки WB.",
-      code: err.code,
-      status: err.response?.status,
+      error,
+      message: `Ошибка при получении поставки WB. - ${error.message}`,
     });
   }
 };
