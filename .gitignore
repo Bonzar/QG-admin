@@ -1,8 +1,0 @@
-/mdn-tasks/
-node_modules/
-.cache
-dist
-.parcel-cache/
-./node_modules/
-/server/.env
-/server/tmp/
