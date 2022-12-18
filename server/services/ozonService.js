@@ -359,7 +359,7 @@ export class Ozon extends Marketplace {
     return { dbVariation, dbProduct };
   }
 
-  getConnectOzonDataRequests(
+  static getConnectOzonDataRequests(
     filters,
     ozonApiProducts,
     ozonApiStocks,
@@ -478,7 +478,7 @@ export class Ozon extends Marketplace {
     } = data;
 
     return async.parallel(
-      this.getConnectOzonDataRequests(
+      Ozon.getConnectOzonDataRequests(
         filters,
         ozonApiProductsInfo,
         ozonApiStocks,
@@ -546,6 +546,14 @@ export class OzonProductInstance extends Ozon {
     });
 
     return stocks[0].stocks;
+  }
+
+  addUpdateDbInfo() {
+    // rewrite from MarketplaceProductInstanceMixin
+  }
+
+  addUpdateDbProduct() {
+    // rewrite from MarketplaceProductInstanceMixin
   }
 }
 
