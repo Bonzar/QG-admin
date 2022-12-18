@@ -1,6 +1,6 @@
-const axios = require("axios");
-const async = require("async");
-const dbService = require("./dbService");
+import axios from "axios";
+import async from "async";
+import * as dbService from "./dbService.js";
 
 const headers = {
   "Content-Type": "application/json",
@@ -17,7 +17,7 @@ const wbStatAPI = axios.create({
   headers,
 });
 
-exports.getApiProductsInfoList = (searchValue = null) => {
+export const getApiProductsInfoList = (searchValue = null) => {
   return wbAPI
     .post("content/v1/cards/cursor/list", {
       sort: {
@@ -41,15 +41,14 @@ exports.getApiProductsInfoList = (searchValue = null) => {
     });
 };
 
-exports.getApiProductFbsStocks = (search) => {
-  return wbAPI
+export const getApiProductFbsStocks = (search) =>
+  wbAPI
     .get(`api/v2/stocks?${search ? `search=${search}&` : ""}skip=0&take=1000`)
     .then((response) => {
       return response.data;
     });
-};
 
-exports.getApiProductFbwStocks = () => {
+export const getApiProductFbwStocks = () => {
   const today = new Date();
   const todayUtcYear = today.getUTCFullYear();
 
@@ -74,17 +73,16 @@ exports.getApiProductFbwStocks = () => {
     });
 };
 
-exports.updateApiStock = (barcode, stock) => {
-  return wbAPI
+export const updateApiStock = (barcode, stock) =>
+  wbAPI
     .post("api/v2/stocks", [
       { barcode: barcode.toString(), stock: +stock, warehouseId: 206312 },
     ])
     .then((response) => {
       return response.data;
     });
-};
 
-exports.getApiTodayOrders = async () => {
+export const getApiTodayOrders = async () => {
   const date = new Date();
 
   const dateEnd = date.toISOString();
@@ -104,28 +102,26 @@ exports.getApiTodayOrders = async () => {
   );
 };
 
-exports.getApiOrdersStat = () => {
-  return wbStatAPI
+export const getApiOrdersStat = () =>
+  wbStatAPI
     .get(
       `api/v1/supplier/orders?key=${process.env.WB_APISTATKEY}&dateFrom=2002-10-09`
     )
     .then((response) => {
       return response.data;
     });
-};
 
-exports.getApiSellsStat = () => {
-  return wbStatAPI
+export const getApiSellsStat = () =>
+  wbStatAPI
     .get(
       `api/v1/supplier/sales?key=${process.env.WB_APISTATKEY}&dateFrom=2002-10-09`
     )
     .then((response) => {
       return response.data;
     });
-};
 
-exports.getWbShipment = (mayakSellsPerYear) => {
-  return async
+export const getWbShipment = (mayakSellsPerYear) =>
+  async
     .parallel({
       // Get all sells (all old from db and new from api with db update)
       allSells(callback) {
@@ -135,8 +131,7 @@ exports.getWbShipment = (mayakSellsPerYear) => {
               async.parallel(
                 {
                   apiSellsStat(callback) {
-                    exports
-                      .getApiSellsStat()
+                    getApiSellsStat()
                       .then((result) => callback(null, result))
                       .catch((error) => callback(error, null));
                   },
@@ -306,9 +301,8 @@ exports.getWbShipment = (mayakSellsPerYear) => {
 
       return productsOnShipment;
     });
-};
 
-exports.getConnectWbDataRequests = (
+export const getConnectWbDataRequests = (
   filters,
   wbApiProducts,
   wbApiFbsStocks,
@@ -316,8 +310,8 @@ exports.getConnectWbDataRequests = (
   wbDbProducts,
   allDbVariations,
   connectWbDataResultFormatter
-) => {
-  return wbApiProducts.data["cards"].map((wbApiProduct) => {
+) =>
+  wbApiProducts.data["cards"].map((wbApiProduct) => {
     return async function () {
       let wbDbProduct;
       // Search variation for market product from api
@@ -413,4 +407,3 @@ exports.getConnectWbDataRequests = (
       }
     };
   });
-};

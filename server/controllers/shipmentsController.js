@@ -1,10 +1,15 @@
-const ozonService = require("../services/ozonService");
-const wbService = require("../services/wbService");
-const ObjectsToCsv = require("objects-to-csv");
+import ObjectsToCsv from "objects-to-csv";
+import { Ozon } from "../services/ozonService.js";
+import * as wbService from "../services/wbService.js";
 
-exports.getOzonShipment = async (req, res) => {
+export const getOzonShipment = async (req, res) => {
   try {
-    const ozonShipmentProducts = await ozonService.getOzonShipment();
+    const ozon = new Ozon();
+
+    const ozonShipmentProducts = await ozon.getApiShipmentPredict(
+      req.body.dateShiftDays,
+      req.body.predictPeriodDays
+    );
 
     ozonShipmentProducts.sort((product1, product2) => {
       return product1.name.localeCompare(product2.name);
@@ -17,7 +22,7 @@ exports.getOzonShipment = async (req, res) => {
       .attachment(`ozonShipment.csv`)
       .send(await csvOzonShipment.toString());
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Ошибка при получении поставки Ozon. - ${error.message}`,
@@ -25,7 +30,7 @@ exports.getOzonShipment = async (req, res) => {
   }
 };
 
-exports.getWbShipment = async (req, res) => {
+export const getWbShipment = async (req, res) => {
   try {
     const wbShipmentProducts = await wbService.getWbShipment(req.body);
 
@@ -40,7 +45,7 @@ exports.getWbShipment = async (req, res) => {
       .attachment(`wbShipment.csv`)
       .send(await csvWbShipment.toString());
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Ошибка при получении поставки WB. - ${error.message}`,

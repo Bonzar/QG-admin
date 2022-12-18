@@ -26,7 +26,7 @@ const deleteProduct = (e) => {
           alert("Продукт не удален.");
         }
       })
-      .catch((error) => console.log(error))
+      .catch((error) => console.error(error))
       .finally(removeLoading);
   }
 };
@@ -70,7 +70,7 @@ const addUpdateProduct = (e) => {
         alert("Продукт не обновлен.");
       }
     })
-    .catch((error) => console.log(error))
+    .catch((error) => console.error(error))
     .finally(removeLoading);
 };
 
@@ -102,7 +102,7 @@ const deleteVariation = (e) => {
           alert("Вариация не удалена.");
         }
       })
-      .catch((error) => console.log(error))
+      .catch((error) => console.error(error))
       .finally(removeLoading);
   }
 };
@@ -211,7 +211,7 @@ addVariationForm.addEventListener("click", (e) => {
           alert("Вариация не создана.");
         }
       })
-      .catch((error) => console.log(error))
+      .catch((error) => console.error(error))
       .finally(removeLoading);
   }
 });

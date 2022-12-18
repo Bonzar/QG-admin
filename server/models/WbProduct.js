@@ -1,4 +1,4 @@
-const { Schema, model } = require("mongoose");
+import { model, Schema } from "mongoose";
 
 const WbProduct = new Schema({
   sku: { type: Number, unique: true, required: true },
@@ -9,4 +9,4 @@ const WbProduct = new Schema({
   stockFBS: { type: Number, default: 0 },
 });
 
-module.exports = model("WbProduct", WbProduct);
+export default model("WbProduct", WbProduct);

@@ -39,7 +39,7 @@ const addUpdateWooProductVariable = (e) => {
         alert("Woo Product Variable не добавлен/обновлен.");
       }
     })
-    .catch((error) => console.log(error))
+    .catch((error) => console.error(error))
     .finally(removeLoading);
 };
 
@@ -68,7 +68,7 @@ const deleteWooProductVariable = (e) => {
           alert("Woo product variable не удален.");
         }
       })
-      .catch((error) => console.log(error))
+      .catch((error) => console.error(error))
       .finally(removeLoading);
   }
 };

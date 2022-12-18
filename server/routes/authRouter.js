@@ -1,10 +1,9 @@
-const express = require("express");
+import express from "express";
+import { check } from "express-validator";
+import * as authController from "../controllers/authController.js";
+import { roleMiddleware } from "../middleware/roleMiddleware.js";
+
 const router = express.Router();
-const { check } = require("express-validator");
-
-const authController = require("../controllers/authController");
-
-const roleMiddleware = require("../middleware/roleMiddleware");
 
 // Get auth page
 router.get("/login", authController.login);
@@ -23,4 +22,4 @@ router.post("/login", authController.loginCheck);
 
 router.get("/users", roleMiddleware(["ADMIN"]), authController.getUsers);
 
-module.exports = router;
+export default router;

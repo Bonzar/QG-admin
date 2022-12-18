@@ -1,15 +1,14 @@
-const express = require("express");
+import express from "express";
+import * as ozon_controller from "../controllers/ozonController.js";
+import * as wb_controller from "../controllers/wbController.js";
+import * as yandex_controller from "../controllers/yandexController.js";
+import * as woocommerce_controller from "../controllers/wooController.js";
+import * as dbController from "../controllers/dbController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { roleMiddleware } from "../middleware/roleMiddleware.js";
+import { body } from "express-validator";
+
 const router = express.Router();
-
-const ozon_controller = require("../controllers/ozonController");
-const wb_controller = require("../controllers/wbController");
-const yandex_controller = require("../controllers/yandexController");
-const woocommerce_controller = require("../controllers/wooController");
-const dbController = require("../controllers/dbController");
-const authMiddleware = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
-
-const { body } = require("express-validator");
 
 // index page with stock tables list
 router.get("/", (req, res) => {
@@ -35,6 +34,7 @@ router.post(
   authMiddleware,
   yandex_controller.updateApiStock
 );
+
 const productAddSanitizers = [
   // Validate and sanitize fields.
   body("product_id").trim().escape(),
@@ -144,7 +144,7 @@ router.post(
   "/:marketType/new",
   roleMiddleware(["ADMIN"]),
   // body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
-  productAddSanitizers,
+  ...productAddSanitizers,
   dbController.addUpdateDbMarketProduct
 );
 
@@ -156,7 +156,7 @@ router.post(
   "/:marketType/:product_id",
   roleMiddleware(["ADMIN"]),
   // body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
-  productAddSanitizers,
+  ...productAddSanitizers,
   dbController.addUpdateDbMarketProduct
 );
 
@@ -164,8 +164,8 @@ router.post(
 router.post(
   "/:marketType/:_id/delete",
   roleMiddleware(["ADMIN"]),
-  productAddSanitizers,
+  ...productAddSanitizers,
   dbController.deleteDbMarketProduct
 );
 
-module.exports = router;
+export default router;

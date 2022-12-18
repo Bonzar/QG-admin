@@ -1,6 +1,6 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-module.exports = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
   if (req.method === "OPTION") {
     next();
   }

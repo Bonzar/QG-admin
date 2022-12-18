@@ -44,7 +44,7 @@ const deleteMarketProduct = (e) => {
           alert("Продукт маркетплейса не удален.");
         }
       })
-      .catch((error) => console.log(error))
+      .catch((error) => console.error(error))
       .finally(removeLoading);
   }
 };

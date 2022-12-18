@@ -1,6 +1,6 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-module.exports = function (roles) {
+export const roleMiddleware = (roles) => {
   return (req, res, next) => {
     if (req.method === "OPTION") {
       next();

@@ -1,14 +1,18 @@
-const ozonService = require("../services/ozonService");
-const yandexService = require("../services/yandexService");
-const wooService = require("../services/wooService");
-const wbService = require("../services/wbService");
-const { clearName } = require("../services/nameFormatter");
-const async = require("async");
+import async from "async";
+import * as yandexService from "../services/yandexService.js";
+import * as wooService from "../services/wooService.js";
+import * as wbService from "../services/wbService.js";
+import { clearName } from "../services/nameFormatter.js";
+import WbProduct from "../models/WbProduct.js";
+import ProductVariation from "../models/ProductVariation.js";
+import { Ozon } from "../services/ozonService.js";
+import * as dbService from "../services/dbService.js";
 
-const WbProduct = require("../models/WbProduct");
-const ProductVariation = require("../models/ProductVariation");
+//todo refactor callbacks
 
-const formatOzonOrders = (ozonOrders) => {
+const ozon = new Ozon();
+
+const formatOzonOrders = (ozonOrders, ozonDbProducts, dbVariations) => {
   return ozonOrders.map((ozonOrder) => {
     let order_status = "";
     switch (ozonOrder.status) {
@@ -30,8 +34,16 @@ const formatOzonOrders = (ozonOrders) => {
       order_number: ozonOrder.order_number,
       order_status,
       products: ozonOrder.products.map((product) => {
+        const { dbVariation } = Ozon.getDbProductAndVariationForApiProduct(
+          product,
+          dbVariations,
+          ozonDbProducts
+        );
+
+        console.log({ dbVariation });
+
         return {
-          name: clearName(product.name),
+          name: dbVariation?.product.name,
           article: product.offer_id,
           quantity: product.quantity,
         };
@@ -40,32 +52,67 @@ const formatOzonOrders = (ozonOrders) => {
   });
 };
 
-async function getOzonOrders(callback) {
-  try {
-    const ozonOrders = await ozonService.getTodayOrders();
+const getAllOzonOrders = () => {
+  return async
+    .parallel({
+      ozonTodayOrders: (callback) => {
+        ozon
+          .getTodayOrders()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+      ozonOverdueOrders: (callback) => {
+        ozon
+          .getOverdueOrders()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+      ozonDbProducts: (callback) => {
+        ozon
+          .getDbProducts()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+      dbVariations: (callback) => {
+        dbService
+          .getAllVariations({}, ["product ozonProduct"])
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+    })
+    .then((results) => {
+      const {
+        ozonTodayOrders,
+        ozonOverdueOrders,
+        ozonDbProducts,
+        dbVariations,
+      } = results;
 
-    const ozonOrdersFormatted = formatOzonOrders(ozonOrders);
-    callback(null, ozonOrdersFormatted);
-  } catch (e) {
-    console.log(e);
-    callback(e, null);
-  }
-}
+      const ozonOrdersFormat = formatOzonOrders(
+        ozonTodayOrders,
+        ozonDbProducts,
+        dbVariations
+      );
+      const ozonOverdueOrdersFormat = formatOzonOrders(
+        ozonOverdueOrders,
+        ozonDbProducts,
+        dbVariations
+      );
 
-async function getOzonOverdueOrders(callback) {
-  try {
-    const ozonOverdueOrders = await ozonService.getOverdueOrders();
+      return {
+        today: {
+          status: ozonOrdersFormat.length > 0,
+          orders: ozonOrdersFormat,
+        },
+        overdue: {
+          status: ozonOverdueOrdersFormat.length > 0,
+          orders: ozonOverdueOrdersFormat,
+        },
+      };
+    });
+};
 
-    const ozonOverdueOrdersFormatted = formatOzonOrders(ozonOverdueOrders);
-
-    callback(null, ozonOverdueOrdersFormatted);
-  } catch (e) {
-    console.log(e);
-    callback(e, null);
-  }
-}
-
-async function getYandexOrders(callback) {
+const getYandexOrders = async (callback) => {
   try {
     const yandexOrders = await yandexService.getApiTodayOrders();
 
@@ -100,9 +147,9 @@ async function getYandexOrders(callback) {
     console.log(e);
     callback(e, null);
   }
-}
+};
 
-async function getWooOrders(callback) {
+const getWooOrders = async (callback) => {
   try {
     const wooOrders = await wooService.getOrders();
     const wooOrdersFormatted = wooOrders.map((wooOrder) => {
@@ -151,165 +198,138 @@ async function getWooOrders(callback) {
     console.log(e);
     callback(e, null);
   }
-}
+};
 
-async function getWbOrders(callback) {
-  try {
-    async.waterfall(
-      [
-        (callback) => {
-          wbService
-            .getApiTodayOrders()
-            .then((result) => callback(null, result))
-            .catch((error) => callback(error, null));
-        },
-        (todayOrders, callback) => {
-          const ordersInfoRequests = todayOrders.map((order) => {
-            return (cb) => {
-              async.waterfall(
-                [
-                  (callback) => {
-                    WbProduct.findOne({
-                      barcode: order.barcode,
-                    }).exec(callback);
-                  },
-                  (wbProduct, callback) => {
-                    ProductVariation.findOne({ wbProduct })
-                      .populate("product wbProduct")
-                      .exec(callback);
-                  },
-                  (variation, callback) => {
-                    try {
-                      let order_status = "";
-                      switch (order.status) {
-                        case 0:
-                          order_status = "Новый";
-                          break;
-                        case 1:
-                          order_status = "Сборка";
-                          break;
-                      }
+const getWbOrders = () => {
+  return async.waterfall([
+    (callback) => {
+      wbService
+        .getApiTodayOrders()
+        .then((result) => callback(null, result))
+        .catch((error) => callback(error, null));
+    },
+    (todayOrders, callback) => {
+      const ordersInfoRequests = todayOrders.map((order) => {
+        return (cb) => {
+          async.waterfall(
+            [
+              (callback) => {
+                WbProduct.findOne({
+                  barcode: order.barcode,
+                }).exec(callback);
+              },
+              (wbProduct, callback) => {
+                ProductVariation.findOne({ wbProduct })
+                  .populate("product wbProduct")
+                  .exec(callback);
+              },
+              (variation, callback) => {
+                try {
+                  let order_status = "";
+                  switch (order.status) {
+                    case 0:
+                      order_status = "Новый";
+                      break;
+                    case 1:
+                      order_status = "Сборка";
+                      break;
+                  }
 
-                      callback(null, {
-                        order_number: order.orderId,
-                        order_status,
-                        products: [
-                          {
-                            name: variation?.product.name ?? "",
-                            article: variation?.wbProduct.article ?? "",
-                            quantity: 1,
-                          },
-                        ],
-                      });
-                    } catch (e) {
-                      console.log(e);
-                      callback(e, null);
-                    }
-                  },
-                ],
-                cb
-              );
-            };
-          });
+                  callback(null, {
+                    order_number: order.orderId,
+                    order_status,
+                    products: [
+                      {
+                        name: variation?.product.name ?? "",
+                        article: variation?.wbProduct.article ?? "",
+                        quantity: 1,
+                      },
+                    ],
+                  });
+                } catch (e) {
+                  console.log(e);
+                  callback(e, null);
+                }
+              },
+            ],
+            cb
+          );
+        };
+      });
 
-          async.parallel(ordersInfoRequests, callback);
-        },
-      ],
-      callback
-    );
-  } catch (e) {
-    console.log(e);
-    callback(e, null);
-  }
-}
+      async.parallel(ordersInfoRequests, callback);
+    },
+  ]);
+};
 
-module.exports.getOrdersList = (req, res) => {
-  try {
-    async.parallel(
-      {
-        ozonOrders(callback) {
-          getOzonOrders(callback);
-        },
-        ozonOverdueOrders(callback) {
-          getOzonOverdueOrders(callback);
-        },
-        yandexOrders(callback) {
-          getYandexOrders(callback);
-        },
-        wooOrders(callback) {
-          getWooOrders(callback);
-        },
-        wbOrders(callback) {
-          getWbOrders(callback);
-        },
+export const getOrdersList = (req, res) => {
+  async
+    .parallel({
+      ozonOrders(callback) {
+        getAllOzonOrders()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
       },
-
-      (err, results) => {
-        if (err) {
-          return res.status(400).json({
-            message: "Ошибка получения списка заказов",
-            code: err.code,
-            status: err.response.status,
-          });
-        }
-
-        res.render("orders", {
-          title: "Заказы на сегодня",
-          allOrders: [
-            {
-              name: "Ozon",
-              today: {
-                status: results.ozonOrders.length > 0,
-                orders: results.ozonOrders,
-              },
-              overdue: {
-                status: results.ozonOverdueOrders.length > 0,
-                orders: results.ozonOverdueOrders,
-              },
+      yandexOrders(callback) {
+        getYandexOrders(callback);
+      },
+      wooOrders(callback) {
+        getWooOrders(callback);
+      },
+      wbOrders(callback) {
+        getWbOrders()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+    })
+    .then((results) => {
+      res.render("orders", {
+        title: "Заказы на сегодня",
+        allOrders: [
+          {
+            name: "Ozon",
+            ...results.ozonOrders,
+          },
+          {
+            name: "Yandex",
+            today: {
+              status: results.yandexOrders.length > 0,
+              orders: results.yandexOrders,
             },
-            {
-              name: "Yandex",
-              today: {
-                status: results.yandexOrders.length > 0,
-                orders: results.yandexOrders,
-              },
-              overdue: {
-                status: false,
-                orders: [],
-              },
+            overdue: {
+              status: false,
+              orders: [],
             },
-            {
-              name: "WB",
-              today: {
-                status: results.wbOrders.length > 0,
-                orders: results.wbOrders,
-              },
-              overdue: {
-                status: false,
-                orders: [],
-              },
+          },
+          {
+            name: "WB",
+            today: {
+              status: results.wbOrders.length > 0,
+              orders: results.wbOrders,
             },
-            {
-              name: "Site",
-              today: {
-                status: results.wooOrders.length > 0,
-                orders: results.wooOrders,
-              },
-              overdue: {
-                status: false,
-                orders: [],
-              },
+            overdue: {
+              status: false,
+              orders: [],
             },
-          ],
-        });
-      }
-    );
-  } catch (err) {
-    console.log(err);
-    return res.status(400).json({
-      message: "Ошибка получения списка заказов",
-      code: err.code,
-      status: err.response?.status,
+          },
+          {
+            name: "Site",
+            today: {
+              status: results.wooOrders.length > 0,
+              orders: results.wooOrders,
+            },
+            overdue: {
+              status: false,
+              orders: [],
+            },
+          },
+        ],
+      });
+    })
+    .catch((error) => {
+      return res.status(400).json({
+        error,
+        message: `Ошибка получения списка заказов – ${error.message}`,
+      });
     });
-  }
 };

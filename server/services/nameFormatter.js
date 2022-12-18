@@ -1,4 +1,4 @@
-exports.clearName = (name, type = "marketplace") => {
+export const clearName = (name, type = "marketplace") => {
   let formattedName = "";
 
   switch (type) {

@@ -1,13 +1,21 @@
-const path = require("path");
-const express = require("express");
+import path from "path";
+import express from "express";
+import indexRouter from "./routes/indexRouter.js";
+import authRouter from "./routes/authRouter.js";
+import stocksRouter from "./routes/stocksRouter.js";
+import ordersRouter from "./routes/ordersRouter.js";
+import shipmentsRouter from "./routes/shipmentsRouter.js";
+import compression from "compression";
+import helmet from "helmet";
 
 if (process.env.NODE_ENV === "production") {
-  require("dotenv").config();
+  const dotenv = await import("dotenv");
+  dotenv.default.config();
 }
 
 try {
   //Устанавливаем соединение с mongoose
-  const mongoose = require("mongoose");
+  const mongoose = (await import("mongoose")).default;
   const mongoDB = process.env.MONGODB_URI;
   mongoose.connect(mongoDB);
   const db = mongoose.connection;
@@ -16,21 +24,12 @@ try {
   console.log(e);
 }
 
-const indexRouter = require("./routes/indexRouter");
-const authRouter = require("./routes/authRouter");
-const stocksRouter = require("./routes/stocksRouter");
-const ordersRouter = require("./routes/ordersRouter");
-const shipmentsRouter = require("./routes/shipmentsRouter");
-
-const compression = require("compression");
-const helmet = require("helmet");
-
 const app = express();
 
 app.set("view engine", "pug");
 app.set("views", "./views");
 
-app.use(express.static(path.join(__dirname, "..", "public")));
+app.use(express.static(path.join("./", "..", "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,6 +40,7 @@ app.use("/orders", ordersRouter);
 app.use("/shipments", shipmentsRouter);
 
 app.use(helmet());
-app.use(compression()); // Compress all routes
+app.use(compression());
 
-module.exports = app;
+// Compress all routes
+export default app;

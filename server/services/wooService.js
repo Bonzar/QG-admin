@@ -1,5 +1,5 @@
-const WooCommerceAPI = require("woocommerce-api");
-const async = require("async");
+import WooCommerceAPI from "woocommerce-api";
+import async from "async";
 
 const woocommerceAPI = WooCommerceAPI({
   url: "https://queridosglitters.ru/",
@@ -9,7 +9,7 @@ const woocommerceAPI = WooCommerceAPI({
   version: "wc/v3",
 });
 
-exports.getProductList = async (tableFilters) => {
+export const getProductList = async (tableFilters) => {
   // Setup optimal count requests pages
   let totalPages = 30;
 
@@ -70,7 +70,7 @@ exports.getProductList = async (tableFilters) => {
   }, []);
 };
 
-exports.getProductVariations = (productId) => {
+export const getProductVariations = (productId) => {
   return woocommerceAPI
     .getAsync(`products/${productId}/variations`)
     .then((response) => {
@@ -78,8 +78,7 @@ exports.getProductVariations = (productId) => {
     });
 };
 
-exports.getProductVariationInfo = (productId, variationId) => {
-  console.log("hi");
+export const getProductVariationInfo = (productId, variationId) => {
   return woocommerceAPI
     .getAsync(`products/${productId}/variations/${variationId}`)
     .then((response) => {
@@ -87,14 +86,13 @@ exports.getProductVariationInfo = (productId, variationId) => {
     });
 };
 
-exports.getProductInfo = (productId) => {
-  console.log("hi1");
+export const getProductInfo = (productId) => {
   return woocommerceAPI.getAsync(`products/${productId}`).then((response) => {
     return JSON.parse(response.body);
   });
 };
 
-exports.updateProduct = (productType, id, variableId, updateData) => {
+export const updateProduct = (productType, id, variableId, updateData) => {
   switch (productType) {
     case "simple":
       return woocommerceAPI
@@ -113,7 +111,7 @@ exports.updateProduct = (productType, id, variableId, updateData) => {
   }
 };
 
-exports.getOrders = () => {
+export const getOrders = () => {
   return woocommerceAPI
     .getAsync(`orders?status=processing`)
     .then((response) => {
@@ -190,7 +188,7 @@ const getConnectWooDataRequest = (
   };
 };
 
-exports.getConnectWooDataRequests = (
+export const getConnectWooDataRequests = (
   filters,
   wooApiProducts,
   wooDbProducts,

@@ -1,6 +1,6 @@
-const wooService = require("../services/wooService");
-const async = require("async");
-const dbService = require("../services/dbService");
+import async from "async";
+import * as wooService from "../services/wooService.js";
+import * as dbService from "../services/dbService.js";
 
 const connectWooDataResultFormatter = (
   variation,
@@ -28,7 +28,7 @@ const connectWooDataResultFormatter = (
   };
 };
 
-exports.getProductsList = (req, res) => {
+export const getProductsList = (req, res) => {
   async
     .waterfall([
       (cb) => {
@@ -97,7 +97,7 @@ exports.getProductsList = (req, res) => {
       });
     })
     .catch((error) => {
-      console.log(error);
+      console.error(error);
       return res.status(400).json({
         error,
         message: `Error while getting list of products. - ${error}`,
@@ -105,7 +105,7 @@ exports.getProductsList = (req, res) => {
     });
 };
 
-exports.updateStock = (req, res) => {
+export const updateStock = (req, res) => {
   try {
     const [productType, productId, variableId] = req.query.updateBy.split("-");
 
@@ -123,7 +123,7 @@ exports.updateStock = (req, res) => {
         });
       });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Error while updating stock of product. - ${error.message}`,

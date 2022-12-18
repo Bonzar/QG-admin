@@ -17,5 +17,5 @@ export default async (cell, skuUpdate, newStockValue, oldValue, authToken) => {
 
       return response;
     })
-    .catch((error) => console.log(error));
+    .catch((error) => console.error(error));
 };

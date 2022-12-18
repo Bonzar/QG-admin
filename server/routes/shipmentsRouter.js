@@ -1,7 +1,7 @@
-const express = require("express");
-const router = express.Router();
+import express from "express";
+import * as shipmentsController from "../controllers/shipmentsController.js";
 
-const shipmentsController = require("../controllers/shipmentsController");
+const router = express.Router();
 
 router.get("/", (req, res) => {
   try {
@@ -14,7 +14,7 @@ router.get("/", (req, res) => {
   }
 });
 
-router.get("/ozon", shipmentsController.getOzonShipment);
+router.post("/ozon", shipmentsController.getOzonShipment);
 router.post("/wb", shipmentsController.getWbShipment);
 
-module.exports = router;
+export default router;

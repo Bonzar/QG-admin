@@ -1,8 +1,8 @@
-const { Schema, model } = require("mongoose");
+import { model, Schema } from "mongoose";
 
 const WooProductVariable = new Schema({
   id: { type: Number, unique: true, required: true },
   article: String,
 });
 
-module.exports = model("WooProductVariable", WooProductVariable);
+export default model("WooProductVariable", WooProductVariable);

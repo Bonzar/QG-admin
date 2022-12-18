@@ -1,4 +1,4 @@
-const { Schema, model } = require("mongoose");
+import { model, Schema } from "mongoose";
 
 const ProductVariation = new Schema({
   product: { type: Schema.ObjectId, ref: "Product", required: true },
@@ -55,4 +55,4 @@ const ProductVariation = new Schema({
 
 ProductVariation.index({ product: 1, volume: 1 }, { unique: true });
 
-module.exports = model("ProductVariation", ProductVariation);
+export default model("ProductVariation", ProductVariation);

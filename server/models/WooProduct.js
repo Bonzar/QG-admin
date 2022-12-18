@@ -1,4 +1,4 @@
-const { Schema, model } = require("mongoose");
+import { model, Schema } from "mongoose";
 
 const WooProduct = new Schema({
   id: { type: Number, unique: true, required: true },
@@ -13,4 +13,4 @@ const WooProduct = new Schema({
   stock: { type: Number, default: 0 },
 });
 
-module.exports = model("WooProduct", WooProduct);
+export default model("WooProduct", WooProduct);

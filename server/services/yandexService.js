@@ -1,4 +1,4 @@
-const axios = require("axios");
+import axios from "axios";
 
 const yandexAPI = axios.create({
   baseURL: "https://api.partner.market.yandex.ru/",
@@ -8,7 +8,7 @@ const yandexAPI = axios.create({
   },
 });
 
-exports.getApiSkusList = () => {
+export const getApiSkusList = () => {
   return yandexAPI
     .get("v2/campaigns/21938028/offer-mapping-entries.json?limit=200")
     .then((response) => {
@@ -18,9 +18,9 @@ exports.getApiSkusList = () => {
     });
 };
 
-exports.getApiProductsList = async (skusList = []) => {
+export const getApiProductsList = async (skusList = []) => {
   if (skusList.length <= 0) {
-    skusList = await module.exports.getApiSkusList();
+    skusList = await getApiSkusList();
   }
 
   // List of all products
@@ -33,7 +33,7 @@ exports.getApiProductsList = async (skusList = []) => {
     });
 };
 
-exports.updateApiStock = (sku, stockCount) => {
+export const updateApiStock = (sku, stockCount) => {
   return yandexAPI
     .put("v2/campaigns/21938028/offers/stocks.json", {
       skus: [
@@ -55,7 +55,7 @@ exports.updateApiStock = (sku, stockCount) => {
     });
 };
 
-exports.getApiTodayOrders = () => {
+export const getApiTodayOrders = () => {
   const today = new Date();
 
   const filterDate = today
@@ -75,7 +75,7 @@ exports.getApiTodayOrders = () => {
     });
 };
 
-exports.getConnectYandexDataRequests = (
+export const getConnectYandexDataRequests = (
   filters,
   yandexApiProducts,
   yandexDbProducts,

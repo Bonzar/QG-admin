@@ -1,4 +1,4 @@
-const { Schema, model } = require("mongoose");
+import { model, Schema } from "mongoose";
 
 const YandexProduct = new Schema({
   sku: { type: String, unique: true, required: true },
@@ -8,4 +8,4 @@ const YandexProduct = new Schema({
   stockFBS: { type: Number, default: 0 },
 });
 
-module.exports = model("YandexProduct", YandexProduct);
+export default model("YandexProduct", YandexProduct);

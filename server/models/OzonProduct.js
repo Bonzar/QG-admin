@@ -1,4 +1,4 @@
-const { Schema, model } = require("mongoose");
+import { model, Schema } from "mongoose";
 
 const OzonProduct = new Schema({
   sku: { type: Number, unique: true, required: true },
@@ -8,4 +8,4 @@ const OzonProduct = new Schema({
   stockFBS: { type: Number, default: 0 },
 });
 
-module.exports = model("OzonProduct", OzonProduct);
+export default model("OzonProduct", OzonProduct);

@@ -1,10 +1,10 @@
-const dbService = require("../services/dbService");
-const async = require("async");
-const { validationResult } = require("express-validator");
-const wbService = require("../services/wbService");
-const yandexService = require("../services/yandexService");
-const ozonService = require("../services/ozonService");
-const wooService = require("../services/wooService");
+import async from "async";
+import { validationResult } from "express-validator";
+import * as dbService from "../services/dbService.js";
+import * as wbService from "../services/wbService.js";
+import * as yandexService from "../services/yandexService.js";
+import * as wooService from "../services/wooService.js";
+import { Ozon, OzonProductInstance } from "../services/ozonService.js";
 
 const isValidationPass = (req, res) => {
   let errors = validationResult(req);
@@ -20,7 +20,7 @@ const isValidationPass = (req, res) => {
   return true;
 };
 
-exports.getProductPage = (req, res) => {
+export const getProductPage = (req, res) => {
   try {
     async.waterfall(
       [
@@ -54,7 +54,7 @@ exports.getProductPage = (req, res) => {
                   callback(null, variation);
                 })
                 .catch((error) => {
-                  console.log(error);
+                  console.error(error);
                   callback(error, null);
                 });
             };
@@ -66,7 +66,7 @@ exports.getProductPage = (req, res) => {
               callback(null, [product, variations]);
             })
             .catch((error) => {
-              console.log(error);
+              console.error(error);
               callback(error, null);
             });
         },
@@ -122,7 +122,7 @@ exports.getProductPage = (req, res) => {
   }
 };
 
-exports.getDbMarketProductPage = async (req, res) => {
+export const getDbMarketProductPage = async (req, res) => {
   try {
     let allProducts = await dbService.getAllProducts();
 
@@ -170,15 +170,14 @@ exports.getDbMarketProductPage = async (req, res) => {
 
             break;
           case "ozon":
-            marketProduct = (
-              await dbService.getOzonProducts({ _id: productId })
-            )[0];
-            fbsStocks = (
-              await ozonService.getProductsStockList({
-                product_id: [marketProduct.sku],
-                visibility: "ALL",
-              })
-            ).result.items[0].stocks[1]?.present;
+            // eslint-disable-next-line no-case-declarations
+            const ozonProduct = new OzonProductInstance(productId);
+            marketProduct = await ozonProduct.getDbData();
+            // eslint-disable-next-line no-case-declarations
+            const ozonStocks = await ozonProduct.getApiStock();
+            fbsStocks = ozonStocks.find(
+              (stock) => stock.type === "fbs"
+            )?.present;
 
             break;
           case "woo":
@@ -256,7 +255,7 @@ exports.getDbMarketProductPage = async (req, res) => {
   }
 };
 
-exports.getWooProductVariablePage = async (req, res) => {
+export const getWooProductVariablePage = async (req, res) => {
   try {
     const wooProductVariable = (
       await dbService.getWooVariableProducts({ _id: req.params.id })
@@ -282,7 +281,7 @@ exports.getWooProductVariablePage = async (req, res) => {
   }
 };
 
-exports.addUpdateDbMarketProduct = (req, res) => {
+export const addUpdateDbMarketProduct = (req, res) => {
   try {
     if (!isValidationPass(req, res)) {
       return;
@@ -294,6 +293,7 @@ exports.addUpdateDbMarketProduct = (req, res) => {
         res.json({ marketType: req.body.marketType, results });
       })
       .catch((error) => {
+        console.error(error);
         if (error.code === 11000) {
           error.message = `Продукт с ${Object.keys(error.keyValue)[0]} - ${
             error.keyValue[Object.keys(error.keyValue)[0]]
@@ -302,7 +302,7 @@ exports.addUpdateDbMarketProduct = (req, res) => {
         res.status(400).json({ error, message: error.message });
       });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Error while add/update DB market product. – ${error.message}`,
@@ -310,7 +310,7 @@ exports.addUpdateDbMarketProduct = (req, res) => {
   }
 };
 
-exports.addUpdateDbProduct = (req, res) => {
+export const addUpdateDbProduct = (req, res) => {
   try {
     if (!isValidationPass(req, res)) {
       return;
@@ -332,7 +332,7 @@ exports.addUpdateDbProduct = (req, res) => {
         res.status(400).json({ error, message: error.message });
       });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Error while add/update DB product. – ${error.message}`,
@@ -340,7 +340,7 @@ exports.addUpdateDbProduct = (req, res) => {
   }
 };
 
-exports.addUpdateWooProductVariable = (req, res) => {
+export const addUpdateWooProductVariable = (req, res) => {
   try {
     if (!isValidationPass(req, res)) {
       return;
@@ -356,7 +356,7 @@ exports.addUpdateWooProductVariable = (req, res) => {
         res.status(400).json({ error, message: error.message });
       });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Error while add/update DB Woo Product Variable. – ${error.message}`,
@@ -364,7 +364,7 @@ exports.addUpdateWooProductVariable = (req, res) => {
   }
 };
 
-exports.deleteWooProductVariable = (req, res) => {
+export const deleteWooProductVariable = (req, res) => {
   try {
     dbService
       .deleteWooProductVariable(req.params.id)
@@ -372,11 +372,11 @@ exports.deleteWooProductVariable = (req, res) => {
         res.json(result);
       })
       .catch((error) => {
-        console.log(error);
+        console.error(error);
         res.status(400).json({ error, message: error.message });
       });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Error while deleting Woo Product Variable from DB. – ${error.message}`,
@@ -384,7 +384,7 @@ exports.deleteWooProductVariable = (req, res) => {
   }
 };
 
-exports.addDbProductVariation = (req, res) => {
+export const addDbProductVariation = (req, res) => {
   try {
     dbService
       .addProductVariation(req.body)
@@ -392,7 +392,7 @@ exports.addDbProductVariation = (req, res) => {
         res.json(result);
       })
       .catch((error) => {
-        console.log(error);
+        console.error(error);
 
         if (error.code === 11000) {
           error.message = `Вариация с ${Object.keys(error.keyValue)[0]} - ${
@@ -403,7 +403,7 @@ exports.addDbProductVariation = (req, res) => {
         res.status(400).json({ error, message: error.message });
       });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Error while adding variation to DB. – ${error.message}`,
@@ -411,7 +411,7 @@ exports.addDbProductVariation = (req, res) => {
   }
 };
 
-exports.deleteDbProduct = (req, res) => {
+export const deleteDbProduct = (req, res) => {
   dbService
     .deleteProduct(req.params.id)
     .then((result) => {
@@ -426,7 +426,7 @@ exports.deleteDbProduct = (req, res) => {
     });
 };
 
-exports.deleteDbProductVariation = (req, res) => {
+export const deleteDbProductVariation = (req, res) => {
   dbService
     .deleteProductVariation(req.params.id)
     .then((result) => {
@@ -441,7 +441,7 @@ exports.deleteDbProductVariation = (req, res) => {
     });
 };
 
-exports.deleteDbMarketProduct = (req, res) => {
+export const deleteDbMarketProduct = (req, res) => {
   dbService
     .deleteMarketProduct(req.params.marketType, req.params._id)
     .then((result) => {
@@ -456,7 +456,7 @@ exports.deleteDbMarketProduct = (req, res) => {
     });
 };
 
-exports.getAllProductsPage = (req, res) => {
+export const getAllProductsPage = (req, res) => {
   try {
     async.parallel(
       {
@@ -469,7 +469,7 @@ exports.getAllProductsPage = (req, res) => {
       },
       (error, results) => {
         if (error) {
-          console.log(error);
+          console.error(error);
           res.status(400).json({
             error,
             message: `Error while getting product page. – ${error.message}`,
@@ -516,7 +516,7 @@ exports.getAllProductsPage = (req, res) => {
       }
     );
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Error while getting all products page. – ${error.message}`,
@@ -524,9 +524,12 @@ exports.getAllProductsPage = (req, res) => {
   }
 };
 
-exports.getAllWooProductVariablesPage = async (req, res) => {
+export const getAllWooProductVariablesPage = async (req, res) => {
   try {
-    const allWooVariableProducts = await dbService.getWooVariableProducts({});
+    const allWooVariableProducts = await dbService.getWooProducts(
+      {},
+      "parentVariable"
+    );
 
     allWooVariableProducts.sort(
       (wooVariableProduct1, wooVariableProduct2) =>
@@ -538,7 +541,7 @@ exports.getAllWooProductVariablesPage = async (req, res) => {
       wooVariableProducts: allWooVariableProducts,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({
       error,
       message: `Error while getting All Woo Variables page. – ${error.message}`,
@@ -546,7 +549,7 @@ exports.getAllWooProductVariablesPage = async (req, res) => {
   }
 };
 
-exports.getAllProductsStockPage = async (req, res) => {
+export const getAllProductsStockPage = async (req, res) => {
   try {
     let allVariationsStockList = [];
 
@@ -733,20 +736,6 @@ exports.getAllProductsStockPage = async (req, res) => {
                   .then((products) => callback(null, products))
                   .catch((error) => callback(error, null));
               },
-              // Ozon products
-              ozonApiProductsInfo(callback) {
-                ozonService
-                  .getApiProductsList({ visibility: "ALL" })
-                  .then((result) => callback(null, result))
-                  .catch((error) => callback(error, null));
-              },
-              // List of yandex products from DB
-              ozonDbProducts(callback) {
-                dbService
-                  .getOzonProducts({})
-                  .then((products) => callback(null, products))
-                  .catch((error) => callback(error, null));
-              },
               // Woo products
               wooApiProducts(callback) {
                 wooService
@@ -817,11 +806,11 @@ exports.getAllProductsStockPage = async (req, res) => {
             yandexDbProducts,
             wooApiProducts,
             wooDbProducts,
-            ozonApiProductsInfo: {
-              productsInfo: ozonApiProducts,
-              productsStockList: ozonApiStocks,
-            },
-            ozonDbProducts,
+            // ozonApiProductsInfo: {
+            //   productsInfo: ozonApiProducts,
+            //   productsStockList: ozonApiStocks,
+            // },
+            // ozonDbProducts,
             wbApiProducts,
             wbApiFbwStocks,
             wbApiFbsStocks,
@@ -856,23 +845,21 @@ exports.getAllProductsStockPage = async (req, res) => {
               connectWooDataResultFormatter
             );
 
-          const ozonProductConnectRequests =
-            ozonService.getConnectOzonDataRequests(
-              req.query,
-              ozonApiProducts,
-              ozonApiStocks,
-              ozonDbProducts,
-              allDbVariations,
-              connectOzonDataResultFormatter
-            );
-
           async.parallel(
             [
               (callback) => {
                 async.parallel(yandexProductConnectRequests, callback);
               },
               (callback) => {
-                async.parallel(ozonProductConnectRequests, callback);
+                const ozon = new Ozon();
+                ozon
+                  .getProducts(
+                    {},
+                    connectOzonDataResultFormatter,
+                    allDbVariations
+                  )
+                  .then((result) => callback(null, result))
+                  .catch((error) => callback(error, null));
               },
               (callback) => {
                 async.parallel(wbProductConnectRequests, callback);

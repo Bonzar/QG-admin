@@ -1,6 +1,6 @@
-const yandexService = require("../services/yandexService");
-const async = require("async");
-const dbService = require("../services/dbService");
+import async from "async";
+import * as yandexService from "../services/yandexService.js";
+import * as dbService from "../services/dbService.js";
 
 const connectYandexDataResultFormatter = (
   variation,
@@ -25,7 +25,7 @@ const connectYandexDataResultFormatter = (
   };
 };
 
-exports.getProductsListPage = (req, res) => {
+export const getProductsListPage = (req, res) => {
   async
     .waterfall([
       (cb) => {
@@ -98,7 +98,7 @@ exports.getProductsListPage = (req, res) => {
       dbService.updateYandexStocks(yandexApiProducts);
     })
     .catch((error) => {
-      console.log(error);
+      console.error(error);
       return res.status(400).json({
         error,
         message: `Error while getting list of products. - ${error.message}`,
@@ -106,14 +106,14 @@ exports.getProductsListPage = (req, res) => {
     });
 };
 
-exports.updateApiStock = (req, res) => {
+export const updateApiStock = (req, res) => {
   yandexService
     .updateApiStock(req.query.sku, req.query.stock)
     .then((response) => {
       res.json(response.data);
     })
     .catch((error) => {
-      console.log(error);
+      console.error(error);
       res.status(400).json({
         error,
         message: `Error while update api stocks. - ${error.message}`,

@@ -1,6 +1,6 @@
-const wbService = require("../services/wbService");
-const dbService = require("../services/dbService");
-const async = require("async");
+import async from "async";
+import * as wbService from "../services/wbService.js";
+import * as dbService from "../services/dbService.js";
 
 const connectWbDataResultFormatter = (
   variation,
@@ -29,7 +29,7 @@ const connectWbDataResultFormatter = (
   };
 };
 
-exports.getProductsListPage = (req, res) => {
+export const getProductsListPage = (req, res) => {
   async
     .waterfall([
       (cb) => {
@@ -130,7 +130,7 @@ exports.getProductsListPage = (req, res) => {
       dbService.updateWbStocks(wbApiProducts, wbApiFbwStocks);
     })
     .catch((error) => {
-      console.log(error);
+      console.error(error);
       return res.status(400).json({
         error,
         message: `Error while getting list of products. - ${error.message}`,
@@ -138,7 +138,7 @@ exports.getProductsListPage = (req, res) => {
     });
 };
 
-exports.updateApiStock = (req, res) => {
+export const updateApiStock = (req, res) => {
   wbService
     .updateApiStock(req.query.barcode, req.query.stock)
     .then((result) => {

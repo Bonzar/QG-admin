@@ -1,17 +1,16 @@
-const ProductVariation = require("../models/ProductVariation");
-const Product = require("../models/Product");
-const WbProduct = require("../models/WbProduct");
-const YandexProduct = require("../models/YandexProduct");
-const OzonProduct = require("../models/OzonProduct");
-const WooProduct = require("../models/WooProduct");
-const Sells = require("../models/Sells");
-const WooProductVariable = require("../models/WooProductVariable");
-const async = require("async");
-
-const yandexService = require("./yandexService");
-const wbService = require("./wbService");
-const ozonService = require("./ozonService");
-const wooService = require("./wooService");
+import ProductVariation from "../models/ProductVariation.js";
+import Product from "../models/Product.js";
+import WbProduct from "../models/WbProduct.js";
+import YandexProduct from "../models/YandexProduct.js";
+import OzonProduct from "../models/OzonProduct.js";
+import WooProduct from "../models/WooProduct.js";
+import Sells from "../models/Sells.js";
+import WooProductVariable from "../models/WooProductVariable.js";
+import async from "async";
+import * as yandexService from "./yandexService.js";
+import * as wbService from "./wbService.js";
+import * as wooService from "./wooService.js";
+import { Ozon, OzonProductInstance } from "./ozonService.js";
 
 const populateAll = (query, populates) => {
   for (const populate of populates) {
@@ -21,43 +20,43 @@ const populateAll = (query, populates) => {
   return query;
 };
 
-exports.getProductVariationById = (id, populates = []) => {
+export const getProductVariationById = (id, populates = []) => {
   return populateAll(ProductVariation.findById(id), populates).exec();
 };
 
-exports.getAllVariations = (filter = {}, populates = []) => {
+export const getAllVariations = (filter = {}, populates = []) => {
   return populateAll(ProductVariation.find(filter), populates).exec();
 };
 
-exports.getProductById = (id) => {
+export const getProductById = (id) => {
   return Product.findById(id).exec();
 };
 
-exports.getAllProducts = () => {
+export const getAllProducts = () => {
   return Product.find().exec();
 };
 
-exports.getWbProducts = (filter = {}) => {
+export const getWbProducts = (filter = {}) => {
   return WbProduct.find(filter).exec();
 };
 
-exports.getWooProducts = (filter = {}, populate = "") => {
+export const getWooProducts = (filter = {}, populate = "") => {
   return WooProduct.find(filter).populate(populate).exec();
 };
 
-exports.getWooVariableProducts = (filter = {}) => {
+export const getWooVariableProducts = (filter = {}) => {
   return WooProductVariable.find(filter).exec();
 };
 
-exports.getYandexProducts = (filter = {}) => {
+export const getYandexProducts = (filter = {}) => {
   return YandexProduct.find(filter).exec();
 };
 
-exports.getOzonProducts = (filter = {}) => {
+export const getOzonProducts = (filter = {}) => {
   return OzonProduct.find(filter).exec();
 };
 
-exports.getAllSells = (filter = {}, populate = "") => {
+export const getAllSells = (filter = {}, populate = "") => {
   return Sells.find(filter).populate(populate).exec();
 };
 
@@ -66,7 +65,7 @@ exports.getAllSells = (filter = {}, populate = "") => {
  * Добавить обработку ошибки в случае добавления повторки
  * Добавить пороговое значение даты для обновления продаж сохраненное с последнего обновления
  **/
-exports.addUpdateSell = async (
+export const addUpdateSell = async (
   _id = null,
   marketProductRef,
   productIdentifier,
@@ -134,7 +133,7 @@ exports.addUpdateSell = async (
   }
 };
 
-exports.addUpdateWooProductVariable = (oldId = null, newId) => {
+export const addUpdateWooProductVariable = (oldId = null, newId) => {
   let wooProductVariableDetails = {
     id: +newId,
   };
@@ -154,7 +153,7 @@ exports.addUpdateWooProductVariable = (oldId = null, newId) => {
     });
 };
 
-exports.deleteWooProductVariable = (id) => {
+export const deleteWooProductVariable = (id) => {
   return WooProductVariable.findById(id)
     .exec()
     .then((wooProductVariable) => {
@@ -166,7 +165,23 @@ exports.deleteWooProductVariable = (id) => {
     });
 };
 
-exports.addUpdateMarketProduct = async (marketProductData) => {
+export const addUpdateDbRecord = (
+  marketProduct,
+  marketProductDetails,
+  ProductSchema
+) => {
+  if (!marketProduct) {
+    marketProduct = new ProductSchema(marketProductDetails);
+  } else {
+    for (const [key, value] of Object.entries(marketProductDetails)) {
+      marketProduct[key] = value;
+    }
+  }
+
+  return marketProduct.save();
+};
+
+export const addUpdateMarketProduct = async (marketProductData) => {
   const variationMarketProp = `${marketProductData.marketType}Product`;
 
   // Получение продукта в зависимости от типа маркетплейса
@@ -190,8 +205,11 @@ exports.addUpdateMarketProduct = async (marketProductData) => {
       allApiProducts = await yandexService.getApiSkusList();
       break;
     case "ozon":
-      marketProduct = await OzonProduct.findById(marketProductData._id).exec();
-      allApiProducts = (await ozonService.getProductsStockList()).result.items;
+      // eslint-disable-next-line no-case-declarations
+      const ozonProduct = new OzonProductInstance(marketProductData._id);
+      marketProduct = await ozonProduct.getDbData();
+
+      allApiProducts = await ozonProduct.getApiProductStocks();
       break;
     case "woo":
       wooResults = await async.parallel({
@@ -354,10 +372,9 @@ exports.addUpdateMarketProduct = async (marketProductData) => {
       let updateRequest = null;
       switch (marketProductData.marketType) {
         case "wb":
-          wbService.updateApiStock(
+          updateRequest = wbService.updateApiStock(
             marketProductData.barcode,
-            marketProductData.stockFBS,
-            cbPart
+            marketProductData.stockFBS
           );
           break;
         case "yandex":
@@ -367,21 +384,18 @@ exports.addUpdateMarketProduct = async (marketProductData) => {
           );
           break;
         case "ozon":
-          updateRequest = ozonService.updateApiStock(
+          updateRequest = Ozon.updateApiStock(
             marketProductData.article,
             marketProductData.stockFBS
           );
           break;
         case "woo":
-          wooService
-            .updateProduct(
-              marketProductData.type,
-              marketProductData.id,
-              marketProductData.parentVariable?.id,
-              { stock_quantity: +marketProductData.stockFBS }
-            )
-            .then((result) => cbPart(null, result))
-            .catch((error) => cbPart(error, null));
+          updateRequest = wooService.updateProduct(
+            marketProductData.type,
+            marketProductData.id,
+            marketProductData.parentVariable?.id,
+            { stock_quantity: +marketProductData.stockFBS }
+          );
           break;
       }
 
@@ -504,7 +518,118 @@ exports.addUpdateMarketProduct = async (marketProductData) => {
   });
 };
 
-exports.addUpdateProduct = (productData) => {
+export const variationUpdate = (marketProduct, marketProductData) => {
+  const variationMarketProp = `${marketProductData.marketType}Product`;
+
+  return async.waterfall([
+    // Обновление вариации 1. Поиск новой и старой вариации
+    (callback) => {
+      async.parallel(
+        {
+          oldVariation(callback) {
+            ProductVariation.findOne(
+              {
+                [variationMarketProp]: marketProduct,
+              },
+              callback
+            );
+          },
+          newVariation(callback) {
+            Product.findById(marketProductData.product_id).exec(
+              (err, product) => {
+                ProductVariation.findOne(
+                  {
+                    product,
+                    volume: marketProductData.variation_volume,
+                  },
+                  callback
+                );
+              }
+            );
+          },
+          marketProduct(callback) {
+            callback(null, marketProduct);
+          },
+        },
+        callback
+      );
+    },
+    // Обновление вариации 2. Удаление старой привязки при необходимости
+    (results, callback) => {
+      const { newVariation, oldVariation, marketProduct } = results;
+
+      // Вариация не требует обновления
+      if (
+        oldVariation?.[variationMarketProp]?.filter(
+          (product) => product.toString() === marketProduct._id.toString()
+        ).length > 0 &&
+        newVariation?.[variationMarketProp]?.filter(
+          (product) => product.toString() === marketProduct._id.toString()
+        ).length > 0
+      ) {
+        callback(null, { message: "Вариация не требует обновления." });
+        return;
+      }
+
+      if (!newVariation && marketProductData.product_id) {
+        callback(
+          new Error(
+            `Вариация "${marketProductData.variation_volume}", для продукта: ${marketProductData.product_id} не найдена.`
+          ),
+          marketProduct
+        );
+        return;
+      }
+
+      // Если старая вариация найдена -> удаляем связь
+      if (oldVariation) {
+        oldVariation[variationMarketProp].splice(
+          oldVariation[variationMarketProp].indexOf(marketProduct)
+        );
+
+        if (oldVariation[variationMarketProp].length === 0) {
+          oldVariation[variationMarketProp] = undefined;
+        }
+
+        oldVariation.save((err) => {
+          if (err) {
+            callback(err, null);
+            return;
+          }
+
+          callback(null, { newVariation, marketProduct });
+        });
+        return;
+      }
+
+      callback(null, { newVariation, marketProduct });
+    },
+    // Обновление вариации 3. Создание новой связи при необходимости
+    (results, callback) => {
+      const { newVariation, marketProduct } = results;
+
+      // Если новая вариация указана -> создаем связь
+      if (newVariation) {
+        if (!newVariation[variationMarketProp]) {
+          newVariation[variationMarketProp] = [];
+        }
+        newVariation[variationMarketProp].push(marketProduct);
+        newVariation.save((err) => {
+          if (err) {
+            callback(err, null);
+            return;
+          }
+
+          callback(null, marketProduct);
+        });
+        return;
+      }
+      callback(null, marketProduct);
+    },
+  ]);
+};
+
+export const addUpdateProduct = (productData) => {
   let productDetails = {};
   if (productData.name) {
     productDetails.name = productData.name;
@@ -526,7 +651,7 @@ exports.addUpdateProduct = (productData) => {
     });
 };
 
-exports.addProductVariation = (variationData) => {
+export const addProductVariation = (variationData) => {
   return Product.findById(variationData.product_id)
     .exec()
     .then((product) => {
@@ -540,7 +665,7 @@ exports.addProductVariation = (variationData) => {
     });
 };
 
-exports.deleteProduct = async (id) => {
+export const deleteProduct = async (id) => {
   const product = await Product.findById(id).exec();
   if (!product) {
     throw new Error(`Продукт - ${id} не найден.`);
@@ -554,7 +679,7 @@ exports.deleteProduct = async (id) => {
   return product.delete();
 };
 
-exports.deleteProductVariation = async (id) => {
+export const deleteProductVariation = async (id) => {
   const variation = await ProductVariation.findById(id).exec();
   if (!variation) {
     throw new Error(`Вариация - ${id} не найдена.`);
@@ -574,7 +699,7 @@ exports.deleteProductVariation = async (id) => {
   return variation.delete();
 };
 
-exports.deleteMarketProduct = async (marketType, id) => {
+export const deleteMarketProduct = async (marketType, id) => {
   let marketProduct;
   switch (marketType) {
     case "wb":
@@ -601,7 +726,7 @@ exports.deleteMarketProduct = async (marketType, id) => {
   return marketProduct.delete();
 };
 
-exports.updateYandexStocks = async (productsApiList) => {
+export const updateYandexStocks = async (productsApiList) => {
   try {
     if (!productsApiList) {
       productsApiList = await yandexService.getApiProductsList();
@@ -628,10 +753,11 @@ exports.updateYandexStocks = async (productsApiList) => {
   }
 };
 
-exports.updateOzonStocks = async (productsApiList) => {
+export const updateOzonStocks = async (productsApiList) => {
   try {
     if (!productsApiList) {
-      productsApiList = await ozonService.getApiProductsList();
+      const ozon = new Ozon();
+      productsApiList = await ozon.getApiProducts();
     }
 
     const { productsInfo, productsStockList } = productsApiList;
@@ -642,8 +768,12 @@ exports.updateOzonStocks = async (productsApiList) => {
           (stockInfo) => stockInfo.product_id === product.id
         );
 
-        const stockFBO = productStocks.stocks[0]?.present ?? 0;
-        const stockFBS = productStocks.stocks[1]?.present ?? 0;
+        const stockFBO =
+          productStocks.stocks.find((stock) => stock.type === "fbo")?.present ??
+          0;
+        const stockFBS =
+          productStocks.stocks.find((stock) => stock.type === "fbs")?.present ??
+          0;
 
         const updatedProduct = OzonProduct.findOneAndUpdate(
           { sku: product.id },
@@ -665,7 +795,7 @@ exports.updateOzonStocks = async (productsApiList) => {
   }
 };
 
-exports.updateWbStocks = async (productsApiList, productFbwStocks) => {
+export const updateWbStocks = async (productsApiList, productFbwStocks) => {
   try {
     if (!productsApiList) {
       productsApiList = await wbService.getApiProductsInfoList();
@@ -706,17 +836,16 @@ exports.updateWbStocks = async (productsApiList, productFbwStocks) => {
   }
 };
 
-exports.getVariationProductsStocks = (id) => {
+export const getVariationProductsStocks = (id) => {
   return async.waterfall([
     (callback) => {
-      exports
-        .getProductVariationById(id, [
-          {
-            path: "wooProduct",
-            populate: { path: "parentVariable" },
-          },
-          "product yandexProduct wbProduct ozonProduct",
-        ])
+      getProductVariationById(id, [
+        {
+          path: "wooProduct",
+          populate: { path: "parentVariable" },
+        },
+        "product yandexProduct wbProduct ozonProduct",
+      ])
         .then((products) => callback(null, products))
         .catch((error) => callback(error, null));
     },
@@ -847,18 +976,22 @@ exports.getVariationProductsStocks = (id) => {
             )
               return callback(null, null);
 
+            const ozon = new Ozon();
+
             const fbsOzonStocksRequests = productVariation.ozonProduct.map(
               (ozonProduct) => {
                 return (callback) => {
-                  ozonService
-                    .getProductsStockList({
+                  ozon
+                    .getApiProductStocks({
                       product_id: [ozonProduct.sku],
                       visibility: "ALL",
                     })
                     .then((result) => {
                       callback(null, {
                         identifier: ozonProduct.sku,
-                        stock: result.result.items[0].stocks[1]?.present,
+                        stock: result[0].stocks.find(
+                          (stock) => stock.type === "fbs"
+                        )?.present,
                       });
                     })
                     .catch((error) => {

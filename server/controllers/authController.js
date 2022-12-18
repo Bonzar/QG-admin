@@ -1,8 +1,8 @@
-const User = require("../models/User");
-const Role = require("../models/Role");
-const bcrypt = require("bcryptjs");
-const { validationResult } = require("express-validator");
-const jwt = require("jsonwebtoken");
+import User from "../models/User.js";
+import Role from "../models/Role.js";
+import bcrypt from "bcryptjs";
+import { validationResult } from "express-validator";
+import jwt from "jsonwebtoken";
 
 const generateAccessToken = (id, roles) => {
   const payload = {
@@ -13,7 +13,7 @@ const generateAccessToken = (id, roles) => {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "24h" });
 };
 
-exports.registration = async (req, res) => {
+export const registration = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -44,8 +44,7 @@ exports.registration = async (req, res) => {
     res.status(500).json({ message: "Registration Error" });
   }
 };
-
-exports.login = (req, res) => {
+export const login = (req, res) => {
   try {
     res.render("login", { title: "Авторизация" });
   } catch (e) {
@@ -55,8 +54,7 @@ exports.login = (req, res) => {
       .json({ message: "Ошибка при загрузки страницы входа." });
   }
 };
-
-exports.loginCheck = async (req, res) => {
+export const loginCheck = async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
@@ -88,8 +86,7 @@ exports.loginCheck = async (req, res) => {
     return res.status(500).json({ message: "Login Error" });
   }
 };
-
-exports.getUsers = async (req, res) => {
+export const getUsers = async (req, res) => {
   try {
     const users = await User.find();
     res.json(users);
