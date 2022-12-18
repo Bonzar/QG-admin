@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node www.js",
-    "startdev": "nodemon www.js"
+    "start": "node www.cjs",
+    "startdev": "nodemon www.cjs"
   },
   "keywords": [],
   "author": "",
