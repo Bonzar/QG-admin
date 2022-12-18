@@ -1,6 +1,4 @@
-import { formatAddUpdateMarketProductResult } from "./formatAddUpdateMarketProductResult.js";
 import { addLoading } from "./addLoadingIcon.js";
-import formatResponseBody from "./formatResponseBody.js";
 import authCheck from "./getAuthToken.js";
 
 export default (e) => {
@@ -54,24 +52,10 @@ export default (e) => {
     },
     body: JSON.stringify(updateProps),
   })
-    .then(formatResponseBody)
-    .then(async (result) => {
-      if (result.response.ok) {
-        const textBody = JSON.parse(await result.textBody);
-        const resultFormat = formatAddUpdateMarketProductResult(
-          textBody.results,
-          textBody.marketType
-        );
-
-        if (!resultFormat.status) {
-          alert(resultFormat.message);
-        }
-
-        window.location.href = "";
-      } else {
-        alert(JSON.parse(await result.textBody).message);
-      }
+    .then((response) => response.json())
+    .then((data) => {
+      console.log(data);
     })
-    .catch((error) => console.log(error))
+    .catch((error) => console.error(error))
     .finally(removeLoading);
 };
