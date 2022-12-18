@@ -8,11 +8,6 @@ import shipmentsRouter from "./routes/shipmentsRouter.js";
 import compression from "compression";
 import helmet from "helmet";
 
-if (process.env.NODE_ENV === "production") {
-  const dotenv = await import("dotenv");
-  dotenv.default.config();
-}
-
 try {
   //Устанавливаем соединение с mongoose
   const mongoose = (await import("mongoose")).default;
