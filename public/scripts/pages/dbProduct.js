@@ -19,12 +19,13 @@ const deleteProduct = (e) => {
         Authorization: `Bearer ${authToken}`,
       },
     })
-      .then((response) => {
-        if (response.ok) {
-          window.location.href = "/stocks/db/products";
-        } else {
-          alert("Продукт не удален.");
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.error) {
+          alert(data.message);
         }
+
+        window.location = "../products";
       })
       .catch((error) => console.error(error))
       .finally(removeLoading);

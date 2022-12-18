@@ -52,5 +52,5 @@ const deleteMarketProduct = (e) => {
 const marketProductDeleteButton = document.querySelector(
   ".delete-button--market-product"
 );
-if (marketProductDeleteButton)
-  marketProductDeleteButton.addEventListener("click", deleteMarketProduct);
+
+marketProductDeleteButton?.addEventListener("click", deleteMarketProduct);
