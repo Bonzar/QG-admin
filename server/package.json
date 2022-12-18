@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node www.cjs",
-    "startdev": "nodemon www.cjs"
+    "startdev": "nodemon -e js,mjs,coffee,litcoffee,json www.cjs"
   },
   "keywords": [],
   "author": "",
@@ -24,9 +24,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.6.4",
     "pug": "^3.0.2",
-    "woocommerce-api": "^1.5.0"
-  },
-  "devDependencies": {
+    "woocommerce-api": "^1.5.0",
     "dotenv": "^16.0.2"
   }
 }
