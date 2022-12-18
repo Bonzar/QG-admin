@@ -338,7 +338,8 @@ export class Ozon extends Marketplace {
         // Search market product in db for market product from api
         variation.ozonProduct?.filter((variationOzonDbProduct) => {
           const isMarketProductMatch =
-            variationOzonDbProduct.sku === apiProduct.id;
+            variationOzonDbProduct.sku === apiProduct.id ||
+            variationOzonDbProduct.article === apiProduct.offer_id;
 
           // find -> save market product
           if (isMarketProductMatch) {
@@ -369,7 +370,7 @@ export class Ozon extends Marketplace {
   ) {
     return ozonApiProducts.map((apiProduct) => {
       return async () => {
-        const { variation, dbProduct } =
+        const { dbVariation, dbProduct } =
           Ozon.getDbProductAndVariationForApiProduct(
             apiProduct,
             allDbVariations,
@@ -432,7 +433,7 @@ export class Ozon extends Marketplace {
 
         if (isPassFilterArray.every((pass) => pass)) {
           return connectOzonDataResultFormatter(
-            variation,
+            dbVariation,
             dbProduct,
             apiProduct,
             stockFBO,

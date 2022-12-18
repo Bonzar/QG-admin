@@ -40,8 +40,6 @@ const formatOzonOrders = (ozonOrders, ozonDbProducts, dbVariations) => {
           ozonDbProducts
         );
 
-        console.log({ dbVariation });
-
         return {
           name: dbVariation?.product.name,
           article: product.offer_id,
