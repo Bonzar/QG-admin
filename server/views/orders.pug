@@ -1,7 +1,7 @@
 extends layout
 
 block section
-    h1= title
+    h1.snap-scroll-stop--start= title
     each market in allOrders
               if market.today.status || market.overdue.status
                   h2= market.name
@@ -9,7 +9,7 @@ block section
                     if market[table].status
                         if table === 'overdue'
                             h3 Просроченные
-                        div.stocks-table--wrapper
+                        div.stocks-table--wrapper.snap-scroll-stop--center
                             div.stocks-table--inner
                                 table(class="orders-table")
                                     thead
@@ -19,7 +19,7 @@ block section
                                             th.col--products Товары
                                     tbody
                                       each order in market[table].orders
-                                        tr
+                                          tr
                                             td.col--number= order.order_number
                                                 br
                                                 p.order-status--mobile= order.order_status

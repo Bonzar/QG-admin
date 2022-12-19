@@ -5,7 +5,7 @@ append scripts
     script(src="/scripts/functions/registerTableFilters.js" defer)
 
 block content
-  h1= title
+  h1.snap-scroll-stop--start= title
   section
       block filters
           div(class="table-filters")
@@ -18,17 +18,17 @@ block content
     div.stocks-tables
       for table in tables
         - const {tableName, products} = table
-            div.stocks-tables--cell
-                h2= tableName
-                div.stocks-table--wrapper
-                    div.stocks-table--inner
-                        table(id=marketType, class="stocks-table")
-                            thead
-                                tr
-                                    block table-stock-headers
-                                      each column in Object.entries(headers)
-                                        -let [headerName, headerData] = column;
-                                            th(class=`col--${headerData.type}`)= headerName
+        div.stocks-tables--cell.snap-scroll-stop--start
+            h2= tableName
+            div.stocks-table--wrapper
+                div.stocks-table--inner
+                    table(id=marketType, class="stocks-table")
+                        thead
+                            tr
+                                block table-stock-headers
+                                  each column in Object.entries(headers)
+                                    -let [headerName, headerData] = column;
+                                    th(class=`col--${headerData.type}`)= headerName
                             block table-stock-body
                                 if products.length > 0
                                     tbody

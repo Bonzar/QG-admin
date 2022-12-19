@@ -27,11 +27,27 @@ body {
   /*min-width: max-content;*/
 }
 
+main {
+  scroll-snap-type: y mandatory;
+  max-height: 90vh;
+  overflow: scroll;
+}
+
 section {
   padding: 0 min(2vw, 20px) 20px;
   max-width: 800px;
   margin: 0 auto;
   position: relative;
+}
+
+.snap-scroll-stop--start {
+  scroll-snap-stop: always;
+  scroll-snap-align: start;
+}
+
+.snap-scroll-stop--center {
+  scroll-snap-stop: always;
+  scroll-snap-align: center;
 }
 
 .section--wide {
@@ -436,7 +452,7 @@ header a {
   overflow: scroll;
 }
 .stocks-table--inner::-webkit-scrollbar {
-  display: none;
+  /*display: none;*/
 }
 
 .stocks-table,
