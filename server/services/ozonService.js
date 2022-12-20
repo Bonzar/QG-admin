@@ -361,7 +361,7 @@ export class Ozon extends Marketplace {
     return { dbVariation, dbProduct };
   }
 
-  static getConnectOzonDataRequests(
+  #getConnectOzonDataRequests(
     filters,
     ozonApiProducts,
     ozonApiStocks,
@@ -480,7 +480,7 @@ export class Ozon extends Marketplace {
     } = data;
 
     return async.parallel(
-      Ozon.getConnectOzonDataRequests(
+      this.#getConnectOzonDataRequests(
         filters,
         ozonApiProductsInfo,
         ozonApiStocks,
