@@ -14,6 +14,7 @@ const ozonAPI = axios.create({
   },
 });
 
+//todo add errors processing for api requests
 export class Ozon extends Marketplace {
   constructor() {
     super(OzonProduct);
@@ -42,16 +43,16 @@ export class Ozon extends Marketplace {
    * @param {{visibility: string}} filter
    */
   getApiProducts = async (filter) => {
-    const productsStockList = await this.getApiProductStocks(filter);
+    const productsStocks = await this.getApiProductStocks(filter);
 
-    const productsIds = productsStockList.map((product) => product.product_id);
+    const productsIds = productsStocks.map((product) => product.product_id);
 
     const productsInfo = (await this.getApiProductsInfo(productsIds)).result
       .items;
 
-    dbService.updateOzonStocks({ productsInfo, productsStockList });
+    dbService.updateOzonStocks({ productsInfo, productsStocks });
 
-    return { productsInfo, productsStockList };
+    return { productsInfo, productsStocks };
   };
 
   /**
@@ -76,7 +77,7 @@ export class Ozon extends Marketplace {
     ]);
   }
 
-  getTodayOrders() {
+  getApiTodayOrders() {
     const today = new Date();
     today.setHours(0, 0, 0);
     const todayStart = today.toISOString();
@@ -97,7 +98,7 @@ export class Ozon extends Marketplace {
       .then((response) => response.data.result.postings);
   }
 
-  async getOverdueOrders() {
+  async getApiOverdueOrders() {
     const date = new Date();
     const today = date.setHours(0, 0, 0, 0);
 
@@ -472,7 +473,7 @@ export class Ozon extends Marketplace {
     const {
       ozonApiProducts: {
         productsInfo: ozonApiProductsInfo,
-        productsStockList: ozonApiStocks,
+        productsStocks: ozonApiStocks,
       },
       ozonDbProducts,
       dbVariations,

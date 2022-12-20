@@ -55,13 +55,13 @@ const getAllOzonOrders = () => {
     .parallel({
       ozonTodayOrders: (callback) => {
         ozon
-          .getTodayOrders()
+          .getApiTodayOrders()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
       ozonOverdueOrders: (callback) => {
         ozon
-          .getOverdueOrders()
+          .getApiOverdueOrders()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
