@@ -50,7 +50,10 @@ export class Ozon extends Marketplace {
     const productsInfo = (await this.getApiProductsInfo(productsIds)).result
       .items;
 
-    dbService.updateOzonStocks({ productsInfo, productsStocks });
+    setTimeout(
+      () => dbService.updateOzonStocks({ productsInfo, productsStocks }),
+      0
+    );
 
     return { productsInfo, productsStocks };
   };
@@ -471,10 +474,7 @@ export class Ozon extends Marketplace {
     });
 
     const {
-      ozonApiProducts: {
-        productsInfo: ozonApiProductsInfo,
-        productsStocks: ozonApiStocks,
-      },
+      ozonApiProducts: { productsInfo, productsStocks },
       ozonDbProducts,
       dbVariations,
     } = data;
@@ -482,8 +482,8 @@ export class Ozon extends Marketplace {
     return async.parallel(
       this.#getConnectOzonDataRequests(
         filters,
-        ozonApiProductsInfo,
-        ozonApiStocks,
+        productsInfo,
+        productsStocks,
         ozonDbProducts,
         dbVariations,
         connectOzonDataResultFormatter
