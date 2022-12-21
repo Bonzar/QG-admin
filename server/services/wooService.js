@@ -113,7 +113,7 @@ export const updateProduct = (productType, id, variableId, updateData) => {
 
 export const getOrders = () => {
   return woocommerceAPI
-    .getAsync(`orders?status=processing`)
+    .getAsync(`orders?per_page=100&status=processing`)
     .then((response) => {
       return JSON.parse(response.body);
     });
