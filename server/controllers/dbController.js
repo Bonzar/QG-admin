@@ -561,7 +561,7 @@ export const getAllProductsStockPage = async (req, res) => {
     ) => {
       const variationStock = allVariationsStockList.find(
         (variationStock) =>
-          variationStock.variationInnerId === variation._id &&
+          variationStock.variationInnerId === variation?._id &&
           variationStock.yandexStock === undefined
       );
 
@@ -583,7 +583,7 @@ export const getAllProductsStockPage = async (req, res) => {
               : ""),
           yandexStock: {
             stock: yandexStock,
-            updateBy: yandexDbProduct.sku,
+            updateBy: yandexDbProduct?.sku,
             marketType: "yandex",
           },
         });
@@ -725,7 +725,7 @@ export const getAllProductsStockPage = async (req, res) => {
               // Yandex products
               yandexApiProducts(callback) {
                 yandexService
-                  .getApiProductsList([])
+                  .getApiProductsList()
                   .then((result) => callback(null, result))
                   .catch((error) => callback(error, null));
               },

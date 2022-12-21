@@ -19,7 +19,7 @@ const connectYandexDataResultFormatter = (
         : ""),
     productStock: {
       stock: yandexStock,
-      updateBy: yandexDbProduct.sku,
+      updateBy: yandexDbProduct?.sku,
       marketType: "yandex",
     },
   };

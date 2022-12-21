@@ -89,7 +89,7 @@ export const getConnectYandexDataRequests = (
       const variation = allDbVariations.find(
         (variation) =>
           // Search market product in db for market product from api
-          variation.yandexProduct?.filter((variationYandexDbProduct) => {
+          variation?.yandexProduct?.filter((variationYandexDbProduct) => {
             const isMarketProductMatch =
               variationYandexDbProduct.sku === yandexApiProduct["shopSku"];
 
@@ -105,7 +105,7 @@ export const getConnectYandexDataRequests = (
       if (!yandexDbProduct) {
         yandexDbProduct = yandexDbProducts.find(
           (yandexDbProduct) =>
-            yandexDbProduct.sku === yandexApiProduct["shopSku"]
+            yandexDbProduct?.sku === yandexApiProduct["shopSku"]
         );
       }
 
