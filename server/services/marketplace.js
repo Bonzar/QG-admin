@@ -6,6 +6,7 @@ export class Marketplace {
     this.marketProductSchema = marketProductSchema;
   }
 
+  //fixme article cant be empty when it was set at least once
   static getMarketProductDetails(marketProductData) {
     const marketProductDetails = {};
 
