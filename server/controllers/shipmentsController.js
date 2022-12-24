@@ -32,7 +32,10 @@ export const getOzonShipment = async (req, res) => {
 
 export const getWbShipment = async (req, res) => {
   try {
-    const wbShipmentProducts = await wbService.getWbShipment(req.body);
+    const wb = new wbService.Wildberries();
+
+    const wbShipmentProducts = await wb.getDevShipment(req.body);
+    // const wbShipmentProducts = await wbService.getWbShipment(req.body);
 
     wbShipmentProducts.sort((product1, product2) => {
       return product1.name.localeCompare(product2.name);

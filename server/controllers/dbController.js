@@ -5,6 +5,7 @@ import * as wbService from "../services/wbService.js";
 import * as yandexService from "../services/yandexService.js";
 import * as wooService from "../services/wooService.js";
 import { Ozon, OzonProductInstance } from "../services/ozonService.js";
+import { Wildberries } from "../services/wbService.js";
 
 const isValidationPass = (req, res) => {
   let errors = validationResult(req);
@@ -750,39 +751,6 @@ export const getAllProductsStockPage = async (req, res) => {
                   .then((products) => callback(null, products))
                   .catch((error) => callback(error, null));
               },
-              // Wb products
-              wbApiProducts(callback) {
-                wbService
-                  .getApiProductsInfoList(null)
-                  .then((result) => callback(null, result))
-                  .catch((error) => callback(error, null));
-              },
-              // Wb Stocks on our warehouse
-              wbApiFbsStocks(callback) {
-                wbService
-                  .getApiProductFbsStocks("")
-                  .then((products) => callback(null, products))
-                  .catch((error) => callback(error, null));
-              },
-              // Wb Stocks on Wb warehouse
-              wbApiFbwStocks(callback) {
-                wbService
-                  .getApiProductFbwStocks()
-                  .then((result) => callback(null, result))
-                  .catch((error) => {
-                    // if request unsuccessful leave wbApiFbwStocks empty.
-                    console.error(error);
-                    callback(null, null);
-                  });
-              },
-              // List of Wb products from DB
-              wbDbProducts(callback) {
-                dbService
-                  .getWbProducts({})
-                  .then((products) => callback(null, products))
-                  .catch((error) => callback(error, null));
-              },
-              // List of all products from DB
               allDbVariations(callback) {
                 dbService
                   .getAllVariations({}, [
@@ -806,15 +774,6 @@ export const getAllProductsStockPage = async (req, res) => {
             yandexDbProducts,
             wooApiProducts,
             wooDbProducts,
-            // ozonApiProductsInfo: {
-            //   productsInfo: ozonApiProducts,
-            //   productsStockList: ozonApiStocks,
-            // },
-            // ozonDbProducts,
-            wbApiProducts,
-            wbApiFbwStocks,
-            wbApiFbsStocks,
-            wbDbProducts,
           } = results;
 
           const yandexProductConnectRequests =
@@ -825,16 +784,6 @@ export const getAllProductsStockPage = async (req, res) => {
               allDbVariations,
               connectYandexDataResultFormatter
             );
-
-          const wbProductConnectRequests = wbService.getConnectWbDataRequests(
-            req.query,
-            wbApiProducts,
-            wbApiFbsStocks,
-            wbApiFbwStocks,
-            wbDbProducts,
-            allDbVariations,
-            connectWbDataResultFormatter
-          );
 
           const wooProductConnectRequests =
             wooService.getConnectWooDataRequests(
@@ -854,7 +803,7 @@ export const getAllProductsStockPage = async (req, res) => {
                 const ozon = new Ozon();
                 ozon
                   .getProducts(
-                    {},
+                    req.query,
                     connectOzonDataResultFormatter,
                     allDbVariations
                   )
@@ -862,7 +811,14 @@ export const getAllProductsStockPage = async (req, res) => {
                   .catch((error) => callback(error, null));
               },
               (callback) => {
-                async.parallel(wbProductConnectRequests, callback);
+                const wb = new Wildberries();
+                wb.getProducts(
+                  req.query,
+                  connectWbDataResultFormatter,
+                  allDbVariations
+                )
+                  .then((result) => callback(null, result))
+                  .catch((error) => callback(error, null));
               },
               (callback) => {
                 async.parallel(wooProductConnectRequests, callback);

@@ -16,4 +16,6 @@ const Sells = new Schema({
   },
 });
 
+Sells.index({ marketProductRef: 1, orderId: 1 }, { unique: true });
+
 export default model("Sells", Sells);

@@ -54,8 +54,6 @@ export const getProductsListPage = async (req, res) => {
       },
       products,
     });
-    //todo put update Ozon Stocks to Ozon Class fetch ozon api products method
-    // dbService.updateOzonStocks(productsApiList);
   } catch (error) {
     console.error(error);
     return res.status(400).json({

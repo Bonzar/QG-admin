@@ -57,7 +57,11 @@ export const getOzonProducts = (filter = {}) => {
 };
 
 export const getAllSells = (filter = {}, populate = "") => {
-  return Sells.find(filter).populate(populate).exec();
+  return Sells.find(filter).populate(populate);
+};
+
+export const getLastSell = (filter = {}, populate = "") => {
+  return Sells.findOne(filter).populate(populate).sort({ date: -1 }).limit(1);
 };
 
 /* todo Убрать проверку на наличие записи о продажи в БД
@@ -65,51 +69,43 @@ export const getAllSells = (filter = {}, populate = "") => {
  * Добавить обработку ошибки в случае добавления повторки
  * Добавить пороговое значение даты для обновления продаж сохраненное с последнего обновления
  **/
-export const addUpdateSell = async (
-  _id = null,
-  marketProductRef,
-  productIdentifier,
-  orderId,
-  quantity,
-  date,
-  cbFunc
-) => {
+export const addUpdateSell = async (sellData, cbFunc) => {
   try {
     let marketProduct;
-    switch (marketProductRef) {
+    switch (sellData.marketProductRef) {
       case "WbProduct":
         marketProduct = await WbProduct.findOne({
-          sku: productIdentifier,
+          sku: sellData.productIdentifier,
         });
         break;
       case "OzonProduct":
         marketProduct = await OzonProduct.findOne({
-          sku: +productIdentifier,
+          sku: +sellData.productIdentifier,
         });
         break;
       case "YandexProduct":
         marketProduct = await YandexProduct.findOne({
-          sku: productIdentifier,
+          sku: sellData.productIdentifier,
         });
         break;
       case "WooProduct":
         marketProduct = await WooProduct.findOne({
-          id: +productIdentifier,
+          id: +sellData.productIdentifier,
         });
         break;
     }
 
     let sellDetails = {
-      marketProductRef,
-      orderId,
-      quantity: +quantity,
-      date: new Date(date),
+      marketProductRef: sellData.marketProductRef,
+      orderId: sellData.orderId,
+      quantity: +sellData.quantity,
+      date: new Date(sellData.date),
       marketProduct,
     };
 
     let sell;
-    if (_id) {
-      sell = await Sells.findById(_id).exec();
+    if (sellData._id) {
+      sell = await Sells.findById(sellData._id).exec();
       for (const [key, value] of Object.entries(sellDetails)) {
         sell[key] = value;
       }
@@ -124,7 +120,7 @@ export const addUpdateSell = async (
         return;
       }
 
-      console.log("Sell saved.");
+      console.log(`Sell ${sellDetails.orderId} saved.`);
       cbFunc(null, sell);
     });
   } catch (e) {
@@ -760,11 +756,11 @@ export const updateOzonStocks = async (productsApiList) => {
       productsApiList = await ozon.getApiProducts();
     }
 
-    const { productsInfo, productsStockList } = productsApiList;
+    const { productsInfo, productsStocks } = productsApiList;
 
     const productsFormatRequests = productsInfo.map((product) => {
       return function (callback) {
-        const productStocks = productsStockList.find(
+        const productStocks = productsStocks.find(
           (stockInfo) => stockInfo.product_id === product.id
         );
 
@@ -795,42 +791,27 @@ export const updateOzonStocks = async (productsApiList) => {
   }
 };
 
-export const updateWbStocks = async (productsApiList, productFbwStocks) => {
+export const updateWbStocks = async (fbwStocks) => {
   try {
-    if (!productsApiList) {
-      productsApiList = await wbService.getApiProductsInfoList();
-    }
-    if (!productFbwStocks) {
-      productFbwStocks = await wbService.getApiProductFbwStocks();
-    }
-
-    if (!productFbwStocks)
-      return console.log({ message: "Wb stocks in db update failed." });
-
-    const productsFormatRequests = productsApiList.data["cards"].map(
-      (product) => {
-        return function (callback) {
-          const stockFBW =
-            productFbwStocks
-              .filter((fbwStock) => fbwStock["nmId"] === product["nmID"])
-              .reduce((total, current) => total + current.quantity, 0) ?? 0;
-
-          const updatedProduct = WbProduct.findOneAndUpdate(
-            { sku: product["nmID"] },
-            { stock: stockFBW },
-            (err) => {
+    const productsFormatRequests = Object.entries(fbwStocks).map((fbwStock) => {
+      const [sku, stock] = fbwStock;
+      return function (callback) {
+        WbProduct.findOne({ sku })
+          .exec()
+          .then((wbProduct) => {
+            wbProduct.stock = stock;
+            wbProduct.save((err) => {
               if (err) {
                 callback(err, null);
                 return;
               }
-              callback(null, updatedProduct);
-            }
-          );
-        };
-      }
-    );
+              callback(null, wbProduct);
+            });
+          });
+      };
+    });
 
-    async.parallel(productsFormatRequests);
+    return async.parallel(productsFormatRequests);
   } catch (e) {
     console.error({ message: "Wb stocks in db update failed.", e });
   }
