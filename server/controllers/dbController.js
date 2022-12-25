@@ -4,7 +4,7 @@ import * as dbService from "../services/dbService.js";
 import * as wbService from "../services/wbService.js";
 import * as yandexService from "../services/yandexService.js";
 import * as wooService from "../services/wooService.js";
-import { Ozon, OzonProductInstance } from "../services/ozonService.js";
+import { Ozon } from "../services/ozonService.js";
 import { Wildberries } from "../services/wbService.js";
 
 const isValidationPass = (req, res) => {
@@ -172,13 +172,15 @@ export const getDbMarketProductPage = async (req, res) => {
             break;
           case "ozon":
             // eslint-disable-next-line no-case-declarations
-            const ozonProduct = new OzonProductInstance(productId);
+            const ozonProduct = new Ozon(productId);
             marketProduct = await ozonProduct.getDbData();
             // eslint-disable-next-line no-case-declarations
             const ozonStocks = await ozonProduct.getApiStock();
-            fbsStocks = ozonStocks.find(
+            // eslint-disable-next-line no-case-declarations
+            const ozonFbsStocks = ozonStocks.find(
               (stock) => stock.type === "fbs"
-            )?.present;
+            );
+            fbsStocks = ozonFbsStocks?.present - ozonFbsStocks?.reserved ?? 0;
 
             break;
           case "woo":
@@ -800,13 +802,11 @@ export const getAllProductsStockPage = async (req, res) => {
                 async.parallel(yandexProductConnectRequests, callback);
               },
               (callback) => {
-                const ozon = new Ozon();
-                ozon
-                  .getProducts(
-                    req.query,
-                    connectOzonDataResultFormatter,
-                    allDbVariations
-                  )
+                Ozon.getProducts(
+                  req.query,
+                  connectOzonDataResultFormatter,
+                  allDbVariations
+                )
                   .then((result) => callback(null, result))
                   .catch((error) => callback(error, null));
               },

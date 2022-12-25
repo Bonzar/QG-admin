@@ -1,58 +1,48 @@
 import * as dbService from "./dbService.js";
 import async from "async";
-
 export class Marketplace {
-  constructor(marketProductSchema) {
-    this.marketProductSchema = marketProductSchema;
+  #dbData;
+
+  constructor(dbId) {
+    this.dbId = dbId;
+    this.setProductInfoFromDb(dbId);
   }
 
-  //fixme article cant be empty when it was set at least once
-  static getMarketProductDetails(marketProductData) {
-    const marketProductDetails = {};
-
-    // Common fields for all marketplaces
-    if (marketProductData.sku) {
-      marketProductDetails.sku = marketProductData.sku;
+  /**
+   * INSTANCE METHODS
+   */
+  getDbData() {
+    if (this.#dbData) {
+      return this.#dbData;
     }
-    if (marketProductData?.article) {
-      marketProductDetails.article = marketProductData.article;
-    }
-    marketProductDetails.isActual = marketProductData.isActual
-      ? marketProductData.isActual === "true"
-      : true;
 
-    return marketProductDetails;
+    return this.setProductInfoFromDb(this.dbId);
   }
 
-  getDbProducts = (filter = {}) => {
-    return this.marketProductSchema.find(filter).exec();
-  };
+  setProductInfoFromDb(dbId) {
+    this.#dbData = this.constructor.getDbProductById(dbId);
+    return this.#dbData;
+  }
 
-  getDbProductById = (id) => {
-    return this.marketProductSchema.findById(id).exec();
-  };
-}
-
-export const MarketplaceProductInstanceMixin = {
   async addUpdateDbInfo(marketProductData) {
     await this.checkIdentifierExistsInApi(marketProductData);
 
     const marketProductDetails =
-      Marketplace.getMarketProductDetails(marketProductData);
+      this.constructor.getMarketProductDetails(marketProductData);
 
     let product = await this.getDbData();
 
     return dbService.addUpdateDbRecord(
       product,
       marketProductDetails,
-      this.marketProductSchema
+      this.constructor.marketProductSchema
     );
-  },
+  }
 
-  addUpdateDbProduct(newData) {
+  addUpdateProduct(newData, apiStockUpdater) {
     return async.parallel({
       updateApiStock: (callback) => {
-        this.updateApiStock(newData.stockFBS)
+        apiStockUpdater(newData.stockFBS)
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
@@ -71,5 +61,38 @@ export const MarketplaceProductInstanceMixin = {
           .catch((error) => callback(error, null));
       },
     });
-  },
-};
+  }
+
+  async checkIdentifierExistsInApi() {
+    return true;
+  }
+
+  /**
+   * CLASS METHODS
+   */
+  //fixme article cant be empty when it was set at least once
+  static getMarketProductDetails(marketProductData) {
+    const marketProductDetails = {};
+
+    // Common fields for all marketplaces
+    if (marketProductData.sku) {
+      marketProductDetails.sku = marketProductData.sku;
+    }
+    if (marketProductData?.article) {
+      marketProductDetails.article = marketProductData.article;
+    }
+    marketProductDetails.isActual = marketProductData.isActual
+      ? marketProductData.isActual === "true"
+      : true;
+
+    return marketProductDetails;
+  }
+
+  static getDbProducts(filter = {}) {
+    return this.marketProductSchema?.find(filter).exec();
+  }
+
+  static getDbProductById(id) {
+    return this.marketProductSchema?.findById(id).exec();
+  }
+}

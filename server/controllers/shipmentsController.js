@@ -4,9 +4,7 @@ import * as wbService from "../services/wbService.js";
 
 export const getOzonShipment = async (req, res) => {
   try {
-    const ozon = new Ozon();
-
-    const ozonShipmentProducts = await ozon.getApiShipmentPredict(
+    const ozonShipmentProducts = await Ozon.getApiShipmentPredict(
       req.body.dateShiftDays,
       req.body.predictPeriodDays
     );

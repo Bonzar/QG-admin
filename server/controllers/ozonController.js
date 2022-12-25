@@ -28,9 +28,7 @@ const connectOzonDataResultFormatter = (
 
 export const getProductsListPage = async (req, res) => {
   try {
-    const ozon = new Ozon();
-
-    let data = await ozon.getProducts(
+    let data = await Ozon.getProducts(
       req.query,
       connectOzonDataResultFormatter
     );

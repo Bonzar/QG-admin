@@ -10,8 +10,6 @@ import * as dbService from "../services/dbService.js";
 
 //todo refactor callbacks
 
-const ozon = new Ozon();
-
 const formatOzonOrders = (ozonOrders, ozonDbProducts, dbVariations) => {
   return ozonOrders.map((ozonOrder) => {
     let order_status = "";
@@ -54,20 +52,17 @@ const getAllOzonOrders = () => {
   return async
     .parallel({
       ozonTodayOrders: (callback) => {
-        ozon
-          .getApiTodayOrders()
+        Ozon.getApiTodayOrders()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
       ozonOverdueOrders: (callback) => {
-        ozon
-          .getApiOverdueOrders()
+        Ozon.getApiOverdueOrders()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
       ozonDbProducts: (callback) => {
-        ozon
-          .getDbProducts()
+        Ozon.getDbProducts()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },

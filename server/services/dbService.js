@@ -10,7 +10,7 @@ import async from "async";
 import * as yandexService from "./yandexService.js";
 import * as wbService from "./wbService.js";
 import * as wooService from "./wooService.js";
-import { Ozon, OzonProductInstance } from "./ozonService.js";
+import { Ozon } from "./ozonService.js";
 
 const populateAll = (query, populates) => {
   for (const populate of populates) {
@@ -178,6 +178,11 @@ export const addUpdateDbRecord = (
 };
 
 export const addUpdateMarketProduct = async (marketProductData) => {
+  if (marketProductData.marketType === "ozon") {
+    const ozonProduct = new Ozon(marketProductData._id);
+    return ozonProduct.addUpdateProduct(marketProductData);
+  }
+
   const variationMarketProp = `${marketProductData.marketType}Product`;
 
   // Получение продукта в зависимости от типа маркетплейса
@@ -202,10 +207,10 @@ export const addUpdateMarketProduct = async (marketProductData) => {
       break;
     case "ozon":
       // eslint-disable-next-line no-case-declarations
-      const ozonProduct = new OzonProductInstance(marketProductData._id);
+      const ozonProduct = new Ozon(marketProductData._id);
       marketProduct = await ozonProduct.getDbData();
 
-      allApiProducts = await ozonProduct.getApiProductStocks();
+      allApiProducts = await Ozon.getApiProductsStocks();
       break;
     case "woo":
       wooResults = await async.parallel({
@@ -752,8 +757,7 @@ export const updateYandexStocks = async (productsApiList) => {
 export const updateOzonStocks = async (productsApiList) => {
   try {
     if (!productsApiList) {
-      const ozon = new Ozon();
-      productsApiList = await ozon.getApiProducts();
+      productsApiList = await Ozon.getApiProducts();
     }
 
     const { productsInfo, productsStocks } = productsApiList;
@@ -957,16 +961,13 @@ export const getVariationProductsStocks = (id) => {
             )
               return callback(null, null);
 
-            const ozon = new Ozon();
-
             const fbsOzonStocksRequests = productVariation.ozonProduct.map(
               (ozonProduct) => {
                 return (callback) => {
-                  ozon
-                    .getApiProductStocks({
-                      product_id: [ozonProduct.sku],
-                      visibility: "ALL",
-                    })
+                  Ozon.getApiProductsStocks({
+                    product_id: [ozonProduct.sku],
+                    visibility: "ALL",
+                  })
                     .then((result) => {
                       callback(null, {
                         identifier: ozonProduct.sku,

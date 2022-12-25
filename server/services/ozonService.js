@@ -3,7 +3,7 @@ import async from "async";
 import { format as formatDate, sub as subFromDate, addDays } from "date-fns";
 import * as dbService from "./dbService.js";
 import OzonProduct from "../models/OzonProduct.js";
-import { Marketplace, MarketplaceProductInstanceMixin } from "./marketplace.js";
+import { Marketplace } from "./marketplace.js";
 
 const ozonAPI = axios.create({
   baseURL: "https://api-seller.ozon.ru/",
@@ -16,12 +16,59 @@ const ozonAPI = axios.create({
 
 //todo add errors processing for api requests
 export class Ozon extends Marketplace {
-  constructor() {
-    super(OzonProduct);
+  static marketProductSchema = OzonProduct;
+
+  constructor(dbId) {
+    super(dbId);
   }
 
-  // API methods
-  getApiProductStocks(filter = { visibility: "ALL" }) {
+  /**
+   * INSTANCE METHODS
+   */
+  async updateApiStock(newStock) {
+    const product = await this.getDbData();
+
+    return Ozon.updateApiStock(product.article, newStock);
+  }
+
+  async getApiStock() {
+    const product = await this.getDbData();
+
+    const stocks = await Ozon.getApiProductsStocks({
+      product_id: [product.sku],
+      visibility: "ALL",
+    });
+
+    return stocks[0].stocks;
+  }
+
+  async checkIdentifierExistsInApi(newProductData) {
+    const allApiProducts = await Ozon.getApiProductsStocks();
+
+    const isProductExistsOnMarketplace = [
+      allApiProducts.find(
+        (product) => +product.product_id === +newProductData.sku
+      ),
+      allApiProducts.find(
+        (product) => product.offer_id === newProductData.article
+      ),
+    ].every((check) => check);
+
+    if (!isProductExistsOnMarketplace) {
+      throw new Error("Идентификатор товара не существует в базе маркетплейса");
+    }
+  }
+
+  addUpdateProduct(newData) {
+    return super.addUpdateProduct(newData, (newStock) =>
+      this.updateApiStock(newStock)
+    );
+  }
+
+  /**
+   * CLASS METHODS
+   */
+  static getApiProductsStocks(filter = { visibility: "ALL" }) {
     return ozonAPI
       .post("v3/product/info/stocks", {
         filter,
@@ -31,7 +78,7 @@ export class Ozon extends Marketplace {
       .then((response) => response.data.result.items);
   }
 
-  getApiProductsInfo = (productIds) => {
+  static getApiProductsInfo = (productIds) => {
     return ozonAPI
       .post("v2/product/info/list", {
         product_id: productIds,
@@ -42,8 +89,8 @@ export class Ozon extends Marketplace {
   /**
    * @param {{visibility: string}} filter
    */
-  getApiProducts = async (filter) => {
-    const productsStocks = await this.getApiProductStocks(filter);
+  static getApiProducts = async (filter) => {
+    const productsStocks = await this.getApiProductsStocks(filter);
 
     const productsIds = productsStocks.map((product) => product.product_id);
 
@@ -72,7 +119,7 @@ export class Ozon extends Marketplace {
   }
 
   static updateApiStock(article, newStock) {
-    return Ozon.updateApiStocks([
+    return this.updateApiStocks([
       {
         offer_id: article,
         stock: +newStock,
@@ -80,7 +127,7 @@ export class Ozon extends Marketplace {
     ]);
   }
 
-  getApiTodayOrders() {
+  static getApiTodayOrders() {
     const today = new Date();
     today.setHours(0, 0, 0);
     const todayStart = today.toISOString();
@@ -101,7 +148,7 @@ export class Ozon extends Marketplace {
       .then((response) => response.data.result.postings);
   }
 
-  async getApiOverdueOrders() {
+  static async getApiOverdueOrders() {
     const date = new Date();
     const today = date.setHours(0, 0, 0, 0);
 
@@ -144,7 +191,10 @@ export class Ozon extends Marketplace {
     });
   }
 
-  async getApiShipmentPredict(dateShiftDays = 13, predictPeriodDays = 30) {
+  static async getApiShipmentPredict(
+    dateShiftDays = 13,
+    predictPeriodDays = 30
+  ) {
     const getAnalyticData = (date_from, date_to) => {
       return ozonAPI
         .request({
@@ -264,7 +314,7 @@ export class Ozon extends Marketplace {
 
     productsInfo.forEach((apiProduct) => {
       const { dbVariation: variation, dbProduct: ozonDbProduct } =
-        Ozon.getDbProductAndVariationForApiProduct(
+        this.getDbProductAndVariationForApiProduct(
           apiProduct,
           allDbVariations,
           ozonDbProducts
@@ -328,8 +378,6 @@ export class Ozon extends Marketplace {
     return products;
   }
 
-  // Other methods
-
   static getDbProductAndVariationForApiProduct(
     apiProduct,
     allDbVariations,
@@ -364,7 +412,7 @@ export class Ozon extends Marketplace {
     return { dbVariation, dbProduct };
   }
 
-  #getConnectOzonDataRequests(
+  static #getConnectOzonDataRequests(
     filters,
     ozonApiProducts,
     ozonApiStocks,
@@ -375,7 +423,7 @@ export class Ozon extends Marketplace {
     return ozonApiProducts.map((apiProduct) => {
       return async () => {
         const { dbVariation, dbProduct } =
-          Ozon.getDbProductAndVariationForApiProduct(
+          this.getDbProductAndVariationForApiProduct(
             apiProduct,
             allDbVariations,
             ozonDbProducts
@@ -388,13 +436,16 @@ export class Ozon extends Marketplace {
         const stockFBO =
           productStocks.stocks.find((stock) => stock.type === "fbo")?.present ??
           0;
-        const stockFBS =
-          productStocks.stocks.find((stock) => stock.type === "fbs")?.present ??
-          0;
+
+        const fbsStocks = productStocks.stocks.find(
+          (stock) => stock.type === "fbs"
+        );
+        const stockFBS = fbsStocks?.present - fbsStocks?.reserved ?? 0;
 
         // Filtration
         let isPassFilterArray = [];
         // by stock status
+        //todo rename to camelCase
         switch (filters.stock_status) {
           // Filter only outofstock products (by FBM and FBS)
           case "outofstock":
@@ -448,7 +499,11 @@ export class Ozon extends Marketplace {
     });
   }
 
-  async getProducts(filters, connectOzonDataResultFormatter, allDbVariations) {
+  static async getProducts(
+    filters,
+    connectOzonDataResultFormatter,
+    allDbVariations
+  ) {
     const data = await async.parallel({
       ozonApiProducts: (callback) => {
         this.getApiProducts()
@@ -491,72 +546,3 @@ export class Ozon extends Marketplace {
     );
   }
 }
-
-export class OzonProductInstance extends Ozon {
-  #dbData;
-
-  constructor(dbId) {
-    super();
-    this.dbId = dbId;
-    this.setProductInfoFromDb(dbId);
-  }
-
-  getDbData() {
-    if (this.#dbData) {
-      return this.#dbData;
-    }
-
-    return this.setProductInfoFromDb(this.dbId);
-  }
-
-  setProductInfoFromDb(dbId) {
-    this.#dbData = this.getDbProductById(dbId);
-    return this.#dbData;
-  }
-
-  // API methods
-
-  async updateApiStock(newStock) {
-    const product = await this.getDbData();
-
-    return Ozon.updateApiStock(product.article, newStock);
-  }
-
-  async checkIdentifierExistsInApi(newProductData) {
-    const allApiProducts = await this.getApiProductStocks();
-
-    const isProductExistsOnMarketplace = [
-      allApiProducts.find(
-        (product) => +product.product_id === +newProductData.sku
-      ),
-      allApiProducts.find(
-        (product) => product.offer_id === newProductData.article
-      ),
-    ].every((check) => check);
-
-    if (!isProductExistsOnMarketplace) {
-      throw new Error("Идентификатор товара не существует в базе маркетплейса");
-    }
-  }
-
-  async getApiStock() {
-    const product = await this.getDbData();
-
-    const stocks = await this.getApiProductStocks({
-      product_id: [product.sku],
-      visibility: "ALL",
-    });
-
-    return stocks[0].stocks;
-  }
-
-  addUpdateDbInfo() {
-    // rewrite from MarketplaceProductInstanceMixin
-  }
-
-  addUpdateDbProduct() {
-    // rewrite from MarketplaceProductInstanceMixin
-  }
-}
-
-Object.assign(OzonProductInstance.prototype, MarketplaceProductInstanceMixin);
