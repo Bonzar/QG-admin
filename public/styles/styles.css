@@ -557,11 +557,8 @@ header a {
   z-index: 5;
 }
 
-tr:nth-child(even) td.col--name {
-  background: var(--table-row-even);
-}
-tr:nth-child(odd) td.col--name {
-  background: var(--table-row-odd);
+.stocks-table td.col--name {
+  background-color: inherit;
 }
 
 .stocks-table .col--identifier {
