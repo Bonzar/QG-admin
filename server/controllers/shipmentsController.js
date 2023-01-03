@@ -1,6 +1,6 @@
 import ObjectsToCsv from "objects-to-csv";
 import { Ozon } from "../services/ozon.js";
-import * as wbService from "../services/wildberries.js";
+import { Wildberries } from "../services/wildberries.js";
 
 export const getOzonShipment = async (req, res) => {
   try {
@@ -30,10 +30,9 @@ export const getOzonShipment = async (req, res) => {
 
 export const getWbShipment = async (req, res) => {
   try {
-    const wb = new wbService.Wildberries();
-
-    const wbShipmentProducts = await wb.getDevShipment(req.body);
-    // const wbShipmentProducts = await wbService.getWbShipment(req.body);
+    const wbShipmentProducts = await Wildberries.getApiShipmentPredict(
+      req.body
+    );
 
     wbShipmentProducts.sort((product1, product2) => {
       return product1.name.localeCompare(product2.name);
