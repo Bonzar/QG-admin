@@ -1,31 +1,23 @@
-import async from "async";
-import * as wbService from "../services/wbService.js";
-import { Wildberries } from "../services/wbService.js";
+import { Wildberries } from "../services/wildberries.js";
 
-import * as dbService from "../services/dbService.js";
+const connectWbDataResultFormatter = (product) => {
+  let { dbVariation, dbProduct, apiProduct, stockFBW, stockFBS } = product;
 
-const connectWbDataResultFormatter = (
-  variation,
-  wbDbProduct,
-  wbApiProduct,
-  stockFBW,
-  stockFBS
-) => {
   return {
-    productInnerId: variation?.product._id,
-    marketProductInnerId: wbDbProduct?._id,
-    barcode: wbDbProduct?.barcode ?? "",
-    articleWb: wbApiProduct["nmID"],
-    article: wbApiProduct["vendorCode"],
+    productInnerId: dbVariation?.product._id,
+    marketProductInnerId: dbProduct?._id,
+    barcode: dbProduct?.barcode ?? "",
+    articleWb: apiProduct["nmID"],
+    article: apiProduct["vendorCode"],
     name:
-      (variation?.product.name ?? "") +
-      (["3 мл", "10 мл"].includes(variation?.volume)
-        ? ` - ${variation?.volume}`
+      (dbVariation?.product.name ?? "") +
+      (["3 мл", "10 мл"].includes(dbVariation?.volume)
+        ? ` - ${dbVariation?.volume}`
         : ""),
     stockFBW,
     stockFBS: {
       stock: stockFBS,
-      updateBy: wbDbProduct?.barcode ?? "",
+      updateBy: dbProduct?.barcode ?? "",
       marketType: "wb",
     },
   };
@@ -33,17 +25,14 @@ const connectWbDataResultFormatter = (
 
 export const getProductsListPage = async (req, res) => {
   try {
-    const wb = new Wildberries();
+    let products = await Wildberries.getProducts(req.query);
 
-    let products = await wb.getProducts(
-      req.query,
-      connectWbDataResultFormatter
-    );
-
-    products = products.filter((product) => !!product);
+    let formattedProducts = products.map((product) => {
+      return connectWbDataResultFormatter(product);
+    });
 
     // Sorting
-    products.sort((product1, product2) =>
+    formattedProducts.sort((product1, product2) =>
       product1.name.localeCompare(product2.name, "ru")
     );
 
@@ -56,7 +45,7 @@ export const getProductsListPage = async (req, res) => {
         FBM: { type: "fbm", field: "stockFBW" },
         FBS: { type: "fbs", field: "stockFBS" },
       },
-      products,
+      products: formattedProducts,
     });
   } catch (error) {
     console.error(error);
@@ -68,8 +57,7 @@ export const getProductsListPage = async (req, res) => {
 };
 
 export const updateApiStock = (req, res) => {
-  wbService
-    .updateApiStock(req.query.barcode, req.query.stock)
+  Wildberries.updateApiStock(req.query.barcode, req.query.stock)
     .then((result) => {
       if (result["error"]) {
         return res

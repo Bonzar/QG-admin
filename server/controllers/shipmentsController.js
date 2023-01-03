@@ -1,6 +1,6 @@
 import ObjectsToCsv from "objects-to-csv";
-import { Ozon } from "../services/ozonService.js";
-import * as wbService from "../services/wbService.js";
+import { Ozon } from "../services/ozon.js";
+import * as wbService from "../services/wildberries.js";
 
 export const getOzonShipment = async (req, res) => {
   try {

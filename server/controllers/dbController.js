@@ -1,11 +1,10 @@
 import async from "async";
 import { validationResult } from "express-validator";
 import * as dbService from "../services/dbService.js";
-import * as wbService from "../services/wbService.js";
 import * as yandexService from "../services/yandexService.js";
 import * as wooService from "../services/wooService.js";
-import { Ozon } from "../services/ozonService.js";
-import { Wildberries } from "../services/wbService.js";
+import { Ozon } from "../services/ozon.js";
+import { Wildberries } from "../services/wildberries.js";
 
 const isValidationPass = (req, res) => {
   let errors = validationResult(req);
@@ -150,13 +149,10 @@ export const getDbMarketProductPage = async (req, res) => {
         let fbsStocks = null;
         switch (marketType) {
           case "wb":
-            marketProduct = (
-              await dbService.getWbProducts({ _id: productId })
-            )[0];
-            fbsStocks =
-              (await wbService.getApiProductFbsStocks(marketProduct.barcode))
-                .stocks?.[0].stock ?? 0;
-
+            // eslint-disable-next-line no-case-declarations
+            const wbProduct = new Wildberries(productId);
+            marketProduct = await wbProduct.getDbData();
+            fbsStocks = (await wbProduct.getApiFbsStock()) ?? 0;
             break;
           case "yandex":
             marketProduct = (
@@ -175,7 +171,7 @@ export const getDbMarketProductPage = async (req, res) => {
             const ozonProduct = new Ozon(productId);
             marketProduct = await ozonProduct.getDbData();
             // eslint-disable-next-line no-case-declarations
-            const ozonStocks = await ozonProduct.getApiStock();
+            const ozonStocks = await ozonProduct.getApiStocks();
             // eslint-disable-next-line no-case-declarations
             const ozonFbsStocks = ozonStocks.find(
               (stock) => stock.type === "fbs"
@@ -636,13 +632,14 @@ export const getAllProductsStockPage = async (req, res) => {
       }
     };
 
-    const connectWbDataResultFormatter = (
-      variation,
-      wbDbProduct,
-      wbApiProduct,
-      stockFBW,
-      stockFBS
-    ) => {
+    const connectWbDataResultFormatter = (product) => {
+      const {
+        dbVariation: variation,
+        dbProduct: wbDbProduct,
+        stockFBW,
+        stockFBS,
+      } = product;
+
       const variationStock = allVariationsStockList.find(
         (variationStock) =>
           variationStock.variationInnerId === variation?._id &&
@@ -811,13 +808,15 @@ export const getAllProductsStockPage = async (req, res) => {
                   .catch((error) => callback(error, null));
               },
               (callback) => {
-                const wb = new Wildberries();
-                wb.getProducts(
-                  req.query,
-                  connectWbDataResultFormatter,
-                  allDbVariations
-                )
-                  .then((result) => callback(null, result))
+                Wildberries.getProducts(req.query, allDbVariations)
+                  .then((products) =>
+                    callback(
+                      null,
+                      products.map((product) =>
+                        connectWbDataResultFormatter(product)
+                      )
+                    )
+                  )
                   .catch((error) => callback(error, null));
               },
               (callback) => {

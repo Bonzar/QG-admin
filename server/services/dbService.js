@@ -8,9 +8,9 @@ import Sells from "../models/Sells.js";
 import WooProductVariable from "../models/WooProductVariable.js";
 import async from "async";
 import * as yandexService from "./yandexService.js";
-import * as wbService from "./wbService.js";
 import * as wooService from "./wooService.js";
-import { Ozon } from "./ozonService.js";
+import { Ozon } from "./ozon.js";
+import { Wildberries } from "./wildberries.js";
 
 const populateAll = (query, populates) => {
   for (const populate of populates) {
@@ -183,6 +183,11 @@ export const addUpdateMarketProduct = async (marketProductData) => {
     return ozonProduct.addUpdateProduct(marketProductData);
   }
 
+  if (marketProductData.marketType === "wb") {
+    const wbProduct = new Wildberries(marketProductData._id);
+    return wbProduct.addUpdateProduct(marketProductData);
+  }
+
   const variationMarketProp = `${marketProductData.marketType}Product`;
 
   // Получение продукта в зависимости от типа маркетплейса
@@ -195,22 +200,11 @@ export const addUpdateMarketProduct = async (marketProductData) => {
     throw new Error("Не верный тип маркетплейса.");
 
   switch (marketProductData.marketType) {
-    case "wb":
-      marketProduct = await WbProduct.findById(marketProductData._id).exec();
-      allApiProducts = (await wbService.getApiProductsInfoList()).data["cards"];
-      break;
     case "yandex":
       marketProduct = await YandexProduct.findById(
         marketProductData._id
       ).exec();
       allApiProducts = await yandexService.getApiSkusList();
-      break;
-    case "ozon":
-      // eslint-disable-next-line no-case-declarations
-      const ozonProduct = new Ozon(marketProductData._id);
-      marketProduct = await ozonProduct.getDbData();
-
-      allApiProducts = await Ozon.getApiProductsStocks();
       break;
     case "woo":
       wooResults = await async.parallel({
@@ -290,31 +284,10 @@ export const addUpdateMarketProduct = async (marketProductData) => {
             }
 
             switch (marketProductData.marketType) {
-              case "wb":
-                isProductExistsOnMarketplace = [
-                  allApiProducts.find(
-                    (product) => +product["nmID"] === +marketProductData.sku
-                  ),
-                  allApiProducts.find(
-                    (product) =>
-                      product["vendorCode"] === marketProductData.article
-                  ),
-                ].every((check) => check);
-                break;
               case "yandex":
                 isProductExistsOnMarketplace = allApiProducts.includes(
                   marketProductData.sku
                 );
-                break;
-              case "ozon":
-                isProductExistsOnMarketplace = [
-                  allApiProducts.find(
-                    (product) => +product.product_id === +marketProductData.sku
-                  ),
-                  allApiProducts.find(
-                    (product) => product.offer_id === marketProductData.article
-                  ),
-                ].every((check) => check);
                 break;
             }
 
@@ -330,14 +303,8 @@ export const addUpdateMarketProduct = async (marketProductData) => {
 
             if (!marketProduct) {
               switch (marketProductData.marketType) {
-                case "wb":
-                  marketProduct = new WbProduct(marketProductDetails);
-                  break;
                 case "yandex":
                   marketProduct = new YandexProduct(marketProductDetails);
-                  break;
-                case "ozon":
-                  marketProduct = new OzonProduct(marketProductDetails);
                   break;
                 case "woo":
                   marketProduct = new WooProduct(marketProductDetails);
@@ -372,21 +339,9 @@ export const addUpdateMarketProduct = async (marketProductData) => {
 
       let updateRequest = null;
       switch (marketProductData.marketType) {
-        case "wb":
-          updateRequest = wbService.updateApiStock(
-            marketProductData.barcode,
-            marketProductData.stockFBS
-          );
-          break;
         case "yandex":
           updateRequest = yandexService.updateApiStock(
             marketProductData.sku,
-            marketProductData.stockFBS
-          );
-          break;
-        case "ozon":
-          updateRequest = Ozon.updateApiStock(
-            marketProductData.article,
             marketProductData.stockFBS
           );
           break;
@@ -795,23 +750,27 @@ export const updateOzonStocks = async (productsApiList) => {
   }
 };
 
-export const updateWbStocks = async (fbwStocks) => {
+export const updateWbStocks = async (products) => {
   try {
-    const productsFormatRequests = Object.entries(fbwStocks).map((fbwStock) => {
-      const [sku, stock] = fbwStock;
+    const productsFormatRequests = products.map((product) => {
       return function (callback) {
-        WbProduct.findOne({ sku })
-          .exec()
-          .then((wbProduct) => {
-            wbProduct.stock = stock;
-            wbProduct.save((err) => {
-              if (err) {
-                callback(err, null);
-                return;
-              }
-              callback(null, wbProduct);
-            });
-          });
+        if (product.dbProduct.stock === product.stockFBW) {
+          callback(null, null);
+          return;
+        }
+        product.dbProduct.stock = product.stockFBW;
+        product.dbProduct.save((err) => {
+          if (err) {
+            console.error(
+              `Error on WB product ${product.dbProduct.sku} update stock on ${product.stockFBW}\n${err}`
+            );
+
+            callback(err, null);
+            return;
+          }
+
+          callback(null, product.dbProduct);
+        });
       };
     });
 
@@ -933,12 +892,11 @@ export const getVariationProductsStocks = (id) => {
             const fbsWbStocksRequests = productVariation.wbProduct.map(
               (wbProduct) => {
                 return (callback) => {
-                  wbService
-                    .getApiProductFbsStocks(wbProduct.barcode)
+                  Wildberries.getApiProductsFbsStocks(wbProduct.barcode)
                     .then((result) =>
                       callback(null, {
                         identifier: wbProduct.sku,
-                        stock: result.stocks?.[0].stock ?? 0,
+                        stock: result?.[0].stock ?? 0,
                       })
                     )
                     .catch((error) => callback(error, null));

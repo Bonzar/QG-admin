@@ -1,12 +1,12 @@
 import async from "async";
 import * as yandexService from "../services/yandexService.js";
 import * as wooService from "../services/wooService.js";
-import * as wbService from "../services/wbService.js";
 import { clearName } from "../services/nameFormatter.js";
 import WbProduct from "../models/WbProduct.js";
 import ProductVariation from "../models/ProductVariation.js";
-import { Ozon } from "../services/ozonService.js";
+import { Ozon } from "../services/ozon.js";
 import * as dbService from "../services/dbService.js";
+import { Wildberries } from "../services/wildberries.js";
 
 //todo refactor callbacks
 
@@ -196,8 +196,7 @@ const getWooOrders = async (callback) => {
 const getWbOrders = () => {
   return async.waterfall([
     (callback) => {
-      wbService
-        .getApiTodayOrders()
+      Wildberries.getApiNewOrders()
         .then((result) => callback(null, result))
         .catch((error) => callback(error, null));
     },
@@ -208,33 +207,31 @@ const getWbOrders = () => {
             [
               (callback) => {
                 WbProduct.findOne({
-                  barcode: order.barcode,
+                  barcode: order.skus[0],
                 }).exec(callback);
               },
               (wbProduct, callback) => {
                 ProductVariation.findOne({ wbProduct })
                   .populate("product wbProduct")
-                  .exec(callback);
-              },
-              (variation, callback) => {
-                try {
-                  let order_status = "";
-                  switch (order.status) {
-                    case 0:
-                      order_status = "Новый";
-                      break;
-                    case 1:
-                      order_status = "Сборка";
-                      break;
-                  }
+                  .exec((error, variation) => {
+                    if (error) {
+                      console.error(error);
+                      callback(error, null);
+                      return;
+                    }
 
+                    callback(null, variation, wbProduct);
+                  });
+              },
+              (variation, wbProduct, callback) => {
+                try {
                   callback(null, {
-                    order_number: order.orderId,
-                    order_status,
+                    order_number: order.id,
+                    order_status: "Новый",
                     products: [
                       {
                         name: variation?.product.name ?? "",
-                        article: variation?.wbProduct.article ?? "",
+                        article: wbProduct?.article ?? "",
                         quantity: 1,
                       },
                     ],

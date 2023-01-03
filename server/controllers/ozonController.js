@@ -1,4 +1,4 @@
-import { Ozon } from "../services/ozonService.js";
+import { Ozon } from "../services/ozon.js";
 
 const connectOzonDataResultFormatter = (
   variation,

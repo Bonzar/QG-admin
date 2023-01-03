@@ -31,7 +31,7 @@ export class Ozon extends Marketplace {
     return Ozon.updateApiStock(product.article, newStock);
   }
 
-  async getApiStock() {
+  async getApiStocks() {
     const product = await this.getDbData();
 
     const stocks = await Ozon.getApiProductsStocks({
