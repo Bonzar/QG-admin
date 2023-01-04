@@ -44,8 +44,8 @@ export class Wildberries extends Marketplace {
     return Wildberries.updateApiStock(product.barcode, stock);
   }
 
-  async checkIdentifierExistsInApi(newProductData) {
-    const allApiProducts = await Wildberries.getApiProductsInfo();
+  static async checkIdentifierExistsInApi(newProductData) {
+    const allApiProducts = await this.getApiProductsInfo();
 
     const isProductExistsOnMarketplace = [
       allApiProducts.find(

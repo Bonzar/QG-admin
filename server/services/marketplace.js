@@ -25,7 +25,7 @@ export class Marketplace {
   }
 
   async addUpdateDbInfo(marketProductData) {
-    await this.checkIdentifierExistsInApi(marketProductData);
+    await this.constructor.checkIdentifierExistsInApi(marketProductData);
 
     const marketProductDetails =
       this.constructor.getMarketProductDetails(marketProductData);
@@ -63,7 +63,7 @@ export class Marketplace {
     });
   }
 
-  async checkIdentifierExistsInApi() {
+  static async checkIdentifierExistsInApi() {
     return true;
   }
 

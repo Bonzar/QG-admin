@@ -42,8 +42,8 @@ export class Ozon extends Marketplace {
     return stocks[0].stocks;
   }
 
-  async checkIdentifierExistsInApi(newProductData) {
-    const allApiProducts = await Ozon.getApiProductsStocks();
+  static async checkIdentifierExistsInApi(newProductData) {
+    const allApiProducts = await this.getApiProductsStocks();
 
     const isProductExistsOnMarketplace = [
       allApiProducts.find(
