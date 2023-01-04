@@ -61,6 +61,18 @@ export class Wildberries extends Marketplace {
     }
   }
 
+  static getMarketProductDetails(marketProductData) {
+    const marketProductDetails = super.getMarketProductDetails(
+      marketProductData
+    );
+
+    if (marketProductData.barcode) {
+      marketProductDetails.barcode = marketProductData.barcode;
+    }
+
+    return marketProductDetails;
+  }
+
   addUpdateProduct(newData) {
     return super.addUpdateProduct(newData, (newStock) =>
       this.updateApiStock(newStock)
