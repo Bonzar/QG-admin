@@ -141,96 +141,85 @@ export const getDbMarketProductPage = async (req, res) => {
           wooVariableProduct1.id - wooVariableProduct2.id
       );
     }
-
-    if (["yandex", "wb", "ozon", "woo"].includes(marketType)) {
-      // if id exist -> update product ELSE add new
-      if (productId) {
-        let marketProduct = null;
-        let fbsStocks = null;
-        switch (marketType) {
-          case "wb":
-            // eslint-disable-next-line no-case-declarations
-            const wbProduct = new Wildberries(productId);
-            marketProduct = await wbProduct.getDbData();
-            fbsStocks = (await wbProduct.getApiFbsStock()) ?? 0;
-            break;
-          case "yandex":
-            // eslint-disable-next-line no-case-declarations
-            const yandexProduct = new Yandex(productId);
-            marketProduct = await yandexProduct.getDbData();
-            fbsStocks =
-              (await yandexProduct.getApiProduct())?.warehouses
-                ?.find((warehouse) => warehouse.id === 52301)
-                .stocks.find((stockType) => stockType.type === "FIT")?.count ??
-              0;
-
-            console.log(
-              (await yandexProduct.getApiProduct())?.warehouses?.find(
-                (warehouse) => warehouse.id === 52301
-              ).stocks
-            );
-            break;
-          case "ozon":
-            // eslint-disable-next-line no-case-declarations
-            const ozonProduct = new Ozon(productId);
-            marketProduct = await ozonProduct.getDbData();
-            // eslint-disable-next-line no-case-declarations
-            const ozonStocks = await ozonProduct.getApiStocks();
-            // eslint-disable-next-line no-case-declarations
-            const ozonFbsStocks = ozonStocks.find(
-              (stock) => stock.type === "fbs"
-            );
-            fbsStocks = ozonFbsStocks?.present - ozonFbsStocks?.reserved ?? 0;
-
-            break;
-          case "woo":
-            // eslint-disable-next-line no-case-declarations
-            const wooProduct = new Woocommerce(productId);
-            // eslint-disable-next-line no-case-declarations
-            const wooApiProduct = await wooProduct.getApiProduct();
-            fbsStocks = wooApiProduct.stock_quantity;
-            marketProduct = wooProduct.getDbData();
-            break;
-        }
-
-        const variationFilter = {};
-        variationFilter[`${marketType}Product`] = marketProduct;
-
-        const variation = (
-          await dbService.getAllVariations(variationFilter, ["product"])
-        )[0];
-
-        if (marketProduct) {
-          res.render("marketProduct", {
-            title: `${
-              marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
-            } - ${
-              marketProduct.article ??
-              marketProduct.sku ??
-              marketProduct.id ??
-              marketProduct._id
-            } (БД)`,
-            marketType,
-            allProducts,
-            marketProduct,
-            variation,
-            fbsStocks,
-            wooVariableProducts,
+    // if id exist -> update product ELSE add new
+    if (productId) {
+      let marketProduct = null;
+      let fbsStocks = null;
+      switch (marketType) {
+        case "wb":
+          // eslint-disable-next-line no-case-declarations
+          const wbProduct = new Wildberries(productId);
+          marketProduct = await wbProduct.getDbData();
+          fbsStocks = (await wbProduct.getApiFbsStock()) ?? 0;
+          break;
+        case "yandex":
+          // eslint-disable-next-line no-case-declarations
+          const yandexProduct = new Yandex(productId);
+          marketProduct = await yandexProduct.getDbData();
+          fbsStocks =
+            (await yandexProduct.getApiProduct())?.warehouses
+              ?.find((warehouse) => warehouse.id === 52301)
+              .stocks.find((stockType) => stockType.type === "FIT")?.count ?? 0;
+          break;
+        case "ozon":
+          // eslint-disable-next-line no-case-declarations
+          const ozonProduct = new Ozon(productId);
+          marketProduct = await ozonProduct.getDbData();
+          // eslint-disable-next-line no-case-declarations
+          const ozonStocks = await ozonProduct.getApiStocks();
+          // eslint-disable-next-line no-case-declarations
+          const ozonFbsStocks = ozonStocks.find(
+            (stock) => stock.type === "fbs"
+          );
+          fbsStocks = ozonFbsStocks?.present - ozonFbsStocks?.reserved ?? 0;
+          break;
+        case "woo":
+          // eslint-disable-next-line no-case-declarations
+          const wooProduct = new Woocommerce(productId);
+          // eslint-disable-next-line no-case-declarations
+          const wooApiProduct = await wooProduct.getApiProduct();
+          fbsStocks = wooApiProduct.stock_quantity;
+          marketProduct = wooProduct.getDbData();
+          break;
+        default:
+          res.status(400).json({
+            message: "Выбран не вырный маркетплейс.",
           });
-        }
-      } else {
+      }
+
+      const variationFilter = {};
+      variationFilter[`${marketType}Product`] = marketProduct;
+
+      const variation = (
+        await dbService.getAllVariations(variationFilter, ["product"])
+      )[0];
+
+      if (marketProduct) {
         res.render("marketProduct", {
-          title: `Добавить новый товар ${
+          title: `${
             marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
+          } - ${
+            marketProduct.article ??
+            marketProduct.sku ??
+            marketProduct.id ??
+            marketProduct._id
           } (БД)`,
           marketType,
           allProducts,
+          marketProduct,
+          variation,
+          fbsStocks,
           wooVariableProducts,
         });
       }
     } else {
-      res.status(400).json({
-        message: "Выбран не вырный маркетплейс.",
+      res.render("marketProduct", {
+        title: `Добавить новый товар ${
+          marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
+        } (БД)`,
+        marketType,
+        allProducts,
+        wooVariableProducts,
       });
     }
   } catch (err) {
