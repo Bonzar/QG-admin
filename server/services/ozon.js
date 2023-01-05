@@ -18,10 +18,6 @@ const ozonAPI = axios.create({
 export class Ozon extends Marketplace {
   static marketProductSchema = OzonProduct;
 
-  constructor(dbId) {
-    super(dbId);
-  }
-
   /**
    * INSTANCE METHODS
    */

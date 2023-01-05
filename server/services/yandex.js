@@ -16,10 +16,6 @@ const yandexAPI = axios.create({
 export class Yandex extends Marketplace {
   static marketProductSchema = YandexProduct;
 
-  constructor(dbId) {
-    super(dbId);
-  }
-
   /**
    * INSTANCE METHODS
    */

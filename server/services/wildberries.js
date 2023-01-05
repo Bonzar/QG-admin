@@ -25,10 +25,6 @@ const wbStatAPI = axios.create({
 export class Wildberries extends Marketplace {
   static marketProductSchema = WbProduct;
 
-  constructor(dbId) {
-    super(dbId);
-  }
-
   // INSTANCE METHODS
 
   async getApiFbsStock() {
