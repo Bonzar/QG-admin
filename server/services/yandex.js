@@ -267,8 +267,6 @@ export class Yandex extends Marketplace {
       .map(([key, value]) => `${key}=${value}`)
       .join("&");
 
-    console.log({ optionsString });
-
     return yandexAPI
       .get(`v2/campaigns/21938028/orders.json?${optionsString}`)
       .then((response) => {
