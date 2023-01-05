@@ -19,8 +19,8 @@ export class Marketplace {
     return this.setProductInfoFromDb(this.dbId);
   }
 
-  setProductInfoFromDb(dbId) {
-    this.#dbData = this.constructor.getDbProductById(dbId);
+  async setProductInfoFromDb(dbId) {
+    this.#dbData = await this.constructor.getDbProductById(dbId);
     return this.#dbData;
   }
 
@@ -70,7 +70,6 @@ export class Marketplace {
   /**
    * CLASS METHODS
    */
-  //fixme article cant be empty when it was set at least once
   static getMarketProductDetails(marketProductData) {
     const marketProductDetails = {};
 
@@ -89,10 +88,10 @@ export class Marketplace {
   }
 
   static getDbProducts(filter = {}) {
-    return this.marketProductSchema?.find(filter).exec();
+    return this.marketProductSchema?.find(filter);
   }
 
   static getDbProductById(id) {
-    return this.marketProductSchema?.findById(id).exec();
+    return this.marketProductSchema?.findById(id);
   }
 }
