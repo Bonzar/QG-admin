@@ -40,6 +40,14 @@ export class Wildberries extends Marketplace {
     return Wildberries.updateApiStock(product.barcode, stock);
   }
 
+  addUpdateProduct(newData) {
+    return super.addUpdateProduct(newData, (newStock) =>
+      this.updateApiStock(newStock)
+    );
+  }
+
+  // CLASS METHODS
+
   static async checkIdentifierExistsInApi(newProductData) {
     const allApiProducts = await this.getApiProductsInfo();
 
@@ -68,14 +76,6 @@ export class Wildberries extends Marketplace {
 
     return marketProductDetails;
   }
-
-  addUpdateProduct(newData) {
-    return super.addUpdateProduct(newData, (newStock) =>
-      this.updateApiStock(newStock)
-    );
-  }
-
-  // CLASS METHODS
 
   static #processWbApiErrors(responseData) {
     if (responseData.error) {
