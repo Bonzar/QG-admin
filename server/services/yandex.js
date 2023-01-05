@@ -32,17 +32,6 @@ export class Yandex extends Marketplace {
     return Yandex.updateApiStock(product.sku, newStock);
   }
 
-  // async getApiStocks() {
-  //   const product = await this.getDbData();
-  //
-  //   const stocks = await Ozon.getApiProductsStocks({
-  //     product_id: [product.sku],
-  //     visibility: "ALL",
-  //   });
-  //
-  //   return stocks[0].stocks;
-  // }
-
   static async checkIdentifierExistsInApi(newProductData) {
     const allApiOffers = await this.getApiOffers();
 
