@@ -78,9 +78,9 @@ export class Marketplace {
     if (marketProductData.sku) {
       marketProductDetails.sku = marketProductData.sku;
     }
-    if (marketProductData?.article) {
-      marketProductDetails.article = marketProductData.article;
-    }
+
+    marketProductDetails.article = marketProductData.article ?? undefined;
+
     marketProductDetails.isActual = marketProductData.isActual
       ? marketProductData.isActual === "true"
       : true;
