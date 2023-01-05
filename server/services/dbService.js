@@ -7,10 +7,10 @@ import WooProduct from "../models/WooProduct.js";
 import Sells from "../models/Sells.js";
 import WooProductVariable from "../models/WooProductVariable.js";
 import async from "async";
-import * as yandexService from "./yandexService.js";
 import * as wooService from "./wooService.js";
 import { Ozon } from "./ozon.js";
 import { Wildberries } from "./wildberries.js";
+import { Yandex } from "./yandex.js";
 
 const populateAll = (query, populates) => {
   for (const populate of populates) {
@@ -188,11 +188,15 @@ export const addUpdateMarketProduct = async (marketProductData) => {
     return wbProduct.addUpdateProduct(marketProductData);
   }
 
+  if (marketProductData.marketType === "yandex") {
+    const yandexProduct = new Yandex(marketProductData._id);
+    return yandexProduct.addUpdateProduct(marketProductData);
+  }
+
   const variationMarketProp = `${marketProductData.marketType}Product`;
 
   // Получение продукта в зависимости от типа маркетплейса
   let marketProduct = null;
-  let allApiProducts = null;
   let wooResults;
   let isProductExistsOnMarketplace = false;
 
@@ -200,12 +204,6 @@ export const addUpdateMarketProduct = async (marketProductData) => {
     throw new Error("Не верный тип маркетплейса.");
 
   switch (marketProductData.marketType) {
-    case "yandex":
-      marketProduct = await YandexProduct.findById(
-        marketProductData._id
-      ).exec();
-      allApiProducts = await yandexService.getApiSkusList();
-      break;
     case "woo":
       wooResults = await async.parallel({
         marketProduct(callback) {
@@ -283,14 +281,6 @@ export const addUpdateMarketProduct = async (marketProductData) => {
               marketProductDetails.parentVariable = undefined;
             }
 
-            switch (marketProductData.marketType) {
-              case "yandex":
-                isProductExistsOnMarketplace = allApiProducts.includes(
-                  marketProductData.sku
-                );
-                break;
-            }
-
             if (!isProductExistsOnMarketplace) {
               callback(
                 new Error(
@@ -303,9 +293,6 @@ export const addUpdateMarketProduct = async (marketProductData) => {
 
             if (!marketProduct) {
               switch (marketProductData.marketType) {
-                case "yandex":
-                  marketProduct = new YandexProduct(marketProductDetails);
-                  break;
                 case "woo":
                   marketProduct = new WooProduct(marketProductDetails);
                   break;
@@ -339,12 +326,6 @@ export const addUpdateMarketProduct = async (marketProductData) => {
 
       let updateRequest = null;
       switch (marketProductData.marketType) {
-        case "yandex":
-          updateRequest = yandexService.updateApiStock(
-            marketProductData.sku,
-            marketProductData.stockFBS
-          );
-          break;
         case "woo":
           updateRequest = wooService.updateProduct(
             marketProductData.type,
@@ -682,32 +663,32 @@ export const deleteMarketProduct = async (marketType, id) => {
   return marketProduct.delete();
 };
 
-export const updateYandexStocks = async (productsApiList) => {
-  try {
-    if (!productsApiList) {
-      productsApiList = await yandexService.getApiProductsList();
-    }
-
-    const productsFormatRequests = productsApiList.map((product) => {
-      const stock =
-        product.warehouses?.[0].stocks.find(
-          (stockType) => stockType.type === "FIT"
-        )?.count ?? 0;
-
-      return function (callback) {
-        YandexProduct.findOneAndUpdate(
-          { sku: product.shopSku },
-          { stockFBS: stock },
-          callback
-        );
-      };
-    });
-
-    async.parallel(productsFormatRequests);
-  } catch (e) {
-    console.error({ message: "Yandex stocks in db update failed.", e });
-  }
-};
+// export const updateYandexStocks = async (productsApiList) => {
+//   try {
+//     if (!productsApiList) {
+//       productsApiList = await yandexService.getApiProductsList();
+//     }
+//
+//     const productsFormatRequests = productsApiList.map((product) => {
+//       const stock =
+//         product.warehouses?.[0].stocks.find(
+//           (stockType) => stockType.type === "FIT"
+//         )?.count ?? 0;
+//
+//       return function (callback) {
+//         YandexProduct.findOneAndUpdate(
+//           { sku: product.shopSku },
+//           { stockFBS: stock },
+//           callback
+//         );
+//       };
+//     });
+//
+//     async.parallel(productsFormatRequests);
+//   } catch (e) {
+//     console.error({ message: "Yandex stocks in db update failed.", e });
+//   }
+// };
 
 export const updateOzonStocks = async (productsApiList) => {
   try {
@@ -806,8 +787,7 @@ export const getVariationProductsStocks = (id) => {
             const fbsYandexStocksRequests = productVariation.yandexProduct.map(
               (yandexProduct) => {
                 return (callback) => {
-                  yandexService
-                    .getApiProductsList([yandexProduct.sku])
+                  Yandex.getApiProduct(yandexProduct.sku)
                     .then((result) =>
                       callback(null, {
                         identifier: yandexProduct.sku,

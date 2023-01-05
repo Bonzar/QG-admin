@@ -1,6 +1,4 @@
-import async from "async";
-import * as yandexService from "../services/yandexService.js";
-import * as dbService from "../services/dbService.js";
+import { Yandex } from "../services/yandex.js";
 
 const connectYandexDataResultFormatter = (
   variation,
@@ -26,57 +24,8 @@ const connectYandexDataResultFormatter = (
 };
 
 export const getProductsListPage = (req, res) => {
-  async
-    .waterfall([
-      (cb) => {
-        async.parallel(
-          {
-            // Stocks on Yandex warehouse
-            yandexApiProducts(callback) {
-              yandexService
-                .getApiProductsList([])
-                .then((result) => callback(null, result))
-                .catch((error) => callback(error, null));
-            },
-            // List of all products from DB
-            allDbVariations(callback) {
-              dbService
-                .getAllVariations({}, ["product yandexProduct"])
-                .then((variations) => callback(null, variations))
-                .catch((error) => callback(error, null));
-            },
-            // List of yandex products from DB
-            yandexDbProducts(callback) {
-              dbService
-                .getYandexProducts({})
-                .then((products) => callback(null, products))
-                .catch((error) => callback(error, null));
-            },
-          },
-          cb
-        );
-      },
-      (results, cb) => {
-        const { yandexApiProducts, allDbVariations, yandexDbProducts } =
-          results;
-
-        async
-          .parallel(
-            yandexService.getConnectYandexDataRequests(
-              req.query,
-              yandexApiProducts,
-              yandexDbProducts,
-              allDbVariations,
-              connectYandexDataResultFormatter
-            )
-          )
-          .then((products) => cb(null, [products, yandexApiProducts]))
-          .catch((error) => cb(error, null));
-      },
-    ])
-    .then((results) => {
-      let [products, yandexApiProducts] = results;
-
+  Yandex.getProducts(req.query, connectYandexDataResultFormatter)
+    .then((products) => {
       // Clear product list of undefined after async
       products = products.filter((product) => !!product);
 
@@ -95,7 +44,6 @@ export const getProductsListPage = (req, res) => {
         },
         products,
       });
-      dbService.updateYandexStocks(yandexApiProducts);
     })
     .catch((error) => {
       console.error(error);
@@ -107,8 +55,7 @@ export const getProductsListPage = (req, res) => {
 };
 
 export const updateApiStock = (req, res) => {
-  yandexService
-    .updateApiStock(req.query.sku, req.query.stock)
+  Yandex.updateApiStock(req.query.sku, req.query.stock)
     .then((response) => {
       res.json(response.data);
     })

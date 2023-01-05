@@ -1,5 +1,4 @@
 import async from "async";
-import * as yandexService from "../services/yandexService.js";
 import * as wooService from "../services/wooService.js";
 import { clearName } from "../services/nameFormatter.js";
 import WbProduct from "../models/WbProduct.js";
@@ -7,6 +6,7 @@ import ProductVariation from "../models/ProductVariation.js";
 import { Ozon } from "../services/ozon.js";
 import * as dbService from "../services/dbService.js";
 import { Wildberries } from "../services/wildberries.js";
+import { Yandex } from "../services/yandex.js";
 
 //todo refactor callbacks
 
@@ -107,9 +107,9 @@ const getAllOzonOrders = () => {
 
 const getYandexOrders = async (callback) => {
   try {
-    const yandexOrders = await yandexService.getApiTodayOrders();
+    const yandexOrders = await Yandex.getApiTodayOrders();
 
-    const yandexOrdersFormatted = yandexOrders.orders.map((yandexOrder) => {
+    const yandexOrdersFormatted = yandexOrders.map((yandexOrder) => {
       let order_status = "";
       switch (yandexOrder.substatus) {
         case "STARTED":

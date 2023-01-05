@@ -1,10 +1,10 @@
 import async from "async";
 import { validationResult } from "express-validator";
 import * as dbService from "../services/dbService.js";
-import * as yandexService from "../services/yandexService.js";
 import * as wooService from "../services/wooService.js";
 import { Ozon } from "../services/ozon.js";
 import { Wildberries } from "../services/wildberries.js";
+import { Yandex } from "../services/yandex.js";
 
 const isValidationPass = (req, res) => {
   let errors = validationResult(req);
@@ -155,16 +155,20 @@ export const getDbMarketProductPage = async (req, res) => {
             fbsStocks = (await wbProduct.getApiFbsStock()) ?? 0;
             break;
           case "yandex":
-            marketProduct = (
-              await dbService.getYandexProducts({ _id: productId })
-            )[0];
+            // eslint-disable-next-line no-case-declarations
+            const yandexProduct = new Yandex(productId);
+            marketProduct = await yandexProduct.getDbData();
             fbsStocks =
-              (
-                await yandexService.getApiProductsList([marketProduct.sku])
-              )[0].warehouses?.[0].stocks.find(
-                (stockType) => stockType.type === "FIT"
-              )?.count ?? 0;
+              (await yandexProduct.getApiProduct())?.warehouses
+                ?.find((warehouse) => warehouse.id === 52301)
+                .stocks.find((stockType) => stockType.type === "FIT")?.count ??
+              0;
 
+            console.log(
+              (await yandexProduct.getApiProduct())?.warehouses?.find(
+                (warehouse) => warehouse.id === 52301
+              ).stocks
+            );
             break;
           case "ozon":
             // eslint-disable-next-line no-case-declarations
@@ -722,20 +726,6 @@ export const getAllProductsStockPage = async (req, res) => {
         (cb) => {
           async.parallel(
             {
-              // Yandex products
-              yandexApiProducts(callback) {
-                yandexService
-                  .getApiProductsList()
-                  .then((result) => callback(null, result))
-                  .catch((error) => callback(error, null));
-              },
-              // List of yandex products from DB
-              yandexDbProducts(callback) {
-                dbService
-                  .getYandexProducts({})
-                  .then((products) => callback(null, products))
-                  .catch((error) => callback(error, null));
-              },
               // Woo products
               wooApiProducts(callback) {
                 wooService
@@ -767,22 +757,7 @@ export const getAllProductsStockPage = async (req, res) => {
           );
         },
         (results, cb) => {
-          const {
-            allDbVariations,
-            yandexApiProducts,
-            yandexDbProducts,
-            wooApiProducts,
-            wooDbProducts,
-          } = results;
-
-          const yandexProductConnectRequests =
-            yandexService.getConnectYandexDataRequests(
-              req.query,
-              yandexApiProducts,
-              yandexDbProducts,
-              allDbVariations,
-              connectYandexDataResultFormatter
-            );
+          const { allDbVariations, wooApiProducts, wooDbProducts } = results;
 
           const wooProductConnectRequests =
             wooService.getConnectWooDataRequests(
@@ -796,7 +771,13 @@ export const getAllProductsStockPage = async (req, res) => {
           async.parallel(
             [
               (callback) => {
-                async.parallel(yandexProductConnectRequests, callback);
+                Yandex.getProducts(
+                  req.query,
+                  connectYandexDataResultFormatter,
+                  allDbVariations
+                )
+                  .then((result) => callback(null, result))
+                  .catch((error) => callback(error, null));
               },
               (callback) => {
                 Ozon.getProducts(
