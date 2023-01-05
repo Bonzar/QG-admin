@@ -1,5 +1,4 @@
 import async from "async";
-import * as wooService from "../services/wooService.js";
 import { clearName } from "../services/nameFormatter.js";
 import WbProduct from "../models/WbProduct.js";
 import ProductVariation from "../models/ProductVariation.js";
@@ -7,6 +6,7 @@ import { Ozon } from "../services/ozon.js";
 import * as dbService from "../services/dbService.js";
 import { Wildberries } from "../services/wildberries.js";
 import { Yandex } from "../services/yandex.js";
+import { Woocommerce } from "../services/woocommerce.js";
 
 //todo refactor callbacks
 
@@ -144,7 +144,7 @@ const getYandexOrders = async (callback) => {
 
 const getWooOrders = async (callback) => {
   try {
-    const wooOrders = await wooService.getOrders();
+    const wooOrders = await Woocommerce.getProcessingOrders();
     const wooOrdersFormatted = wooOrders.map((wooOrder) => {
       let order_status = "";
       switch (wooOrder.status) {

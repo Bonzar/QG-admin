@@ -1,6 +1,4 @@
-import async from "async";
-import * as wooService from "../services/wooService.js";
-import * as dbService from "../services/dbService.js";
+import { Woocommerce } from "../services/woocommerce.js";
 
 const connectWooDataResultFormatter = (
   variation,
@@ -29,53 +27,7 @@ const connectWooDataResultFormatter = (
 };
 
 export const getProductsList = (req, res) => {
-  async
-    .waterfall([
-      (cb) => {
-        async.parallel(
-          {
-            // List of all products from DB with reference of Woo product sku to product name
-            allDbVariations(callback) {
-              dbService
-                .getAllVariations({}, [
-                  {
-                    path: "wooProduct",
-                    populate: { path: "parentVariable" },
-                  },
-                  "product",
-                ])
-                .then((variations) => callback(null, variations));
-            },
-            // List of all products fetched from Woo server
-            wooApiProducts(callback) {
-              wooService
-                .getProductList("")
-                .then((products) => callback(null, products));
-            },
-            wooDbProducts(callback) {
-              dbService
-                .getWooProducts({}, "parentVariable")
-                .then((products) => callback(null, products));
-            },
-          },
-          cb
-        );
-      },
-      (results, cb) => {
-        const { wooApiProducts, allDbVariations, wooDbProducts } = results;
-
-        async.parallel(
-          wooService.getConnectWooDataRequests(
-            req.query,
-            wooApiProducts,
-            wooDbProducts,
-            allDbVariations,
-            connectWooDataResultFormatter
-          ),
-          cb
-        );
-      },
-    ])
+  Woocommerce.getProducts(req.query, connectWooDataResultFormatter)
     .then((products) => {
       // Clear product list of undefined after async
       products = products.filter((product) => !!product);
@@ -109,10 +61,14 @@ export const updateStock = (req, res) => {
   try {
     const [productType, productId, variableId] = req.query.updateBy.split("-");
 
-    wooService
-      .updateProduct(productType, productId, variableId, {
+    Woocommerce.updateApiProduct(
+      productId,
+      productType,
+      {
         stock_quantity: req.query.stock,
-      })
+      },
+      variableId
+    )
       .then((result) => {
         res.json(result);
       })

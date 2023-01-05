@@ -1,10 +1,10 @@
 import async from "async";
 import { validationResult } from "express-validator";
 import * as dbService from "../services/dbService.js";
-import * as wooService from "../services/wooService.js";
 import { Ozon } from "../services/ozon.js";
 import { Wildberries } from "../services/wildberries.js";
 import { Yandex } from "../services/yandex.js";
+import { Woocommerce } from "../services/woocommerce.js";
 
 const isValidationPass = (req, res) => {
   let errors = validationResult(req);
@@ -184,27 +184,12 @@ export const getDbMarketProductPage = async (req, res) => {
 
             break;
           case "woo":
-            marketProduct = (
-              await dbService.getWooProducts(
-                { _id: productId },
-                "parentVariable"
-              )
-            )[0];
-
-            switch (marketProduct.type) {
-              case "simple":
-                fbsStocks = (await wooService.getProductInfo(marketProduct.id))
-                  .stock_quantity;
-                break;
-              case "variation":
-                fbsStocks = (
-                  await wooService.getProductVariationInfo(
-                    marketProduct.parentVariable.id,
-                    marketProduct.id
-                  )
-                ).stock_quantity;
-                break;
-            }
+            // eslint-disable-next-line no-case-declarations
+            const wooProduct = new Woocommerce(productId);
+            // eslint-disable-next-line no-case-declarations
+            const wooApiProduct = await wooProduct.getApiProduct();
+            fbsStocks = wooApiProduct.stock_quantity;
+            marketProduct = wooProduct.getDbData();
             break;
         }
 
@@ -726,20 +711,6 @@ export const getAllProductsStockPage = async (req, res) => {
         (cb) => {
           async.parallel(
             {
-              // Woo products
-              wooApiProducts(callback) {
-                wooService
-                  .getProductList("")
-                  .then((products) => callback(null, products))
-                  .catch((error) => callback(error, null));
-              },
-              // List of Woo products from DB
-              wooDbProducts(callback) {
-                dbService
-                  .getWooProducts({}, "parentVariable")
-                  .then((products) => callback(null, products))
-                  .catch((error) => callback(error, null));
-              },
               allDbVariations(callback) {
                 dbService
                   .getAllVariations({}, [
@@ -757,16 +728,7 @@ export const getAllProductsStockPage = async (req, res) => {
           );
         },
         (results, cb) => {
-          const { allDbVariations, wooApiProducts, wooDbProducts } = results;
-
-          const wooProductConnectRequests =
-            wooService.getConnectWooDataRequests(
-              req.query,
-              wooApiProducts,
-              wooDbProducts,
-              allDbVariations,
-              connectWooDataResultFormatter
-            );
+          const { allDbVariations } = results;
 
           async.parallel(
             [
@@ -801,7 +763,13 @@ export const getAllProductsStockPage = async (req, res) => {
                   .catch((error) => callback(error, null));
               },
               (callback) => {
-                async.parallel(wooProductConnectRequests, callback);
+                Woocommerce.getProducts(
+                  req.query,
+                  connectWooDataResultFormatter,
+                  allDbVariations
+                )
+                  .then((result) => callback(null, result))
+                  .catch((error) => callback(error, null));
               },
             ],
             cb
