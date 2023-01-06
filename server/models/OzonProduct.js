@@ -6,6 +6,11 @@ const OzonProduct = new Schema({
   isActual: { type: Boolean, default: true },
   stock: { type: Number, default: 0 },
   stockFBS: { type: Number, default: 0 },
+  variation: {
+    type: Schema.ObjectId,
+    ref: "ProductVariation",
+    required: true,
+  },
 });
 
 export default model("OzonProduct", OzonProduct);
