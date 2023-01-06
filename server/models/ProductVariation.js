@@ -7,6 +7,8 @@ const ProductVariation = new Schema({
     enum: ["3 мл", "6 мл", "10 мл", "Набор", "Стикеры"],
     required: true,
   },
+  readyStock: { type: Number, required: true, default: 0 },
+  dryStock: { type: Number, required: true, default: 0 },
   ozonProduct: {
     type: [
       {
