@@ -538,7 +538,7 @@ export const getVariationProductsStocks = (id) => {
                       callback(null, {
                         identifier: yandexProduct.sku,
                         stock:
-                          result[0]?.warehouses?.[0].stocks.find(
+                          result?.warehouses?.[0].stocks.find(
                             (stockType) => stockType.type === "FIT"
                           )?.count ?? 0,
                       })
