@@ -1,45 +1,37 @@
-import { Ozon } from "../services/ozonService.js";
-
-const connectOzonDataResultFormatter = (
-  variation,
-  ozonDbProduct,
-  ozonApiProduct,
-  stockFBO,
-  stockFBS
-) => {
-  return {
-    productInnerId: variation?.product._id,
-    marketProductInnerId: ozonDbProduct?._id,
-    sku: ozonApiProduct.id,
-    article: ozonApiProduct.offer_id,
-    name:
-      (variation?.product.name ?? "") +
-      (["3 мл", "10 мл"].includes(variation?.volume)
-        ? ` - ${variation?.volume}`
-        : ""),
-    stockFBO,
-    stockFBS: {
-      stock: stockFBS,
-      updateBy: ozonApiProduct.offer_id,
-      marketType: "ozon",
-    },
-  };
-};
+import { Ozon } from "../services/ozon.js";
+import { filterMarketProducts } from "../services/helpers.js";
 
 export const getProductsListPage = async (req, res) => {
   try {
-    const ozon = new Ozon();
+    const products = await Ozon.getProducts();
 
-    let data = await ozon.getProducts(
-      req.query,
-      connectOzonDataResultFormatter
+    const filtratedProducts = filterMarketProducts(
+      Object.values(products),
+      req.query
     );
 
-    // Clear product list of undefined after async
-    const products = data.filter((product) => !!product);
+    const formattedProducts = filtratedProducts.map((apiProduct) => {
+      return {
+        productInnerId: apiProduct.dbInfo?.variation?.product._id,
+        marketProductInnerId: apiProduct.dbInfo?._id,
+        sku: apiProduct.id,
+        article: apiProduct.offer_id,
+        name:
+          (apiProduct.dbInfo?.variation?.product.name ?? "") +
+          (["3 мл", "10 мл"].includes(apiProduct.dbInfo?.variation?.volume)
+            ? ` - ${apiProduct.dbInfo?.variation?.volume}`
+            : ""),
+        stockFBO: apiProduct.fbmStock ?? 0,
+        stockFBS: {
+          stock: apiProduct.fbsStock ?? 0,
+          updateBy: apiProduct.offer_id,
+          marketType: "ozon",
+        },
+      };
+    });
 
     // Sorting
-    products.sort((product1, product2) =>
+    formattedProducts.sort((product1, product2) =>
       product1.name.localeCompare(product2.name, "ru")
     );
 
@@ -52,10 +44,8 @@ export const getProductsListPage = async (req, res) => {
         FBM: { type: "fbm", field: "stockFBO" },
         FBS: { type: "fbs", field: "stockFBS" },
       },
-      products,
+      products: formattedProducts,
     });
-    //todo put update Ozon Stocks to Ozon Class fetch ozon api products method
-    // dbService.updateOzonStocks(productsApiList);
   } catch (error) {
     console.error(error);
     return res.status(400).json({

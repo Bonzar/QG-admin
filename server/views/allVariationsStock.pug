@@ -5,7 +5,7 @@ append scripts
     script(src="/scripts/functions/registerTableFilters.js" defer)
 
 block content
-  h1.snap-scroll-stop--start= title
+  h1.snap-scroll-stop--end= title
   section
       block filters
           div(class="table-filters")
@@ -18,7 +18,7 @@ block content
     div.stocks-tables
       for table in tables
         - const {tableName, products} = table
-        div.stocks-tables--cell.snap-scroll-stop--start
+        div.stocks-tables--cell.snap-scroll-stop--center
             h2= tableName
             div.stocks-table--wrapper
                 div.stocks-table--inner

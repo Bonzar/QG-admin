@@ -11,6 +11,10 @@ const WooProduct = new Schema({
   parentVariable: { type: Schema.ObjectId, ref: "WooProductVariable" },
   isActual: { type: Boolean, default: true },
   stock: { type: Number, default: 0 },
+  variation: {
+    type: Schema.ObjectId,
+    ref: "ProductVariation",
+  },
 });
 
 export default model("WooProduct", WooProduct);
