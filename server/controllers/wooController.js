@@ -1,39 +1,39 @@
 import { Woocommerce } from "../services/woocommerce.js";
-
-const connectWooDataResultFormatter = (
-  variation,
-  wooDbProduct,
-  wooApiProduct,
-  wooStock
-) => {
-  return {
-    productInnerId: variation?.product._id,
-    marketProductInnerId: wooDbProduct?._id,
-    id: wooApiProduct.id,
-    name:
-      (variation?.product.name ?? "") +
-      (["3 мл", "10 мл"].includes(variation?.volume)
-        ? ` - ${variation?.volume}`
-        : ""),
-    inStock: {
-      stock: wooStock,
-      updateBy:
-        wooApiProduct.type === "simple"
-          ? `simple-${wooApiProduct.id}`
-          : `variation-${wooApiProduct.id}-${wooDbProduct?.parentVariable.id}`,
-      marketType: "woo",
-    },
-  };
-};
+import { filterMarketProducts } from "../services/helpers.js";
 
 export const getProductsList = (req, res) => {
-  Woocommerce.getProducts(req.query, connectWooDataResultFormatter)
+  Woocommerce.getProducts()
     .then((products) => {
-      // Clear product list of undefined after async
-      products = products.filter((product) => !!product);
+      const filtratedProducts = filterMarketProducts(
+        Object.values(products),
+        req.query
+      );
+
+      const formattedProducts = filtratedProducts.map((product) => {
+        const variation = product.dbInfo?.variation;
+
+        return {
+          productInnerId: product.dbInfo?.variation?.product._id,
+          marketProductInnerId: product.dbInfo?._id,
+          id: product.id,
+          name:
+            (variation?.product.name ?? "") +
+            (["3 мл", "10 мл"].includes(variation?.volume)
+              ? ` - ${variation?.volume}`
+              : ""),
+          inStock: {
+            stock: product.fbsStock,
+            updateBy:
+              product.type === "simple"
+                ? `simple-${product.id}`
+                : `variation-${product.id}-${product.parentId}`,
+            marketType: "woo",
+          },
+        };
+      });
 
       // Sorting
-      products.sort((product1, product2) =>
+      formattedProducts.sort((product1, product2) =>
         product1.name.localeCompare(product2.name, "ru")
       );
 
@@ -45,7 +45,7 @@ export const getProductsList = (req, res) => {
           Name: { type: "name", field: "name" },
           FBS: { type: "fbs", field: "inStock" },
         },
-        products,
+        products: formattedProducts,
       });
     })
     .catch((error) => {

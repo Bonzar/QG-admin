@@ -1,7 +1,5 @@
 import axios from "axios";
 import { Marketplace } from "./marketplace.js";
-import async from "async";
-import * as dbService from "./dbService.js";
 import YandexProduct from "../models/YandexProduct.js";
 import { format } from "date-fns";
 
@@ -21,13 +19,13 @@ export class Yandex extends Marketplace {
    */
 
   async getApiProduct() {
-    const product = await this.getDbData();
+    const product = await this.getDbProduct();
 
-    return Yandex.getApiProduct(product.sku);
+    return Yandex.getApiProducts([product.sku]);
   }
 
   async updateApiStock(newStock) {
-    const product = await this.getDbData();
+    const product = await this.getDbProduct();
 
     return Yandex.updateApiStock(product.sku, newStock);
   }
@@ -100,138 +98,32 @@ export class Yandex extends Marketplace {
         shopSkus: skusList,
       })
       .then((response) => {
-        return response.data.result.shopSkus;
+        const apiProducts = {};
+        response.data.result.shopSkus.forEach((apiProduct) => {
+          apiProducts[apiProduct["shopSku"]] = apiProduct;
+        });
+
+        return apiProducts;
       });
   }
 
-  static async getApiProduct(sku) {
-    const result = await this.getApiProducts([sku]);
-
-    return result[0];
-  }
-
-  static async getProducts(
-    filters,
-    connectYandexDataResultFormatter,
-    allDbVariations
-  ) {
-    const yandexData = await async.parallel({
-      yandexApiProducts: (callback) => {
-        this.getApiProducts()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      yandexDbProducts: (callback) => {
-        this.getDbProducts()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      dbVariations: (callback) => {
-        if (!allDbVariations) {
-          dbService
-            .getAllVariations({}, ["product yandexProduct"])
-            .then((result) => callback(null, result))
-            .catch((error) => callback(error, null));
-          return;
-        }
-
-        callback(null, allDbVariations);
-      },
-    });
-
-    return async.parallel(
-      this.#getConnectYandexDataRequests(
-        filters,
-        yandexData.yandexApiProducts,
-        yandexData.yandexDbProducts,
-        yandexData.dbVariations,
-        connectYandexDataResultFormatter
-      )
-    );
-  }
-
-  static getDbProductAndVariationForApiProduct(
-    apiProduct,
-    allDbVariations,
-    yandexDbProducts
-  ) {
-    let dbProduct;
-    // Search variation for market product from api
-    const dbVariation = allDbVariations.find(
-      (variation) =>
-        // Search market product in db for market product from api
-        variation.yandexProduct?.filter((variationYandexDbProduct) => {
-          const isMarketProductMatch =
-            variationYandexDbProduct.sku === apiProduct["shopSku"];
-          // find -> save market product
-          if (isMarketProductMatch) {
-            dbProduct = variationYandexDbProduct;
-          }
-
-          return isMarketProductMatch;
-        }).length > 0
-    );
-
-    if (!dbProduct) {
-      // Search fetched product from ozon in DB
-      dbProduct = yandexDbProducts.find(
-        (yandexDbProduct) => yandexDbProduct.sku === apiProduct["shopSku"]
-      );
+  static connectDbApiData(dbProducts, apiProducts) {
+    for (const apiProduct of Object.values(apiProducts)) {
+      apiProduct.fbsStock = apiProduct.warehouses?.[0].stocks.find(
+        (stockType) => stockType.type === "FIT"
+      )?.count;
     }
 
-    return { dbVariation, dbProduct };
-  }
+    for (const dbProduct of dbProducts) {
+      const apiProduct = apiProducts[dbProduct.sku];
+      if (!apiProduct) {
+        continue;
+      }
 
-  static #getConnectYandexDataRequests(
-    filters,
-    yandexApiProducts,
-    yandexDbProducts,
-    allDbVariations,
-    connectYandexDataResultFormatter
-  ) {
-    return yandexApiProducts.map((yandexApiProduct) => {
-      return async () => {
-        const { dbVariation, dbProduct } =
-          this.getDbProductAndVariationForApiProduct(
-            yandexApiProduct,
-            allDbVariations,
-            yandexDbProducts
-          );
+      apiProduct.dbInfo = dbProduct;
+    }
 
-        const yandexStock =
-          yandexApiProduct.warehouses?.[0].stocks.find(
-            (stockType) => stockType.type === "FIT"
-          )?.count ?? 0;
-
-        // Filtration
-        let isPassFilterArray = [];
-        // by stock status
-        if (filters.stock_status === "outofstock") {
-          isPassFilterArray.push(yandexStock <= 0);
-        }
-        // by actual (manual setup in DB)
-        switch (filters.isActual) {
-          case "notActual":
-            isPassFilterArray.push(dbProduct?.isActual === false);
-            break;
-          case "all":
-            isPassFilterArray.push(true);
-            break;
-          // Only actual by default
-          default:
-            isPassFilterArray.push(dbProduct?.isActual !== false);
-        }
-
-        if (!isPassFilterArray.every((pass) => pass)) return;
-
-        return connectYandexDataResultFormatter(
-          dbVariation,
-          dbProduct,
-          yandexApiProduct,
-          yandexStock
-        );
-      };
-    });
+    return apiProducts;
   }
 
   static getApiTodayOrders() {

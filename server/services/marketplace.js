@@ -2,35 +2,41 @@ import * as dbService from "./dbService.js";
 import async from "async";
 export class Marketplace {
   #dbData;
+  static marketProductSchema;
 
-  constructor(dbId) {
-    this.dbId = dbId;
-    this.setProductInfoFromDb(dbId);
+  constructor(search) {
+    if (typeof search !== "object") {
+      search = { _id: search };
+    }
+
+    this.search = search;
+    this.setProductInfoFromDb(search);
   }
 
   /**
    * INSTANCE METHODS
    */
-  getDbData() {
+  getDbProduct() {
     if (this.#dbData) {
       return this.#dbData;
     }
 
-    return this.setProductInfoFromDb(this.dbId);
+    return this.setProductInfoFromDb(this.search);
   }
 
-  async setProductInfoFromDb(dbId) {
-    this.#dbData = await this.constructor.getDbProductById(dbId);
+  async setProductInfoFromDb(search) {
+    this.#dbData = await this.constructor.getDbProduct(search);
     return this.#dbData;
   }
 
   async addUpdateDbInfo(marketProductData) {
     await this.constructor.checkIdentifierExistsInApi(marketProductData);
 
-    const marketProductDetails =
-      this.constructor.getMarketProductDetails(marketProductData);
+    const marketProductDetails = await this.constructor.getMarketProductDetails(
+      marketProductData
+    );
 
-    let product = await this.getDbData();
+    let product = await this.getDbProduct();
 
     return dbService.addUpdateDbRecord(
       product,
@@ -51,16 +57,23 @@ export class Marketplace {
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
-      variationConnect: (callback) => {
-        this.getDbData()
-          .then((product) => {
-            dbService
-              .variationUpdate(product, newData)
-              .then((result) => callback(null, result));
-          })
-          .catch((error) => callback(error, null));
-      },
     });
+  }
+
+  async getProduct() {
+    const dbProduct = await this.getDbProduct();
+    const apiProduct = await this.getApiProduct();
+
+    const connectedApiDbProduct = this.constructor.connectDbApiData(
+      [dbProduct],
+      apiProduct
+    );
+
+    return Object.values(connectedApiDbProduct)[0];
+  }
+
+  async getApiProduct() {
+    throw new Error("Method should be overwritten and run by child class");
   }
 
   static async checkIdentifierExistsInApi() {
@@ -70,7 +83,7 @@ export class Marketplace {
   /**
    * CLASS METHODS
    */
-  static getMarketProductDetails(marketProductData) {
+  static async getMarketProductDetails(marketProductData) {
     const marketProductDetails = {};
 
     // Common fields for all marketplaces
@@ -86,14 +99,61 @@ export class Marketplace {
       ? marketProductData.isActual === "true"
       : true;
 
+    if (marketProductData.variation_volume && marketProductData.product_id) {
+      marketProductDetails.variation = await dbService.getProductVariation({
+        product: marketProductData.product_id,
+        volume: marketProductData.variation_volume,
+      });
+    } else {
+      marketProductDetails.variation = null;
+    }
+
     return marketProductDetails;
   }
 
   static getDbProducts(filter = {}) {
-    return this.marketProductSchema?.find(filter);
+    return this.marketProductSchema?.find(filter).populate({
+      path: "variation",
+      populate: { path: "product" },
+    });
   }
 
   static getDbProductById(id) {
-    return this.marketProductSchema?.findById(id);
+    return this.marketProductSchema?.findById(id).populate({
+      path: "variation",
+      populate: { path: "product" },
+    });
+  }
+
+  static getDbProduct(filter = {}) {
+    return this.marketProductSchema?.findOne(filter).populate({
+      path: "variation",
+      populate: { path: "product" },
+    });
+  }
+
+  static async getProducts() {
+    const data = await async.parallel({
+      apiProductsData: (callback) => {
+        this.getApiProducts()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+      dbProducts: (callback) => {
+        this.getDbProducts()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+    });
+
+    return this.connectDbApiData(data.dbProducts, data.apiProductsData);
+  }
+
+  static getApiProducts() {
+    throw new Error("Method should be overwritten and run by child class");
+  }
+
+  static connectDbApiData() {
+    throw new Error("Method should be overwritten and run by child class");
   }
 }

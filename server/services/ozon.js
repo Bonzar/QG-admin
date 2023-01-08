@@ -22,13 +22,13 @@ export class Ozon extends Marketplace {
    * INSTANCE METHODS
    */
   async updateApiStock(newStock) {
-    const product = await this.getDbData();
+    const product = await this.getDbProduct();
 
     return Ozon.updateApiStock(product.article, newStock);
   }
 
   async getApiStocks() {
-    const product = await this.getDbData();
+    const product = await this.getDbProduct();
 
     const stocks = await Ozon.getApiProductsStocks({
       product_id: [product.sku],
@@ -36,6 +36,14 @@ export class Ozon extends Marketplace {
     });
 
     return stocks[0].stocks;
+  }
+
+  async getApiProduct() {
+    const dbProduct = await this.getDbProduct();
+
+    return Ozon.getApiProducts({
+      product_id: [dbProduct.sku],
+    });
   }
 
   static async checkIdentifierExistsInApi(newProductData) {
@@ -64,34 +72,40 @@ export class Ozon extends Marketplace {
   /**
    * CLASS METHODS
    */
-  static getApiProductsStocks(filter = { visibility: "ALL" }) {
+  static getApiProductsStocks(filter = {}) {
     return ozonAPI
       .post("v3/product/info/stocks", {
-        filter,
+        filter: { visibility: "ALL", ...filter },
         last_id: "",
         limit: 1000,
       })
       .then((response) => response.data.result.items);
   }
 
-  static getApiProductsInfo = (productIds) => {
+  static getApiProductsInfo(productIds) {
     return ozonAPI
       .post("v2/product/info/list", {
         product_id: productIds,
       })
-      .then((response) => response.data);
-  };
+      .then((response) => {
+        const apiProducts = {};
+        response.data.result.items.forEach((apiProduct) => {
+          apiProducts[apiProduct.id] = apiProduct;
+        });
+
+        return apiProducts;
+      });
+  }
 
   /**
    * @param {{visibility: string}} filter
    */
-  static getApiProducts = async (filter) => {
+  static async getApiProducts(filter) {
     const productsStocks = await this.getApiProductsStocks(filter);
 
     const productsIds = productsStocks.map((product) => product.product_id);
 
-    const productsInfo = (await this.getApiProductsInfo(productsIds)).result
-      .items;
+    const productsInfo = await this.getApiProductsInfo(productsIds);
 
     setTimeout(
       () => dbService.updateOzonStocks({ productsInfo, productsStocks }),
@@ -99,7 +113,7 @@ export class Ozon extends Marketplace {
     );
 
     return { productsInfo, productsStocks };
-  };
+  }
 
   /**
    * @param {[{stock, offer_id}]} stocks
@@ -261,13 +275,6 @@ export class Ozon extends Marketplace {
           .then((products) => callback(null, products))
           .catch((error) => callback(error));
       },
-      // List of all products from DB
-      allDbVariations: (callback) => {
-        dbService
-          .getAllVariations({}, ["product ozonProduct"])
-          .then((variations) => callback(null, variations))
-          .catch((error) => callback(error));
-      },
     });
 
     const {
@@ -275,9 +282,8 @@ export class Ozon extends Marketplace {
       oneYearOneMonthAgoOneMonthData,
       oneYearAgoShiftDaysData,
       oneYearWithShiftAgoPredictPeriodData,
-      productsFullInfo: { productsInfo, productsStockList },
+      productsFullInfo,
       ozonDbProducts,
-      allDbVariations,
     } = requestsData;
 
     // Joining data and return only products with positive onShipment value
@@ -308,23 +314,17 @@ export class Ozon extends Marketplace {
       (allSellsOneYearAgoShiftDaysData +
         allSellsOneYearOneMonthAgoOneMonthData);
 
-    productsInfo.forEach((apiProduct) => {
-      const { dbVariation: variation, dbProduct: ozonDbProduct } =
-        this.getDbProductAndVariationForApiProduct(
-          apiProduct,
-          allDbVariations,
-          ozonDbProducts
-        );
+    const connectedProducts = Object.values(
+      this.connectDbApiData(ozonDbProducts, productsFullInfo)
+    );
 
+    connectedProducts.forEach((product) => {
       // Skip not actual products
-      if (!ozonDbProduct.isActual) {
+      if (!product.dbInfo.isActual) {
         return;
       }
 
-      const stock =
-        productsStockList
-          .find((stockInfo) => stockInfo.product_id === apiProduct.id)
-          .stocks.find((stock) => stock.type === "fbo")?.present ?? 0;
+      const stock = product.fbmStock;
 
       const getProductSells = (product, analyticData) => {
         return product.sources.reduce((total, currentSource) => {
@@ -338,7 +338,7 @@ export class Ozon extends Marketplace {
       };
 
       const productSellsOneMonthAgoOneMonthData = getProductSells(
-        apiProduct,
+        product,
         oneMonthAgoOneMonthData
       );
 
@@ -353,8 +353,8 @@ export class Ozon extends Marketplace {
 
       if (onShipment > 0) {
         products.push({
-          article: apiProduct.offer_id,
-          name: variation.product.name,
+          article: product.offer_id,
+          name: product.dbInfo?.variation?.product.name,
           stock,
           shiftStocks: Math.round(predictShiftStocks),
           productSellsOneMonthAgoOneMonthData: Math.round(
@@ -374,171 +374,35 @@ export class Ozon extends Marketplace {
     return products;
   }
 
-  static getDbProductAndVariationForApiProduct(
-    apiProduct,
-    allDbVariations,
-    ozonDbProducts
-  ) {
-    let dbProduct;
-    // Search variation for market product from api
-    const dbVariation = allDbVariations.find(
-      (variation) =>
-        // Search market product in db for market product from api
-        variation.ozonProduct?.filter((variationOzonDbProduct) => {
-          const isMarketProductMatch =
-            variationOzonDbProduct.sku === apiProduct.id ||
-            variationOzonDbProduct.article === apiProduct.offer_id;
+  static connectDbApiData(dbProducts, apiProductsData) {
+    const { productsInfo: apiProducts, productsStocks: apiStocks } =
+      apiProductsData;
 
-          // find -> save market product
-          if (isMarketProductMatch) {
-            dbProduct = variationOzonDbProduct;
-          }
+    for (const productsStock of apiStocks) {
+      const apiProduct = apiProducts[productsStock.product_id];
+      if (!apiProduct) {
+        continue;
+      }
 
-          return isMarketProductMatch;
-        }).length > 0
-    );
-
-    if (!dbProduct) {
-      // Search fetched product from ozon in DB
-      dbProduct = ozonDbProducts.find(
-        (ozonDbProduct) => ozonDbProduct.sku === apiProduct.id
+      const fbsStocks = productsStock.stocks.find(
+        (stock) => stock.type === "fbs"
       );
+
+      apiProduct.fbsStock = fbsStocks?.present - fbsStocks?.reserved;
+      apiProduct.fbmStock = productsStock.stocks.find(
+        (stock) => stock.type === "fbo"
+      )?.present;
     }
 
-    return { dbVariation, dbProduct };
-  }
+    for (const dbProduct of dbProducts) {
+      const apiProduct = apiProducts[dbProduct.sku];
+      if (!apiProduct) {
+        continue;
+      }
 
-  static #getConnectOzonDataRequests(
-    filters,
-    ozonApiProducts,
-    ozonApiStocks,
-    ozonDbProducts,
-    allDbVariations,
-    connectOzonDataResultFormatter
-  ) {
-    return ozonApiProducts.map((apiProduct) => {
-      return async () => {
-        const { dbVariation, dbProduct } =
-          this.getDbProductAndVariationForApiProduct(
-            apiProduct,
-            allDbVariations,
-            ozonDbProducts
-          );
+      apiProduct.dbInfo = dbProduct;
+    }
 
-        const productStocks = ozonApiStocks.find(
-          (stockInfo) => stockInfo.product_id === apiProduct.id
-        );
-
-        const stockFBO =
-          productStocks.stocks.find((stock) => stock.type === "fbo")?.present ??
-          0;
-
-        const fbsStocks = productStocks.stocks.find(
-          (stock) => stock.type === "fbs"
-        );
-        const stockFBS = fbsStocks?.present - fbsStocks?.reserved ?? 0;
-
-        // Filtration
-        let isPassFilterArray = [];
-        // by stock status
-        //todo rename to camelCase
-        switch (filters.stock_status) {
-          // Filter only outofstock products (by FBM and FBS)
-          case "outofstock":
-            isPassFilterArray.push(stockFBS <= 0 && stockFBO <= 0);
-            break;
-          // Filter only outofstock products (by FBS)
-          case "outofstockFBS":
-            isPassFilterArray.push(stockFBS <= 0);
-            break;
-          // Filter only outofstock products (by FBM)
-          case "outofstockFBM":
-            isPassFilterArray.push(stockFBO <= 0);
-            break;
-          // Filter only instock on FBS products
-          case "instockFBS":
-            isPassFilterArray.push(stockFBS > 0);
-            break;
-          // Filter only instock on FBM products
-          case "instockFBM":
-            isPassFilterArray.push(stockFBO > 0);
-            break;
-          // Filter only instock on FBM or FBS products (some of them)
-          case "instockSome":
-            isPassFilterArray.push(stockFBS > 0 || stockFBO > 0);
-            break;
-        }
-
-        // by actual (manual setup in DB)
-        switch (filters.isActual) {
-          case "notActual":
-            isPassFilterArray.push(dbProduct?.isActual === false);
-            break;
-          case "all":
-            isPassFilterArray.push(true);
-            break;
-          // Only actual by default
-          default:
-            isPassFilterArray.push(dbProduct?.isActual !== false);
-        }
-
-        if (isPassFilterArray.every((pass) => pass)) {
-          return connectOzonDataResultFormatter(
-            dbVariation,
-            dbProduct,
-            apiProduct,
-            stockFBO,
-            stockFBS
-          );
-        }
-      };
-    });
-  }
-
-  static async getProducts(
-    filters,
-    connectOzonDataResultFormatter,
-    allDbVariations
-  ) {
-    const data = await async.parallel({
-      ozonApiProducts: (callback) => {
-        this.getApiProducts()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      ozonDbProducts: (callback) => {
-        this.getDbProducts()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      dbVariations: (callback) => {
-        if (!allDbVariations) {
-          dbService
-            .getAllVariations({}, ["product ozonProduct"])
-            .then((result) => callback(null, result))
-            .catch((error) => callback(error, null));
-          return;
-        }
-
-        callback(null, allDbVariations);
-      },
-    });
-
-    const {
-      ozonApiProducts: { productsInfo, productsStocks },
-      ozonDbProducts,
-      dbVariations,
-    } = data;
-
-    return async.parallel(
-      this.#getConnectOzonDataRequests(
-        filters,
-        productsInfo,
-        productsStocks,
-        ozonDbProducts,
-        dbVariations,
-        connectOzonDataResultFormatter
-      )
-    );
+    return apiProducts;
   }
 }

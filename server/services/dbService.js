@@ -1,3 +1,5 @@
+import async from "async";
+
 import ProductVariation from "../models/ProductVariation.js";
 import Product from "../models/Product.js";
 import WbProduct from "../models/WbProduct.js";
@@ -6,11 +8,18 @@ import OzonProduct from "../models/OzonProduct.js";
 import WooProduct from "../models/WooProduct.js";
 import Sells from "../models/Sells.js";
 import WooProductVariable from "../models/WooProductVariable.js";
-import async from "async";
+
 import { Ozon } from "./ozon.js";
 import { Wildberries } from "./wildberries.js";
-import { Yandex } from "./yandex.js";
-import { Woocommerce } from "./woocommerce.js";
+import { getMarketplaceClasses } from "./helpers.js";
+
+export const getProductVariation = (filter, populate) => {
+  return ProductVariation.findOne(filter).populate(populate);
+};
+
+export const getProductVariations = (filter, populate) => {
+  return ProductVariation.find(filter).populate(populate);
+};
 
 const populateAll = (query, populates) => {
   for (const populate of populates) {
@@ -34,26 +43,6 @@ export const getProductById = (id) => {
 
 export const getAllProducts = () => {
   return Product.find().exec();
-};
-
-export const getWbProducts = (filter = {}) => {
-  return WbProduct.find(filter).exec();
-};
-
-export const getWooProducts = (filter = {}, populate = "") => {
-  return WooProduct.find(filter).populate(populate).exec();
-};
-
-export const getWooVariableProducts = (filter = {}) => {
-  return WooProductVariable.find(filter).exec();
-};
-
-export const getYandexProducts = (filter = {}) => {
-  return YandexProduct.find(filter).exec();
-};
-
-export const getOzonProducts = (filter = {}) => {
-  return OzonProduct.find(filter).exec();
 };
 
 export const getAllSells = (filter = {}, populate = "") => {
@@ -178,138 +167,13 @@ export const addUpdateDbRecord = (
 };
 
 export const addUpdateMarketProduct = async (marketProductData) => {
-  if (marketProductData.marketType === "ozon") {
-    const ozonProduct = new Ozon(marketProductData._id);
-    return ozonProduct.addUpdateProduct(marketProductData);
+  const Marketplace = getMarketplaceClasses()[marketProductData.marketType];
+  if (!Marketplace) {
+    throw new Error("Wrong market type.");
   }
 
-  if (marketProductData.marketType === "wb") {
-    const wbProduct = new Wildberries(marketProductData._id);
-    return wbProduct.addUpdateProduct(marketProductData);
-  }
-
-  if (marketProductData.marketType === "yandex") {
-    const yandexProduct = new Yandex(marketProductData._id);
-    return yandexProduct.addUpdateProduct(marketProductData);
-  }
-
-  if (marketProductData.marketType === "woo") {
-    const wooProduct = new Woocommerce(marketProductData._id);
-    return wooProduct.addUpdateProduct(marketProductData);
-  }
-
-  throw new Error("Wrong market type.");
-};
-
-export const variationUpdate = (marketProduct, marketProductData) => {
-  const variationMarketProp = `${marketProductData.marketType}Product`;
-
-  return async.waterfall([
-    // Обновление вариации 1. Поиск новой и старой вариации
-    (callback) => {
-      async.parallel(
-        {
-          oldVariation(callback) {
-            ProductVariation.findOne(
-              {
-                [variationMarketProp]: marketProduct,
-              },
-              callback
-            );
-          },
-          newVariation(callback) {
-            Product.findById(marketProductData.product_id).exec(
-              (err, product) => {
-                ProductVariation.findOne(
-                  {
-                    product,
-                    volume: marketProductData.variation_volume,
-                  },
-                  callback
-                );
-              }
-            );
-          },
-          marketProduct(callback) {
-            callback(null, marketProduct);
-          },
-        },
-        callback
-      );
-    },
-    // Обновление вариации 2. Удаление старой привязки при необходимости
-    (results, callback) => {
-      const { newVariation, oldVariation, marketProduct } = results;
-
-      // Вариация не требует обновления
-      if (
-        oldVariation?.[variationMarketProp]?.filter(
-          (product) => product.toString() === marketProduct._id.toString()
-        ).length > 0 &&
-        newVariation?.[variationMarketProp]?.filter(
-          (product) => product.toString() === marketProduct._id.toString()
-        ).length > 0
-      ) {
-        callback(null, { message: "Вариация не требует обновления." });
-        return;
-      }
-
-      if (!newVariation && marketProductData.product_id) {
-        callback(
-          new Error(
-            `Вариация "${marketProductData.variation_volume}", для продукта: ${marketProductData.product_id} не найдена.`
-          ),
-          marketProduct
-        );
-        return;
-      }
-
-      // Если старая вариация найдена -> удаляем связь
-      if (oldVariation) {
-        oldVariation[variationMarketProp].splice(
-          oldVariation[variationMarketProp].indexOf(marketProduct)
-        );
-
-        if (oldVariation[variationMarketProp].length === 0) {
-          oldVariation[variationMarketProp] = undefined;
-        }
-
-        oldVariation.save((err) => {
-          if (err) {
-            callback(err, null);
-            return;
-          }
-
-          callback(null, { newVariation, marketProduct });
-        });
-        return;
-      }
-
-      callback(null, { newVariation, marketProduct });
-    },
-    // Обновление вариации 3. Создание новой связи при необходимости
-    (results, callback) => {
-      const { newVariation, marketProduct } = results;
-
-      // Если новая вариация указана -> создаем связь
-      if (newVariation) {
-        if (!newVariation[variationMarketProp]) {
-          newVariation[variationMarketProp] = [];
-        }
-        newVariation[variationMarketProp].push(marketProduct);
-        newVariation.save((err) => {
-          if (err) {
-            callback(err, null);
-            return;
-          }
-
-          callback(null, marketProduct);
-        });
-        return;
-      }
-      callback(null, marketProduct);
-    },
-  ]);
+  const marketProduct = new Marketplace(marketProductData._id);
+  return marketProduct.addUpdateProduct(marketProductData);
 };
 
 export const addUpdateProduct = (productData) => {
@@ -368,14 +232,15 @@ export const deleteProductVariation = async (id) => {
     throw new Error(`Вариация - ${id} не найдена.`);
   }
 
-  if (
-    [
-      variation.yandexProduct,
-      variation.ozonProduct,
-      variation.wbProduct,
-      variation.wooProduct,
-    ].some((products) => products?.length > 0)
-  ) {
+  let isVariationHasConnectedProducts = false;
+  for (const Marketplace of Object.values(getMarketplaceClasses())) {
+    const marketProduct = Marketplace.getDbProduct({ variation });
+    if (marketProduct) {
+      isVariationHasConnectedProducts = true;
+    }
+  }
+
+  if (isVariationHasConnectedProducts) {
     throw new Error("С вариацией связаны товары");
   }
 
@@ -399,11 +264,8 @@ export const deleteMarketProduct = async (marketType, id) => {
       break;
   }
 
-  const variation = await ProductVariation.findOne({
-    [`${marketType}Product`]: marketProduct,
-  }).exec();
-  if (variation) {
-    throw new Error("Товар связан с вариацией");
+  if (!marketProduct) {
+    throw new Error(`Продукт - ${id} не найден.`);
   }
 
   return marketProduct.delete();
@@ -444,32 +306,34 @@ export const updateOzonStocks = async (productsApiList) => {
 
     const { productsInfo, productsStocks } = productsApiList;
 
-    const productsFormatRequests = productsInfo.map((product) => {
-      return function (callback) {
-        const productStocks = productsStocks.find(
-          (stockInfo) => stockInfo.product_id === product.id
-        );
+    const productsFormatRequests = Object.values(productsInfo).map(
+      (product) => {
+        return function (callback) {
+          const productStocks = productsStocks.find(
+            (stockInfo) => stockInfo.product_id === product.id
+          );
 
-        const stockFBO =
-          productStocks.stocks.find((stock) => stock.type === "fbo")?.present ??
-          0;
-        const stockFBS =
-          productStocks.stocks.find((stock) => stock.type === "fbs")?.present ??
-          0;
+          const stockFBO =
+            productStocks.stocks.find((stock) => stock.type === "fbo")
+              ?.present ?? 0;
+          const stockFBS =
+            productStocks.stocks.find((stock) => stock.type === "fbs")
+              ?.present ?? 0;
 
-        const updatedProduct = OzonProduct.findOneAndUpdate(
-          { sku: product.id },
-          { stock: stockFBO, stockFBS },
-          (err) => {
-            if (err) {
-              callback(err, null);
-              return;
+          const updatedProduct = OzonProduct.findOneAndUpdate(
+            { sku: product.id },
+            { stock: stockFBO, stockFBS },
+            (err) => {
+              if (err) {
+                callback(err, null);
+                return;
+              }
+              callback(null, updatedProduct);
             }
-            callback(null, updatedProduct);
-          }
-        );
-      };
-    });
+          );
+        };
+      }
+    );
 
     async.parallel(productsFormatRequests);
   } catch (e) {
@@ -477,26 +341,31 @@ export const updateOzonStocks = async (productsApiList) => {
   }
 };
 
-export const updateWbStocks = async (products) => {
+export const updateWbStocks = (fbmStocks) => {
   try {
-    const productsFormatRequests = products.map((product) => {
+    const productsFormatRequests = fbmStocks.map((fbmStock) => {
       return function (callback) {
-        if (product.dbProduct.stock === product.stockFBW) {
-          callback(null, null);
-          return;
-        }
-        product.dbProduct.stock = product.stockFBW;
-        product.dbProduct.save((err) => {
-          if (err) {
-            console.error(
-              `Error on WB product ${product.dbProduct.sku} update stock on ${product.stockFBW}\n${err}`
-            );
-
-            callback(err, null);
+        const wbProduct = new Wildberries({ sku: fbmStock.nmId });
+        wbProduct.getDbProduct().then((wbDbProduct) => {
+          if (wbDbProduct.stock === fbmStock.quantity) {
+            callback(null, null);
             return;
           }
 
-          callback(null, product.dbProduct);
+          wbDbProduct.stock = fbmStock.quantity;
+          wbDbProduct.save((err) => {
+            if (err) {
+              console.error(
+                `Error on WB product ${wbDbProduct.sku} update stock on ${fbmStock.quantity}
+                ${err}`
+              );
+
+              callback(err, null);
+              return;
+            }
+
+            callback(null, wbDbProduct);
+          });
         });
       };
     });
@@ -505,172 +374,4 @@ export const updateWbStocks = async (products) => {
   } catch (e) {
     console.error({ message: "Wb stocks in db update failed.", e });
   }
-};
-
-export const getVariationProductsStocks = (id) => {
-  return async.waterfall([
-    (callback) => {
-      getProductVariationById(id, [
-        {
-          path: "wooProduct",
-          populate: { path: "parentVariable" },
-        },
-        "product yandexProduct wbProduct ozonProduct",
-      ])
-        .then((products) => callback(null, products))
-        .catch((error) => callback(error, null));
-    },
-    (productVariation, callback) => {
-      async.parallel(
-        {
-          fbsYandexStocks(callback) {
-            if (
-              !productVariation.yandexProduct ||
-              productVariation.yandexProduct.length === 0
-            )
-              return callback(null, null);
-
-            const fbsYandexStocksRequests = productVariation.yandexProduct.map(
-              (yandexProduct) => {
-                return (callback) => {
-                  Yandex.getApiProduct(yandexProduct.sku)
-                    .then((result) =>
-                      callback(null, {
-                        identifier: yandexProduct.sku,
-                        stock:
-                          result?.warehouses?.[0].stocks.find(
-                            (stockType) => stockType.type === "FIT"
-                          )?.count ?? 0,
-                      })
-                    )
-                    .catch((error) => callback(error, null));
-                };
-              }
-            );
-
-            async.parallel(fbsYandexStocksRequests, (err, result) => {
-              if (err) {
-                console.log(err);
-                return callback(null, { error: err });
-              }
-              callback(null, result);
-            });
-          },
-          fbsWooStocks(callback) {
-            if (
-              !productVariation.wooProduct ||
-              productVariation.wooProduct.length === 0
-            )
-              return callback(null, null);
-
-            const fbsWooStocksRequests = productVariation.wooProduct.map(
-              (wooDbProduct) => {
-                return (callback) => {
-                  Woocommerce.getApiProduct(
-                    wooDbProduct.id,
-                    wooDbProduct.type,
-                    wooDbProduct.parentVariable?.id
-                  )
-                    .then((wooApiProduct) =>
-                      callback(null, {
-                        identifier: wooDbProduct.id,
-                        stock: wooApiProduct.stock_quantity,
-                      })
-                    )
-                    .catch((error) => {
-                      console.error(error);
-                      callback(error, null);
-                    });
-                };
-              }
-            );
-
-            async.parallel(fbsWooStocksRequests, (err, result) => {
-              if (err) {
-                console.log(err);
-                return callback(null, { error: err });
-              }
-              callback(null, result);
-            });
-          },
-          fbsWbStocks(callback) {
-            if (
-              !productVariation.wbProduct ||
-              productVariation.wbProduct.length === 0
-            )
-              return callback(null, null);
-
-            const fbsWbStocksRequests = productVariation.wbProduct.map(
-              (wbProduct) => {
-                return (callback) => {
-                  Wildberries.getApiProductsFbsStocks(wbProduct.barcode)
-                    .then((result) =>
-                      callback(null, {
-                        identifier: wbProduct.sku,
-                        stock: result?.[0].stock ?? 0,
-                      })
-                    )
-                    .catch((error) => callback(error, null));
-                };
-              }
-            );
-
-            async.parallel(fbsWbStocksRequests, (err, result) => {
-              if (err) {
-                console.log(err);
-                return callback(null, { error: err });
-              }
-              callback(null, result);
-            });
-          },
-          fbsOzonStocks(callback) {
-            if (
-              !productVariation.ozonProduct ||
-              productVariation.ozonProduct.length === 0
-            )
-              return callback(null, null);
-
-            const fbsOzonStocksRequests = productVariation.ozonProduct.map(
-              (ozonProduct) => {
-                return (callback) => {
-                  Ozon.getApiProductsStocks({
-                    product_id: [ozonProduct.sku],
-                    visibility: "ALL",
-                  })
-                    .then((result) => {
-                      callback(null, {
-                        identifier: ozonProduct.sku,
-                        stock: result[0].stocks.find(
-                          (stock) => stock.type === "fbs"
-                        )?.present,
-                      });
-                    })
-                    .catch((error) => {
-                      callback(error, null);
-                    });
-                };
-              }
-            );
-
-            async.parallel(fbsOzonStocksRequests, (err, result) => {
-              if (err) {
-                console.log(err);
-                return callback(null, { error: err });
-              }
-              callback(null, result);
-            });
-          },
-        },
-        (err, results) => {
-          if (err) {
-            console.log(err);
-            callback(err, null);
-            return;
-          }
-
-          callback(null, [productVariation, results]);
-        }
-      );
-    },
-  ]);
 };

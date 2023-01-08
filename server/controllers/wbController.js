@@ -1,34 +1,34 @@
 import { Wildberries } from "../services/wildberries.js";
-
-const connectWbDataResultFormatter = (product) => {
-  let { dbVariation, dbProduct, apiProduct, stockFBW, stockFBS } = product;
-
-  return {
-    productInnerId: dbVariation?.product._id,
-    marketProductInnerId: dbProduct?._id,
-    barcode: dbProduct?.barcode ?? "",
-    articleWb: apiProduct["nmID"],
-    article: apiProduct["vendorCode"],
-    name:
-      (dbVariation?.product.name ?? "") +
-      (["3 мл", "10 мл"].includes(dbVariation?.volume)
-        ? ` - ${dbVariation?.volume}`
-        : ""),
-    stockFBW,
-    stockFBS: {
-      stock: stockFBS,
-      updateBy: dbProduct?.barcode ?? "",
-      marketType: "wb",
-    },
-  };
-};
+import { filterMarketProducts } from "../services/helpers.js";
 
 export const getProductsListPage = async (req, res) => {
   try {
-    let products = await Wildberries.getProducts(req.query);
+    const products = await Wildberries.getProducts();
 
-    let formattedProducts = products.map((product) => {
-      return connectWbDataResultFormatter(product);
+    const filtratedProducts = filterMarketProducts(
+      Object.values(products),
+      req.query
+    );
+
+    const formattedProducts = filtratedProducts.map((product) => {
+      return {
+        productInnerId: product.dbInfo?.variation?.product._id,
+        marketProductInnerId: product.dbInfo?._id,
+        barcode: product.dbInfo?.barcode ?? "",
+        articleWb: product["nmID"],
+        article: product["vendorCode"],
+        name:
+          (product.dbInfo?.variation?.product.name ?? "") +
+          (["3 мл", "10 мл"].includes(product.dbInfo?.variation?.volume)
+            ? ` - ${product.dbInfo?.variation?.volume}`
+            : ""),
+        stockFBW: product.fbmStock ?? 0,
+        stockFBS: {
+          stock: product.fbsStock ?? 0,
+          updateBy: product.dbInfo?.barcode ?? "",
+          marketType: "wb",
+        },
+      };
     });
 
     // Sorting

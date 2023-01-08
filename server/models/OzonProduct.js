@@ -9,7 +9,6 @@ const OzonProduct = new Schema({
   variation: {
     type: Schema.ObjectId,
     ref: "ProductVariation",
-    required: true,
   },
 });
 

@@ -48,69 +48,55 @@ block content
 
                 div.variation-market-products--block
                   each marketType in ['yandex', 'wb', 'woo', 'ozon']
-                    - const marketProduct = variation[`${marketType}Product`]
-                        if (marketProduct && marketProduct.length > 0)
-                          each marketProductCard in marketProduct
-                              div.market-product--form
-                                  h2= marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
+                    - const marketProducts = variation[`${marketType}Products`]
+                      if (marketProducts && marketProducts.length > 0)
+                        each marketProduct in marketProducts
+                          div.market-product--form
+                              h2= marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
 
-                                  a.btn.navigate-btn(href=`/stocks/${marketType}/${marketProductCard._id}`)
+                              a.btn.navigate-btn(href=`/stocks/${marketType}/${marketProduct._id}`)
 
-                                  form
-                                      input(required name="marketType" value=marketType hidden)
-                                      input(required name="_id" value=marketProductCard._id hidden)
-                                      case marketType
-                                          when 'wb'
-                                              label SKU:#{" "}
-                                                  input(name="sku" value=marketProductCard.sku disabled)
-                                                  input(name="sku" value=marketProductCard.sku hidden)
-                                              label Barcode:#{" "}
-                                                  input(name="barcode" value=marketProductCard.barcode disabled)
-                                                  input(name="barcode" value=marketProductCard.barcode hidden)
-                                          when 'yandex'
-                                          when 'ozon'
-                                              label SKU:#{" "}
-                                                  input(name="sku" value=marketProductCard.sku disabled)
-                                                  input(name="sku" value=marketProductCard.sku hidden)
-                                          when 'woo'
-                                              label ID:#{" "}
-                                                  input(required name="id" value=`${marketProductCard.id}` disabled)
-                                                  input(required name="id" value=`${marketProductCard.id}` hidden)
-                                              label Type:#{" "}
-                                                  input(name="type" value=marketProductCard.type disabled)
-                                                  input(name="type" value=marketProductCard.type hidden)
-                                              if marketProductCard.type === 'variation'
-                                                  label Parent:#{" "}
-                                                      input(required name="parentVariable" value=`${marketProductCard.parentVariable.id}` disabled)
-                                                      input(required name="parentVariable" value=`${marketProductCard.parentVariable.id}` hidden)
-                                      label Article:#{" "}
-                                          input(name="article" value=marketProductCard.article disabled)
-                                          input(name="article" value=marketProductCard.article hidden)
-                                      fieldset
-                                          legend Актуальный?
-                                          label.inline Да#{" "}
-                                              input(required name="isActual" type="radio" value="true" checked=marketProductCard.isActual)
-                                          label.inline #{" "}Нет#{" "}
-                                              input(required name="isActual" type="radio" value="false" checked=!marketProductCard.isActual)
-                                      label FBS:#{" "}
-                                        - let marketProductCardStock;
-                                        - let marketProductCardIdentifier;
-                                        - const stockType = `fbs${marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()}Stocks`
-                                          case marketType
-                                            when 'yandex'
-                                            when 'wb'
-                                            when 'ozon'
-                                              - marketProductCardIdentifier = 'sku'
-                                            when 'woo'
-                                              - marketProductCardIdentifier = 'id'
-                                          if !variation.stocks[stockType].error
-                                            - marketProductCardStock = variation.stocks[stockType].find(stock => stock.identifier === marketProductCard[marketProductCardIdentifier])
-                                            input(name="stockFBS" type="number" min=0 value=(marketProductCardStock ? marketProductCardStock.stock : '') disabled=(marketProductCardStock === undefined))
-                                          else
-                                            input(name="stockFBS" type="number" min=0 placeholder="Ошибка получения остатка")
-                                      case marketType
-                                          when 'wb'
-                                          when 'ozon'
-                                              label FBM:#{" "}
-                                                  input(required name="stock" type="number" value=marketProductCard.stock disabled)
-                                      input.btn.submit-button(type="button" value="Обновить" )
+                              form
+                                  input(required name="marketType" value=marketType hidden)
+                                  input(required name="_id" value=marketProduct._id hidden)
+                                  case marketType
+                                      when 'wb'
+                                          label SKU:#{" "}
+                                              input(name="sku" value=marketProduct.sku disabled)
+                                              input(name="sku" value=marketProduct.sku hidden)
+                                          label Barcode:#{" "}
+                                              input(name="barcode" value=marketProduct.barcode disabled)
+                                              input(name="barcode" value=marketProduct.barcode hidden)
+                                      when 'yandex'
+                                      when 'ozon'
+                                          label SKU:#{" "}
+                                              input(name="sku" value=marketProduct.sku disabled)
+                                              input(name="sku" value=marketProduct.sku hidden)
+                                      when 'woo'
+                                          label ID:#{" "}
+                                              input(required name="id" value=`${marketProduct.id}` disabled)
+                                              input(required name="id" value=`${marketProduct.id}` hidden)
+                                          label Type:#{" "}
+                                              input(name="type" value=marketProduct.type disabled)
+                                              input(name="type" value=marketProduct.type hidden)
+                                          if marketProduct.type === 'variation'
+                                              label Parent:#{" "}
+                                                  input(required name="parentVariable" value=`${marketProduct.parentVariable.id}` disabled)
+                                                  input(required name="parentVariable" value=`${marketProduct.parentVariable.id}` hidden)
+                                  label Article:#{" "}
+                                      input(name="article" value=marketProduct.article disabled)
+                                      input(name="article" value=marketProduct.article hidden)
+                                  fieldset
+                                      legend Актуальный?
+                                      label.inline Да#{" "}
+                                          input(required name="isActual" type="radio" value="true" checked=marketProduct.isActual)
+                                      label.inline #{" "}Нет#{" "}
+                                          input(required name="isActual" type="radio" value="false" checked=!marketProduct.isActual)
+                                  label FBS:#{" "}
+                                      input(name="stockFBS" type="number" min=0 value=(marketProduct.fbsStock) disabled=(marketProduct.fbsStock === undefined))
+                                  case marketType
+                                      when 'wb'
+                                      when 'ozon'
+                                          label FBM:#{" "}
+                                              input(required name="stock" type="number" value=marketProduct.fbmStock disabled)
+                                  input.btn.submit-button(type="button" value="Обновить" )

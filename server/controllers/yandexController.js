@@ -1,36 +1,36 @@
 import { Yandex } from "../services/yandex.js";
-
-const connectYandexDataResultFormatter = (
-  variation,
-  yandexDbProduct,
-  yandexApiProduct,
-  yandexStock
-) => {
-  return {
-    productInnerId: variation?.product._id,
-    marketProductInnerId: yandexDbProduct?._id,
-    productSku: yandexApiProduct.shopSku,
-    productName:
-      (variation?.product.name ?? "") +
-      (["3 мл", "10 мл"].includes(variation?.volume)
-        ? ` - ${variation?.volume}`
-        : ""),
-    productStock: {
-      stock: yandexStock,
-      updateBy: yandexDbProduct?.sku,
-      marketType: "yandex",
-    },
-  };
-};
+import { filterMarketProducts } from "../services/helpers.js";
 
 export const getProductsListPage = (req, res) => {
-  Yandex.getProducts(req.query, connectYandexDataResultFormatter)
+  Yandex.getProducts()
     .then((products) => {
-      // Clear product list of undefined after async
-      products = products.filter((product) => !!product);
+      const filtratedProducts = filterMarketProducts(
+        Object.values(products),
+        req.query
+      );
+
+      const formattedProducts = filtratedProducts.map((product) => {
+        const variation = product.dbInfo?.variation;
+
+        return {
+          productInnerId: product.dbInfo?.variation?.product._id,
+          marketProductInnerId: product.dbInfo?._id,
+          productSku: product.shopSku,
+          productName:
+            (variation?.product.name ?? "") +
+            (["3 мл", "10 мл"].includes(variation?.volume)
+              ? ` - ${variation?.volume}`
+              : ""),
+          productStock: {
+            stock: product.fbsStock ?? 0,
+            updateBy: product.shopSku,
+            marketType: "yandex",
+          },
+        };
+      });
 
       // Sorting
-      products.sort((product1, product2) =>
+      formattedProducts.sort((product1, product2) =>
         product1.productName.localeCompare(product2.productName, "ru")
       );
 
@@ -42,7 +42,7 @@ export const getProductsListPage = (req, res) => {
           Name: { type: "name", field: "productName" },
           FBS: { type: "fbs", field: "productStock" },
         },
-        products,
+        products: formattedProducts,
       });
     })
     .catch((error) => {

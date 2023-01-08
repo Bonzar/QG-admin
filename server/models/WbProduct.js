@@ -10,7 +10,6 @@ const WbProduct = new Schema({
   variation: {
     type: Schema.ObjectId,
     ref: "ProductVariation",
-    required: true,
   },
 });
 

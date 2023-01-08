@@ -2,7 +2,6 @@ import WooCommerceAPI from "woocommerce-api";
 import async from "async";
 import { Marketplace } from "./marketplace.js";
 import WooProduct from "../models/WooProduct.js";
-import * as dbService from "./dbService.js";
 import WooProductVariable from "../models/WooProductVariable.js";
 
 const woocommerceAPI = WooCommerceAPI({
@@ -16,11 +15,9 @@ const woocommerceAPI = WooCommerceAPI({
 export class Woocommerce extends Marketplace {
   static marketProductSchema = WooProduct;
 
-  /**
-   * INSTANCE METHODS
-   */
+  // INSTANCE METHODS
   async getApiProduct() {
-    const product = await this.getDbData();
+    const product = await this.getDbProduct();
     return Woocommerce.getApiProduct(
       product.id,
       product.type,
@@ -33,7 +30,7 @@ export class Woocommerce extends Marketplace {
   }
 
   async updateApiProduct(updateData) {
-    const product = await this.getDbData();
+    const product = await this.getDbProduct();
 
     return Woocommerce.updateApiProduct(
       product.id,
@@ -44,70 +41,40 @@ export class Woocommerce extends Marketplace {
   }
 
   async addUpdateProduct(newData) {
-    if (newData.parentVariable) {
-      newData.parentVariable = await WooProductVariable.findOne({
-        id: newData.parentVariable,
-      });
-    } else {
-      newData.parentVariable = undefined;
-    }
-
     return super.addUpdateProduct(newData, (newStock) =>
       this.updateApiStock(newStock)
     );
   }
 
-  /**
-   * CLASS METHODS
-   */
-  static async getProducts(
-    filters,
-    connectWooDataResultFormatter,
-    allDbVariations
-  ) {
-    const wooData = await async.parallel({
-      wooApiProducts: (callback) => {
-        this.getApiProducts("")
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      wooDbProducts: (callback) => {
-        this.getDbProducts()
-          .populate("parentVariable")
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      dbVariations: (callback) => {
-        if (!allDbVariations) {
-          dbService
-            .getAllVariations({}, [
-              {
-                path: "wooProduct",
-                populate: { path: "parentVariable" },
-              },
-              "product",
-            ])
-            .then((result) => callback(null, result))
-            .catch((error) => callback(error, null));
-          return;
-        }
+  // CLASS METHODS
+  static async checkIdentifierExistsInApi(newProductData) {
+    const allApiProducts = await this.getApiProducts();
 
-        callback(null, allDbVariations);
-      },
-    });
+    const isProductExistsOnMarketplace = !!allApiProducts[newProductData.id];
 
-    return async.parallel(
-      this.#getConnectWooDataRequests(
-        filters,
-        wooData.wooApiProducts,
-        wooData.wooDbProducts,
-        wooData.dbVariations,
-        connectWooDataResultFormatter
-      )
-    );
+    if (!isProductExistsOnMarketplace) {
+      throw new Error("Идентификатор товара не существует в базе маркетплейса");
+    }
   }
 
-  static async getApiProducts(tableFilters) {
+  static connectDbApiData(dbProducts, apiProducts) {
+    for (const apiProduct of Object.values(apiProducts)) {
+      apiProduct.fbsStock = apiProduct.stock_quantity;
+    }
+
+    for (const dbProduct of dbProducts) {
+      const apiProduct = apiProducts[dbProduct.id];
+      if (!apiProduct) {
+        continue;
+      }
+
+      apiProduct.dbInfo = dbProduct;
+    }
+
+    return apiProducts;
+  }
+
+  static async getApiProducts() {
     // Setup optimal count requests pages
     let totalPages = 30;
 
@@ -119,9 +86,7 @@ export class Woocommerce extends Marketplace {
       return async function getProductsPack(page = currentPage) {
         // Request it self
         return await woocommerceAPI
-          .getAsync(
-            `products?per_page=10&page=${page}&order=asc${tableFilters}`
-          )
+          .getAsync(`products?per_page=10&page=${page}&order=asc`)
           .then(async (response) => {
             let productsPack = JSON.parse(response.body);
 
@@ -165,11 +130,27 @@ export class Woocommerce extends Marketplace {
 
     const fetchedProducts = await async.parallel(requests);
 
-    // Unpacking array of objects arrays in one array with naming replace
-    return fetchedProducts.reduce((totalList, currentPack) => {
-      totalList.push(...currentPack);
-      return totalList;
-    }, []);
+    const apiProducts = {};
+    fetchedProducts.forEach((productPack) => {
+      productPack.forEach((product) => {
+        switch (product.type) {
+          case "simple":
+            apiProducts[product.id] = product;
+            break;
+          case "variable":
+            product["product_variations"].forEach((productVariation) => {
+              apiProducts[productVariation.id] = {
+                ...productVariation,
+                parentId: product.id,
+                type: "variation",
+              };
+            });
+            break;
+        }
+      });
+    });
+
+    return apiProducts;
   }
 
   static getApiProductVariationInfo(variableId, productId) {
@@ -186,13 +167,22 @@ export class Woocommerce extends Marketplace {
     });
   }
 
-  static getApiProduct(productId, productType, variableId = null) {
+  static async getApiProduct(productId, productType, variableId = null) {
+    let apiProduct;
+
     switch (productType) {
       case "simple":
-        return this.getApiSimpleProductInfo(productId);
+        apiProduct = await this.getApiSimpleProductInfo(productId);
+        break;
       case "variation":
-        return this.getApiProductVariationInfo(variableId, productId);
+        apiProduct = await this.getApiProductVariationInfo(
+          variableId,
+          productId
+        );
+        break;
     }
+
+    return { [apiProduct.id]: apiProduct };
   }
 
   static updateApiSimpleProduct(productId, updateData) {
@@ -229,6 +219,10 @@ export class Woocommerce extends Marketplace {
     }
   }
 
+  static getDbVariableProducts(filter) {
+    return WooProductVariable.find(filter);
+  }
+
   static getProcessingOrders = () => {
     return woocommerceAPI
       .getAsync(`orders?per_page=100&status=processing`)
@@ -237,133 +231,20 @@ export class Woocommerce extends Marketplace {
       });
   };
 
-  static getDbProductAndVariationForApiProduct(
-    apiProduct,
-    allDbVariations,
-    wooDbProducts
-  ) {
-    let dbProduct;
-    // Search variation for market product from api
-    const dbVariation = allDbVariations.find(
-      (variation) =>
-        // Search market product in db for market product from api
-        variation.wooProduct?.filter((variationWooDbProduct) => {
-          const isMarketProductMatch =
-            variationWooDbProduct.id === apiProduct.id;
-          // find -> save market product
-          if (isMarketProductMatch) {
-            dbProduct = variationWooDbProduct;
-          }
-
-          return isMarketProductMatch;
-        }).length > 0
-    );
-
-    if (!dbProduct) {
-      // Search fetched product from ozon in DB
-      dbProduct = wooDbProducts.find(
-        (wooDbProduct) => wooDbProduct.id === apiProduct.id
-      );
-    }
-
-    return { dbVariation, dbProduct };
-  }
-
-  static #getConnectWooDataRequest = (
-    filters,
-    wooApiProduct,
-    wooDbProducts,
-    allDbVariations,
-    connectWooDataResultFormatter
-  ) => {
-    return async () => {
-      const { dbVariation, dbProduct } =
-        this.getDbProductAndVariationForApiProduct(
-          wooApiProduct,
-          allDbVariations,
-          wooDbProducts
-        );
-
-      const wooStock = wooApiProduct["stock_quantity"];
-
-      // Filtration
-      let isPassFilterArray = [];
-      // by stock status
-      switch (filters.stock_status) {
-        // Filter only outofstock products (by FBS)
-        case "outofstock":
-          isPassFilterArray.push(wooStock <= 0);
-          break;
-      }
-
-      // by actual (manual setup in DB)
-      switch (filters.isActual) {
-        case "notActual":
-          isPassFilterArray.push(dbProduct?.isActual === false);
-          break;
-        case "all":
-          isPassFilterArray.push(true);
-          break;
-        // Only actual by default
-        default:
-          isPassFilterArray.push(dbProduct?.isActual !== false);
-      }
-
-      if (!isPassFilterArray.every((pass) => pass)) return;
-
-      return connectWooDataResultFormatter(
-        dbVariation,
-        dbProduct,
-        wooApiProduct,
-        wooStock
-      );
-    };
-  };
-
-  static #getConnectWooDataRequests = (
-    filters,
-    wooApiProducts,
-    wooDbProducts,
-    allDbVariations,
-    connectWooDataResultFormatter
-  ) => {
-    const connectWooDataRequests = [];
-
-    wooApiProducts.forEach((wooApiProduct) => {
-      if (wooApiProduct.type === "simple") {
-        connectWooDataRequests.push(
-          this.#getConnectWooDataRequest(
-            filters,
-            wooApiProduct,
-            wooDbProducts,
-            allDbVariations,
-            connectWooDataResultFormatter
-          )
-        );
-      } else {
-        for (const wooApiProductVariation of wooApiProduct.product_variations) {
-          connectWooDataRequests.push(
-            this.#getConnectWooDataRequest(
-              filters,
-              wooApiProductVariation,
-              wooDbProducts,
-              allDbVariations,
-              connectWooDataResultFormatter
-            )
-          );
-        }
-      }
-    });
-
-    return connectWooDataRequests;
-  };
-
   static getDbProductById(id) {
     return super.getDbProductById(id).populate("parentVariable");
   }
 
-  static getMarketProductDetails(marketProductData) {
-    const marketProductDetails = super.getMarketProductDetails(
+  static getDbProducts(filter = {}) {
+    return super.getDbProducts(filter).populate("parentVariable");
+  }
+
+  static getDbProduct(filter = {}) {
+    return super.getDbProduct(filter).populate("parentVariable");
+  }
+
+  static async getMarketProductDetails(marketProductData) {
+    const marketProductDetails = await super.getMarketProductDetails(
       marketProductData
     );
 
@@ -372,6 +253,13 @@ export class Woocommerce extends Marketplace {
     }
     if (marketProductData.id) {
       marketProductDetails.id = marketProductData.id;
+    }
+    if (marketProductData.parentVariable) {
+      marketProductDetails.parentVariable = await WooProductVariable.findOne({
+        id: marketProductData.parentVariable,
+      });
+    } else {
+      marketProductDetails.parentVariable = undefined;
     }
 
     return marketProductDetails;

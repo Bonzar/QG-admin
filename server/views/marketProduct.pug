@@ -5,8 +5,8 @@ append scripts
 
 block section
     h1= title
-        if variation
-            a.btn.navigate-btn.navigate-btn--back(href=`/stocks/db/product/${variation.product._id}`)
+        if marketProduct ? marketProduct.variation : false
+            a.btn.navigate-btn.navigate-btn--back(href=`/stocks/db/product/${marketProduct.variation.product._id}`)
     form.market-product--form
         case marketType
             when "yandex"
@@ -47,11 +47,11 @@ block section
             case marketType
                 when "wb"
                     label FBW:#{" "}
-                        input(name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
+                        input(name="stock" type="number" value=(marketProduct.stock) disabled)
 
                 when "ozon"
                     label FBO:#{" "}
-                        input(name="stock" type="number" value=(marketProduct ? marketProduct.stock : 0) disabled)
+                        input(name="stock" type="number" value=(marketProduct.stock) disabled)
 
         fieldset
             legend Связь с вариацией (необязательно)
@@ -59,12 +59,12 @@ block section
                 select.select--style( name="product_id")
                     option(value="") Выберете продукт
                       each product in allProducts
-                          option(value=product._id selected=(variation ? product._id.toString() === variation.product._id.toString() : false))= product.name
+                          option(value=product._id selected=(marketProduct ? marketProduct.variation ? product._id.toString() === marketProduct.variation.product._id.toString() : false : false))= product.name
             label.select--arrow Объем:#{" "}
                 select.select--style( name="variation_volume")
                     option(value="") Выберете объем
                       each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
-                          option(value=volume selected=(variation ? volume === variation.volume : false))= volume
+                          option(value=volume selected=(marketProduct ? marketProduct.variation ? volume === marketProduct.variation.volume : false : false))= volume
 
         input(required name="marketType" value=marketType hidden)
         if marketProduct

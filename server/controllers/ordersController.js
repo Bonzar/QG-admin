@@ -1,19 +1,15 @@
 import async from "async";
-import { clearName } from "../services/nameFormatter.js";
-import WbProduct from "../models/WbProduct.js";
-import ProductVariation from "../models/ProductVariation.js";
 import { Ozon } from "../services/ozon.js";
-import * as dbService from "../services/dbService.js";
 import { Wildberries } from "../services/wildberries.js";
 import { Yandex } from "../services/yandex.js";
 import { Woocommerce } from "../services/woocommerce.js";
 
 //todo refactor callbacks
 
-const formatOzonOrders = (ozonOrders, ozonDbProducts, dbVariations) => {
-  return ozonOrders.map((ozonOrder) => {
+const formatOzonOrders = (orders) => {
+  return orders.map((order) => {
     let order_status = "";
-    switch (ozonOrder.status) {
+    switch (order.status) {
       case "awaiting_packaging":
         order_status = "Новый";
         break;
@@ -28,228 +24,197 @@ const formatOzonOrders = (ozonOrders, ozonDbProducts, dbVariations) => {
         break;
     }
 
-    return {
-      order_number: ozonOrder.order_number,
-      order_status,
-      products: ozonOrder.products.map((product) => {
-        const { dbVariation } = Ozon.getDbProductAndVariationForApiProduct(
-          product,
-          dbVariations,
-          ozonDbProducts
-        );
+    const productsRequests = order.products.map((orderProduct) => {
+      return (callback) => {
+        return Ozon.getDbProduct({
+          article: orderProduct.offer_id,
+        })
+          .then((dbProduct) =>
+            callback(null, {
+              name: dbProduct?.variation?.product.name ?? "",
+              article: orderProduct.offer_id,
+              quantity: orderProduct.quantity,
+            })
+          )
+          .catch((error) => callback(error, null));
+      };
+    });
 
-        return {
-          name: dbVariation?.product.name,
-          article: product.offer_id,
-          quantity: product.quantity,
-        };
-      }),
+    async.parallel(productsRequests);
+
+    return (callback) => {
+      async
+        .parallel(productsRequests)
+        .then((products) => {
+          callback(null, {
+            order_number: order.order_number,
+            order_status,
+            products,
+          });
+        })
+        .catch((error) => callback(error, null));
     };
   });
 };
 
-const getAllOzonOrders = () => {
-  return async
-    .parallel({
-      ozonTodayOrders: (callback) => {
-        Ozon.getApiTodayOrders()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      ozonOverdueOrders: (callback) => {
-        Ozon.getApiOverdueOrders()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      ozonDbProducts: (callback) => {
-        Ozon.getDbProducts()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      dbVariations: (callback) => {
-        dbService
-          .getAllVariations({}, ["product ozonProduct"])
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-    })
-    .then((results) => {
-      const {
-        ozonTodayOrders,
-        ozonOverdueOrders,
-        ozonDbProducts,
-        dbVariations,
-      } = results;
+const getAllOzonOrders = async () => {
+  const todayOrders = await Ozon.getApiTodayOrders();
+  const overdueOrders = await Ozon.getApiOverdueOrders();
 
-      const ozonOrdersFormat = formatOzonOrders(
-        ozonTodayOrders,
-        ozonDbProducts,
-        dbVariations
-      );
-      const ozonOverdueOrdersFormat = formatOzonOrders(
-        ozonOverdueOrders,
-        ozonDbProducts,
-        dbVariations
-      );
+  const todayOrdersFormatRequests = formatOzonOrders(todayOrders);
+  const overdueOrdersFormatRequests = formatOzonOrders(overdueOrders);
 
-      return {
-        today: {
-          status: ozonOrdersFormat.length > 0,
-          orders: ozonOrdersFormat,
-        },
-        overdue: {
-          status: ozonOverdueOrdersFormat.length > 0,
-          orders: ozonOverdueOrdersFormat,
-        },
-      };
-    });
-};
-
-const getYandexOrders = async (callback) => {
-  try {
-    const yandexOrders = await Yandex.getApiTodayOrders();
-
-    const yandexOrdersFormatted = yandexOrders.map((yandexOrder) => {
-      let order_status = "";
-      switch (yandexOrder.substatus) {
-        case "STARTED":
-          order_status = "Новый";
-          break;
-        case "READY_TO_SHIP":
-          order_status = "Собран";
-          break;
-        case "SHIPPED":
-          order_status = "Доставка";
-          break;
-      }
-
-      return {
-        order_number: yandexOrder.id,
-        order_status,
-        products: yandexOrder.items.map((product) => {
-          return {
-            name: clearName(product.offerName),
-            article: product.offerId,
-            quantity: product.count,
-          };
-        }),
-      };
-    });
-    callback(null, yandexOrdersFormatted);
-  } catch (e) {
-    console.log(e);
-    callback(e, null);
-  }
-};
-
-const getWooOrders = async (callback) => {
-  try {
-    const wooOrders = await Woocommerce.getProcessingOrders();
-    const wooOrdersFormatted = wooOrders.map((wooOrder) => {
-      let order_status = "";
-      switch (wooOrder.status) {
-        case "pending":
-          order_status = "Ожидание";
-          break;
-        case "processing":
-          order_status = "Обработка";
-          break;
-        case "on-hold":
-          order_status = "Удержание";
-          break;
-        case "completed":
-          order_status = "Завершен";
-          break;
-        case "cancelled":
-          order_status = "Отменен";
-          break;
-        case "refunded":
-          order_status = "Возврат";
-          break;
-        case "failed":
-          order_status = "Не удался";
-          break;
-        case "trash":
-          order_status = "Удален";
-          break;
-      }
-
-      return {
-        order_number: wooOrder.id,
-        order_status,
-        products: wooOrder.line_items.map((product) => {
-          return {
-            name: clearName(product.name, "site"),
-            article: product.sku,
-            quantity: product.quantity,
-          };
-        }),
-      };
-    });
-    callback(null, wooOrdersFormatted);
-  } catch (e) {
-    console.log(e);
-    callback(e, null);
-  }
-};
-
-const getWbOrders = () => {
-  return async.waterfall([
-    (callback) => {
-      Wildberries.getApiNewOrders()
-        .then((result) => callback(null, result))
-        .catch((error) => callback(error, null));
+  return async.parallel({
+    todayOrders: (callback) => {
+      async.parallel(todayOrdersFormatRequests, callback);
     },
-    (todayOrders, callback) => {
-      const ordersInfoRequests = todayOrders.map((order) => {
-        return (cb) => {
-          async.waterfall(
-            [
-              (callback) => {
-                WbProduct.findOne({
-                  barcode: order.skus[0],
-                }).exec(callback);
-              },
-              (wbProduct, callback) => {
-                ProductVariation.findOne({ wbProduct })
-                  .populate("product wbProduct")
-                  .exec((error, variation) => {
-                    if (error) {
-                      console.error(error);
-                      callback(error, null);
-                      return;
-                    }
+    overdueOrders: (callback) => {
+      async.parallel(overdueOrdersFormatRequests, callback);
+    },
+  });
+};
 
-                    callback(null, variation, wbProduct);
-                  });
-              },
-              (variation, wbProduct, callback) => {
-                try {
-                  callback(null, {
-                    order_number: order.id,
-                    order_status: "Новый",
-                    products: [
-                      {
-                        name: variation?.product.name ?? "",
-                        article: wbProduct?.article ?? "",
-                        quantity: 1,
-                      },
-                    ],
-                  });
-                } catch (e) {
-                  console.log(e);
-                  callback(e, null);
-                }
+const getYandexOrders = async () => {
+  const yandexOrders = await Yandex.getApiTodayOrders();
+
+  const yandexOrdersFormatRequests = yandexOrders.map((order) => {
+    let order_status = "";
+    switch (order.substatus) {
+      case "STARTED":
+        order_status = "Новый";
+        break;
+      case "READY_TO_SHIP":
+        order_status = "Собран";
+        break;
+      case "SHIPPED":
+        order_status = "Доставка";
+        break;
+    }
+
+    const productsRequests = order.items.map((orderProduct) => {
+      return (callback) => {
+        return Yandex.getDbProduct({
+          sku: orderProduct.offerId,
+        })
+          .then((dbProduct) =>
+            callback(null, {
+              name: dbProduct?.variation?.product.name ?? "",
+              article: orderProduct.offerId,
+              quantity: orderProduct.count,
+            })
+          )
+          .catch((error) => callback(error, null));
+      };
+    });
+
+    return (callback) => {
+      async
+        .parallel(productsRequests)
+        .then((products) => {
+          callback(null, {
+            order_number: order.id,
+            order_status,
+            products,
+          });
+        })
+        .catch((error) => callback(error, null));
+    };
+  });
+
+  return async.parallel(yandexOrdersFormatRequests);
+};
+
+const getWooOrders = async () => {
+  const wooOrders = await Woocommerce.getProcessingOrders();
+
+  const wooOrdersFormatRequests = wooOrders.map((order) => {
+    let order_status = "";
+    switch (order.status) {
+      case "pending":
+        order_status = "Ожидание";
+        break;
+      case "processing":
+        order_status = "Обработка";
+        break;
+      case "on-hold":
+        order_status = "Удержание";
+        break;
+      case "completed":
+        order_status = "Завершен";
+        break;
+      case "cancelled":
+        order_status = "Отменен";
+        break;
+      case "refunded":
+        order_status = "Возврат";
+        break;
+      case "failed":
+        order_status = "Не удался";
+        break;
+      case "trash":
+        order_status = "Удален";
+        break;
+    }
+
+    const productsRequests = order.line_items.map((orderProduct) => {
+      return (callback) => {
+        const productId = orderProduct.parent_name
+          ? orderProduct.variation_id
+          : orderProduct.product_id;
+
+        return Woocommerce.getDbProduct({
+          id: productId,
+        })
+          .then((dbProduct) =>
+            callback(null, {
+              name: dbProduct?.variation?.product.name ?? "",
+              article: orderProduct.sku,
+              quantity: orderProduct.quantity,
+            })
+          )
+          .catch((error) => callback(error, null));
+      };
+    });
+
+    return (callback) => {
+      async
+        .parallel(productsRequests)
+        .then((products) => {
+          callback(null, {
+            order_number: order.id,
+            order_status,
+            products,
+          });
+        })
+        .catch((error) => callback(error, null));
+    };
+  });
+
+  return async.parallel(wooOrdersFormatRequests);
+};
+
+const getWbOrders = async () => {
+  const newOrders = await Wildberries.getApiNewOrders();
+  const reservedProductsRequests = newOrders.map((newOrder) => {
+    return (callback) =>
+      Wildberries.getDbProduct({ sku: newOrder.nmId })
+        .then((dbProduct) =>
+          callback(null, {
+            order_number: newOrder.id,
+            order_status: "Новый",
+            products: [
+              {
+                name: dbProduct?.variation.product.name ?? "",
+                article: dbProduct?.article ?? "",
+                quantity: 1,
               },
             ],
-            cb
-          );
-        };
-      });
+          })
+        )
+        .catch((error) => callback(error, null));
+  });
 
-      async.parallel(ordersInfoRequests, callback);
-    },
-  ]);
+  return async.parallel(reservedProductsRequests);
 };
 
 export const getOrdersList = (req, res) => {
@@ -261,10 +226,14 @@ export const getOrdersList = (req, res) => {
           .catch((error) => callback(error, null));
       },
       yandexOrders(callback) {
-        getYandexOrders(callback);
+        getYandexOrders()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
       },
       wooOrders(callback) {
-        getWooOrders(callback);
+        getWooOrders()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
       },
       wbOrders(callback) {
         getWbOrders()
@@ -278,7 +247,14 @@ export const getOrdersList = (req, res) => {
         allOrders: [
           {
             name: "Ozon",
-            ...results.ozonOrders,
+            today: {
+              status: results.ozonOrders.todayOrders.length > 0,
+              orders: results.ozonOrders.todayOrders,
+            },
+            overdue: {
+              status: results.ozonOrders.overdueOrders.length > 0,
+              orders: results.ozonOrders.overdueOrders,
+            },
           },
           {
             name: "Yandex",
@@ -317,6 +293,7 @@ export const getOrdersList = (req, res) => {
       });
     })
     .catch((error) => {
+      console.error(error);
       return res.status(400).json({
         error,
         message: `Ошибка получения списка заказов – ${error.message}`,

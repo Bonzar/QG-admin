@@ -5,6 +5,10 @@ import { Ozon } from "../services/ozon.js";
 import { Wildberries } from "../services/wildberries.js";
 import { Yandex } from "../services/yandex.js";
 import { Woocommerce } from "../services/woocommerce.js";
+import {
+  filterMarketProducts,
+  getMarketplaceClasses,
+} from "../services/helpers.js";
 
 const isValidationPass = (req, res) => {
   let errors = validationResult(req);
@@ -20,106 +24,113 @@ const isValidationPass = (req, res) => {
   return true;
 };
 
+const getMarketProductRequest = (
+  Marketplace,
+  marketVariationDbProduct,
+  marketType
+) => {
+  return (callback) => {
+    const marketProductInstance = new Marketplace(marketVariationDbProduct._id);
+    marketProductInstance
+      .getProduct()
+      .then((marketProductData) => {
+        marketVariationDbProduct.fbsStock = marketProductData.fbsStock;
+        if (["wb", "ozon"].includes(marketType)) {
+          marketVariationDbProduct.fbmStock = marketProductData.fbmStock;
+        }
+
+        callback(null, null);
+      })
+      .catch((error) => callback(error, null));
+  };
+};
+
 export const getProductPage = (req, res) => {
-  try {
-    async.waterfall(
-      [
-        (callback) => {
-          dbService
-            .getProductById(req.params.id)
-            .then((product) => callback(null, product))
-            .catch((error) => callback(error, null));
-        },
-        (product, callback) => {
-          dbService
-            .getAllVariations({ product }, [
-              {
-                path: "wooProduct",
-                populate: { path: "parentVariable" },
-              },
-              "product yandexProduct wbProduct ozonProduct",
-            ])
-            .then((variations) => callback(null, product, variations))
-            .catch((error) => callback(error, null));
-        },
-        (product, variations, callback) => {
-          const variationStockRequests = variations.map((variation) => {
-            return (callback) => {
-              dbService
-                .getVariationProductsStocks(variation._id)
-                .then((results) => {
-                  variation = results[0];
-                  variation.stocks = results[1];
+  dbService
+    .getProductById(req.params.id)
+    .then(async (product) => {
+      const productVariations = await dbService.getProductVariations({
+        product: product?._id,
+      });
 
-                  callback(null, variation);
-                })
-                .catch((error) => {
-                  console.error(error);
-                  callback(error, null);
-                });
-            };
-          });
+      const productRequests = [];
 
-          async
-            .parallel(variationStockRequests)
-            .then((variations) => {
-              callback(null, [product, variations]);
-            })
-            .catch((error) => {
-              console.error(error);
-              callback(error, null);
+      // product variations requests
+      for (const productVariation of productVariations) {
+        const variationDbProductRequests = [];
+
+        // each marketplace requests
+        for (const [marketType, Marketplace] of Object.entries(
+          getMarketplaceClasses()
+        )) {
+          productVariation[`${marketType}Products`] =
+            await Marketplace.getDbProducts({
+              variation: productVariation._id,
             });
-        },
-      ],
-      (err, results) => {
-        if (err) {
-          console.log(err);
-          res.status(400).json({
-            message: `Error while getting product page. Try again later.`,
-            code: err.code,
-            status: err.response?.status,
+
+          const marketVariationDbProductRequests = [];
+
+          // market products requests
+          for (const marketVariationDbProduct of productVariation[
+            `${marketType}Products`
+          ]) {
+            marketVariationDbProductRequests.push(
+              getMarketProductRequest(
+                Marketplace,
+                marketVariationDbProduct,
+                marketType
+              )
+            );
+          }
+
+          variationDbProductRequests.push((callback) => {
+            async.parallel(marketVariationDbProductRequests, callback);
           });
-          return;
         }
 
-        const [product, variations] = results;
-
-        variations.sort((variation1, variation2) => {
-          const volumeSortRating = {
-            "3 мл": 50,
-            "6 мл": 40,
-            "10 мл": 30,
-            Набор: 20,
-            Стикеры: 10,
-          };
-
-          return (
-            volumeSortRating[variation2.volume] -
-            volumeSortRating[variation1.volume]
-          );
+        productRequests.push((callback) => {
+          async.parallel(variationDbProductRequests, callback);
         });
-
-        if (product) {
-          res.render("product", {
-            title: `${product.name}`,
-            product,
-            variations,
-          });
-        } else {
-          res.render("product", {
-            title: "Добавить новый товар",
-          });
-        }
       }
-    );
-  } catch (err) {
-    console.log(err);
-    res.status(400).json({
-      message: "Error while getting all products. Try again later.",
-      code: err.code,
-      status: err.response?.status,
+
+      // wait for data assign complete
+      await async.parallel(productRequests);
+
+      productVariations.sort((variation1, variation2) => {
+        const volumeSortRating = {
+          "3 мл": 50,
+          "6 мл": 40,
+          "10 мл": 30,
+          Набор: 20,
+          Стикеры: 10,
+        };
+
+        return (
+          volumeSortRating[variation2.volume] -
+          volumeSortRating[variation1.volume]
+        );
+      });
+
+      if (product) {
+        res.render("product", {
+          title: `${product.name}`,
+          product,
+          variations: productVariations,
+        });
+      } else {
+        res.render("product", {
+          title: "Добавить новый товар",
+        });
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+      res.status(400).json({
+        message: "Error while getting all products. Try again later.",
+        code: error.code,
+        status: error.response?.status,
+      });
     });
-  }
 };
 
 export const getDbMarketProductPage = async (req, res) => {
@@ -135,7 +146,7 @@ export const getDbMarketProductPage = async (req, res) => {
 
     let wooVariableProducts = null;
     if (marketType === "woo") {
-      wooVariableProducts = await dbService.getWooVariableProducts({});
+      wooVariableProducts = await Woocommerce.getDbVariableProducts();
       wooVariableProducts.sort(
         (wooVariableProduct1, wooVariableProduct2) =>
           wooVariableProduct1.id - wooVariableProduct2.id
@@ -143,56 +154,11 @@ export const getDbMarketProductPage = async (req, res) => {
     }
     // if id exist -> update product ELSE add new
     if (productId) {
-      let marketProduct = null;
-      let fbsStocks = null;
-      switch (marketType) {
-        case "wb":
-          // eslint-disable-next-line no-case-declarations
-          const wbProduct = new Wildberries(productId);
-          marketProduct = await wbProduct.getDbData();
-          fbsStocks = (await wbProduct.getApiFbsStock()) ?? 0;
-          break;
-        case "yandex":
-          // eslint-disable-next-line no-case-declarations
-          const yandexProduct = new Yandex(productId);
-          marketProduct = await yandexProduct.getDbData();
-          fbsStocks =
-            (await yandexProduct.getApiProduct())?.warehouses
-              ?.find((warehouse) => warehouse.id === 52301)
-              .stocks.find((stockType) => stockType.type === "FIT")?.count ?? 0;
-          break;
-        case "ozon":
-          // eslint-disable-next-line no-case-declarations
-          const ozonProduct = new Ozon(productId);
-          marketProduct = await ozonProduct.getDbData();
-          // eslint-disable-next-line no-case-declarations
-          const ozonStocks = await ozonProduct.getApiStocks();
-          // eslint-disable-next-line no-case-declarations
-          const ozonFbsStocks = ozonStocks.find(
-            (stock) => stock.type === "fbs"
-          );
-          fbsStocks = ozonFbsStocks?.present - ozonFbsStocks?.reserved ?? 0;
-          break;
-        case "woo":
-          // eslint-disable-next-line no-case-declarations
-          const wooProduct = new Woocommerce(productId);
-          // eslint-disable-next-line no-case-declarations
-          const wooApiProduct = await wooProduct.getApiProduct();
-          fbsStocks = wooApiProduct.stock_quantity;
-          marketProduct = wooProduct.getDbData();
-          break;
-        default:
-          res.status(400).json({
-            message: "Выбран не вырный маркетплейс.",
-          });
-      }
-
-      const variationFilter = {};
-      variationFilter[`${marketType}Product`] = marketProduct;
-
-      const variation = (
-        await dbService.getAllVariations(variationFilter, ["product"])
-      )[0];
+      const Marketplace = getMarketplaceClasses()[marketType];
+      const marketProductInstance = new Marketplace(productId);
+      const marketProductData = await marketProductInstance.getProduct();
+      const marketProduct = marketProductData.dbInfo;
+      const fbsStocks = marketProductData.fbsStock;
 
       if (marketProduct) {
         res.render("marketProduct", {
@@ -207,7 +173,6 @@ export const getDbMarketProductPage = async (req, res) => {
           marketType,
           allProducts,
           marketProduct,
-          variation,
           fbsStocks,
           wooVariableProducts,
         });
@@ -235,7 +200,7 @@ export const getDbMarketProductPage = async (req, res) => {
 export const getWooProductVariablePage = async (req, res) => {
   try {
     const wooProductVariable = (
-      await dbService.getWooVariableProducts({ _id: req.params.id })
+      await Woocommerce.getDbVariableProducts({ _id: req.params.id })
     )[0];
 
     if (wooProductVariable) {
@@ -503,10 +468,7 @@ export const getAllProductsPage = (req, res) => {
 
 export const getAllWooProductVariablesPage = async (req, res) => {
   try {
-    const allWooVariableProducts = await dbService.getWooProducts(
-      {},
-      "parentVariable"
-    );
+    const allWooVariableProducts = await Woocommerce.getDbVariableProducts();
 
     allWooVariableProducts.sort(
       (wooVariableProduct1, wooVariableProduct2) =>
@@ -530,27 +492,24 @@ export const getAllProductsStockPage = async (req, res) => {
   try {
     let allVariationsStockList = [];
 
-    const connectYandexDataResultFormatter = (
-      variation,
-      yandexDbProduct,
-      yandexApiProduct,
-      yandexStock
-    ) => {
+    const connectYandexDataResultFormatter = (product) => {
+      const variation = product.dbInfo?.variation;
+
       const variationStock = allVariationsStockList.find(
         (variationStock) =>
-          variationStock.variationInnerId === variation?._id &&
+          variationStock.variationInnerId === variation?._id.toString() &&
           variationStock.yandexStock === undefined
       );
 
       if (variationStock) {
         variationStock.yandexStock = {
-          stock: yandexStock,
-          updateBy: yandexDbProduct.sku,
+          stock: product.fbsStock ?? 0,
+          updateBy: product.shopSku,
           marketType: "yandex",
         };
       } else {
         allVariationsStockList.push({
-          variationInnerId: variation?._id,
+          variationInnerId: variation?._id.toString(),
           productInnerId: variation?.product._id,
           volume: variation?.volume,
           productName:
@@ -559,38 +518,35 @@ export const getAllProductsStockPage = async (req, res) => {
               ? ` - ${variation?.volume}`
               : ""),
           yandexStock: {
-            stock: yandexStock,
-            updateBy: yandexDbProduct?.sku,
+            stock: product.fbsStock ?? 0,
+            updateBy: product.shopSku,
             marketType: "yandex",
           },
         });
       }
     };
 
-    const connectWooDataResultFormatter = (
-      variation,
-      wooDbProduct,
-      wooApiProduct,
-      wooStock
-    ) => {
+    const connectWooDataResultFormatter = (product) => {
+      const variation = product.dbInfo?.variation;
+
       const variationStock = allVariationsStockList.find(
         (variationStock) =>
-          variationStock.variationInnerId === variation._id &&
+          variationStock.variationInnerId === variation._id.toString() &&
           variationStock.wooStock === undefined
       );
 
       if (variationStock) {
         variationStock.wooStock = {
-          stock: wooStock,
+          stock: product.fbsStock,
           updateBy:
-            wooApiProduct.type === "simple"
-              ? `simple-${wooApiProduct.id}`
-              : `variation-${wooApiProduct.id}-${wooDbProduct?.parentVariable.id}`,
+            product.type === "simple"
+              ? `simple-${product.id}`
+              : `variation-${product.id}-${product.parentId}`,
           marketType: "woo",
         };
       } else {
         allVariationsStockList.push({
-          variationInnerId: variation?._id,
+          variationInnerId: variation?._id.toString(),
           productInnerId: variation?.product._id,
           volume: variation?.volume,
           productName:
@@ -599,11 +555,11 @@ export const getAllProductsStockPage = async (req, res) => {
               ? ` - ${variation?.volume}`
               : ""),
           wooStock: {
-            stock: wooStock,
+            stock: product.fbsStock,
             updateBy:
-              wooApiProduct.type === "simple"
-                ? `simple-${wooApiProduct.id}`
-                : `variation-${wooApiProduct.id}-${wooDbProduct?.parentVariable.id}`,
+              product.type === "simple"
+                ? `simple-${product.id}`
+                : `variation-${product.id}-${product.parentId}`,
             marketType: "woo",
           },
         });
@@ -611,31 +567,26 @@ export const getAllProductsStockPage = async (req, res) => {
     };
 
     const connectWbDataResultFormatter = (product) => {
-      const {
-        dbVariation: variation,
-        dbProduct: wbDbProduct,
-        stockFBW,
-        stockFBS,
-      } = product;
+      const variation = product.dbInfo?.variation;
 
       const variationStock = allVariationsStockList.find(
         (variationStock) =>
-          variationStock.variationInnerId === variation?._id &&
+          variationStock.variationInnerId === variation?._id.toString() &&
           variationStock.wbStock === undefined &&
           variationStock.FBW === undefined
       );
 
       if (variationStock) {
         variationStock.wbStock = {
-          stock: stockFBS,
-          updateBy: wbDbProduct?.barcode ?? "",
+          stock: product.fbsStock ?? 0,
+          updateBy: product.dbInfo?.barcode ?? "",
           marketType: "wb",
         };
 
-        variationStock.FBW = stockFBW;
+        variationStock.FBW = product.fbmStock ?? 0;
       } else {
         allVariationsStockList.push({
-          variationInnerId: variation?._id,
+          variationInnerId: variation?._id.toString(),
           productInnerId: variation?.product._id,
           volume: variation?.volume,
           productName:
@@ -644,40 +595,35 @@ export const getAllProductsStockPage = async (req, res) => {
               ? ` - ${variation?.volume}`
               : ""),
           wbStock: {
-            stock: stockFBS,
-            updateBy: wbDbProduct?.barcode ?? "",
+            stock: product.fbsStock ?? 0,
+            updateBy: product.dbInfo?.barcode ?? "",
             marketType: "wb",
           },
-          FBW: stockFBW,
+          FBW: product.fbmStock ?? 0,
         });
       }
     };
 
-    const connectOzonDataResultFormatter = (
-      variation,
-      ozonDbProduct,
-      ozonApiProduct,
-      stockFBO,
-      stockFBS
-    ) => {
+    const connectOzonDataResultFormatter = (product) => {
+      const variation = product.dbInfo?.variation;
+
       const variationStock = allVariationsStockList.find(
         (variationStock) =>
-          variationStock.variationInnerId === variation._id &&
+          variationStock.variationInnerId === variation._id.toString() &&
           variationStock.ozonStock === undefined &&
           variationStock.FBO === undefined
       );
 
       if (variationStock) {
         variationStock.ozonStock = {
-          stock: stockFBS,
-          updateBy: ozonApiProduct.offer_id,
+          stock: product.fbsStock ?? 0,
+          updateBy: product.offer_id,
           marketType: "ozon",
         };
-
-        variationStock.FBO = stockFBO;
+        variationStock.FBO = product.fbmStock ?? 0;
       } else {
         allVariationsStockList.push({
-          variationInnerId: variation?._id,
+          variationInnerId: variation?._id.toString(),
           productInnerId: variation?.product._id,
           volume: variation?.volume,
           productName:
@@ -686,148 +632,132 @@ export const getAllProductsStockPage = async (req, res) => {
               ? ` - ${variation?.volume}`
               : ""),
           ozonStock: {
-            stock: stockFBS,
-            updateBy: ozonApiProduct.offer_id,
+            stock: product.fbsStock ?? 0,
+            updateBy: product.offer_id,
             marketType: "ozon",
           },
-          FBO: stockFBO,
+          FBO: product.fbmStock ?? 0,
         });
       }
     };
 
-    async.waterfall(
-      [
-        (cb) => {
-          async.parallel(
-            {
-              allDbVariations(callback) {
-                dbService
-                  .getAllVariations({}, [
-                    {
-                      path: "wooProduct",
-                      populate: { path: "parentVariable" },
-                    },
-                    "product yandexProduct ozonProduct wbProduct",
-                  ])
-                  .then((variations) => callback(null, variations))
-                  .catch((error) => callback(error, null));
-              },
-            },
-            cb
+    await async.parallel([
+      (callback) => {
+        Yandex.getProducts().then((products) => {
+          const filtratedProducts = filterMarketProducts(
+            Object.values(products),
+            req.query
           );
-        },
-        (results, cb) => {
-          const { allDbVariations } = results;
 
-          async.parallel(
-            [
-              (callback) => {
-                Yandex.getProducts(
-                  req.query,
-                  connectYandexDataResultFormatter,
-                  allDbVariations
-                )
-                  .then((result) => callback(null, result))
-                  .catch((error) => callback(error, null));
-              },
-              (callback) => {
-                Ozon.getProducts(
-                  req.query,
-                  connectOzonDataResultFormatter,
-                  allDbVariations
-                )
-                  .then((result) => callback(null, result))
-                  .catch((error) => callback(error, null));
-              },
-              (callback) => {
-                Wildberries.getProducts(req.query, allDbVariations)
-                  .then((products) =>
-                    callback(
-                      null,
-                      products.map((product) =>
-                        connectWbDataResultFormatter(product)
-                      )
-                    )
-                  )
-                  .catch((error) => callback(error, null));
-              },
-              (callback) => {
-                Woocommerce.getProducts(
-                  req.query,
-                  connectWooDataResultFormatter,
-                  allDbVariations
-                )
-                  .then((result) => callback(null, result))
-                  .catch((error) => callback(error, null));
-              },
-            ],
-            cb
+          callback(
+            null,
+            filtratedProducts.map((product) =>
+              connectYandexDataResultFormatter(product)
+            )
           );
-        },
-      ],
-      (err) => {
-        if (err) {
-          console.log(err);
-          return res.status(400).json({
-            message: "Error while getting list of products. Try again later.",
-            code: err.code,
-            status: err.response?.status,
-          });
-        }
-
-        // Clear product list of undefined after async
-        allVariationsStockList = allVariationsStockList.filter(
-          (variation) => !!variation
-        );
-
-        // Sorting
-        allVariationsStockList.sort((variation1, variation2) =>
-          variation1.productName.localeCompare(variation2.productName, "ru")
-        );
-
-        const splitTables = {};
-        allVariationsStockList.forEach((variation) => {
-          if (!variation.volume) return;
-          if (!splitTables[variation.volume]) {
-            splitTables[variation.volume] = [];
-          }
-
-          splitTables[variation.volume].push(variation);
         });
+      },
+      (callback) => {
+        Ozon.getProducts().then((products) => {
+          const filtratedProducts = filterMarketProducts(
+            Object.values(products),
+            req.query
+          );
 
-        const tablesArray = Object.keys(splitTables).map((tableName) => ({
-          tableName,
-          products: splitTables[tableName],
-        }));
-
-        const volumeSortRating = {
-          "3 мл": 50,
-          "6 мл": 40,
-          "10 мл": 30,
-          Набор: 20,
-          Стикеры: 10,
-        };
-        tablesArray.sort(
-          (table1, table2) =>
-            volumeSortRating[table2.tableName] -
-            volumeSortRating[table1.tableName]
-        );
-
-        res.render("allVariationsStock", {
-          title: "Все остатки",
-          headers: {
-            Name: { type: "name", field: "productName" },
-            Yand: { type: "fbs", field: "yandexStock" },
-            FBO: { type: "fbm", field: "FBO" },
-            Ozon: { type: "fbs", field: "ozonStock" },
-            FBW: { type: "fbm", field: "FBW" },
-            WB: { type: "fbs", field: "wbStock" },
-            Woo: { type: "fbs", field: "wooStock" },
-          },
-          tables: tablesArray,
+          callback(
+            null,
+            filtratedProducts.map((product) =>
+              connectOzonDataResultFormatter(product)
+            )
+          );
         });
-      }
+      },
+      (callback) => {
+        Wildberries.getProducts()
+          .then((products) => {
+            const filtratedProducts = filterMarketProducts(
+              Object.values(products),
+              req.query
+            );
+
+            callback(
+              null,
+              filtratedProducts.map((product) =>
+                connectWbDataResultFormatter(product)
+              )
+            );
+          })
+          .catch((error) => callback(error, null));
+      },
+      (callback) => {
+        Woocommerce.getProducts()
+          .then((products) => {
+            const filtratedProducts = filterMarketProducts(
+              Object.values(products),
+              req.query
+            );
+
+            callback(
+              null,
+              filtratedProducts.map((product) =>
+                connectWooDataResultFormatter(product)
+              )
+            );
+          })
+          .catch((error) => callback(error, null));
+      },
+    ]);
+
+    // Clear product list of undefined after async
+    allVariationsStockList = allVariationsStockList.filter(
+      (variation) => !!variation
     );
+
+    // Sorting
+    allVariationsStockList.sort((variation1, variation2) =>
+      variation1.productName.localeCompare(variation2.productName, "ru")
+    );
+
+    const splitTables = {};
+    allVariationsStockList.forEach((variation) => {
+      if (!variation.volume) return;
+      if (!splitTables[variation.volume]) {
+        splitTables[variation.volume] = [];
+      }
+
+      splitTables[variation.volume].push(variation);
+    });
+
+    const tablesArray = Object.keys(splitTables).map((tableName) => ({
+      tableName,
+      products: splitTables[tableName],
+    }));
+
+    const volumeSortRating = {
+      "3 мл": 50,
+      "6 мл": 40,
+      "10 мл": 30,
+      Набор: 20,
+      Стикеры: 10,
+    };
+    tablesArray.sort(
+      (table1, table2) =>
+        volumeSortRating[table2.tableName] - volumeSortRating[table1.tableName]
+    );
+
+    res.render("allVariationsStock", {
+      title: "Все остатки",
+      headers: {
+        Name: { type: "name", field: "productName" },
+        Yand: { type: "fbs", field: "yandexStock" },
+        FBO: { type: "fbm", field: "FBO" },
+        Ozon: { type: "fbs", field: "ozonStock" },
+        FBW: { type: "fbm", field: "FBW" },
+        WB: { type: "fbs", field: "wbStock" },
+        Woo: { type: "fbs", field: "wooStock" },
+      },
+      tables: tablesArray,
+    });
   } catch (err) {
     console.log(err);
     res.status(400).json({

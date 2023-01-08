@@ -4,6 +4,7 @@ import { Marketplace } from "./marketplace.js";
 import WbProduct from "../models/WbProduct.js";
 import fns from "date-fns-tz";
 import * as dbService from "./dbService.js";
+
 const { formatInTimeZone } = fns;
 
 const wbAPI = axios.create({
@@ -26,16 +27,15 @@ export class Wildberries extends Marketplace {
   static marketProductSchema = WbProduct;
 
   // INSTANCE METHODS
-
   async getApiFbsStock() {
-    const product = await this.getDbData();
+    const product = await this.getDbProduct();
 
     const result = await Wildberries.getApiProductsFbsStocks(product.barcode);
-    return result[0].stock;
+    return result?.[0].stock;
   }
 
   async updateApiStock(stock) {
-    const product = await this.getDbData();
+    const product = await this.getDbProduct();
 
     return Wildberries.updateApiStock(product.barcode, stock);
   }
@@ -46,18 +46,22 @@ export class Wildberries extends Marketplace {
     );
   }
 
-  // CLASS METHODS
+  async getApiProduct() {
+    const dbProduct = await this.getDbProduct();
 
+    return Wildberries.getApiProducts(dbProduct.sku);
+  }
+
+  // CLASS METHODS
   static async checkIdentifierExistsInApi(newProductData) {
     const allApiProducts = await this.getApiProductsInfo();
 
     const isProductExistsOnMarketplace = [
-      allApiProducts.find(
-        (product) => +product["nmID"] === +newProductData.sku
-      ),
-      allApiProducts.find(
-        (product) => product["vendorCode"] === newProductData.article
-      ),
+      !!allApiProducts[newProductData.sku],
+      newProductData.article
+        ? allApiProducts[newProductData.sku]?.["vendorCode"] ===
+          newProductData.article
+        : true,
     ].every((check) => check);
 
     if (!isProductExistsOnMarketplace) {
@@ -81,107 +85,60 @@ export class Wildberries extends Marketplace {
     if (responseData.error) {
       throw new Error(
         `${responseData.errorText}. ${
-          responseData.additionalErrors
-            ? ` Additional errors: ${responseData.additionalErrors}`
+          responseData["additionalErrors"]
+            ? ` Additional errors: ${responseData["additionalErrors"]}`
             : ""
         }`
       );
     }
   }
 
-  static #getConnectWbDataRequests(
-    filters,
-    wbApiProducts,
-    wbApiFbsStocks,
-    wbApiFbwStocks,
-    wbDbProducts,
-    allDbVariations
-  ) {
-    return wbApiProducts.map((apiProduct) => {
-      return async () => {
-        const { dbVariation, dbProduct } =
-          this.getDbProductAndVariationForApiProduct(
-            apiProduct,
-            allDbVariations,
-            wbDbProducts
-          );
+  static connectDbApiData(dbProducts, apiProductsData) {
+    const {
+      productsInfo: apiProducts,
+      productsStocks: { fbsStocks, fbmStocks },
+    } = apiProductsData;
 
-        const stockFBS =
-          wbApiFbsStocks.find(
-            (fbsStock) => fbsStock["nmId"] === apiProduct["nmID"]
-          )?.stock ?? 0;
-        let stockFBW;
-        if (wbApiFbwStocks) {
-          stockFBW = wbApiFbwStocks[apiProduct["nmID"]] ?? 0;
-        } else {
-          stockFBW = dbProduct?.stock;
-        }
+    for (const fbmStock of fbmStocks) {
+      const apiProduct = apiProducts[fbmStock["nmId"]];
+      if (!apiProduct) {
+        continue;
+      }
 
-        // Filtration
-        let isPassFilterArray = [];
-        // by stock status
-        switch (filters.stock_status) {
-          // Filter only outofstock products (by FBM and FBS)
-          case "outofstock":
-            isPassFilterArray.push(stockFBS <= 0 && stockFBW <= 0);
-            break;
-          // Filter only outofstock products (by FBS)
-          case "outofstockFBS":
-            isPassFilterArray.push(stockFBS <= 0);
-            break;
-          // Filter only outofstock products (by FBM)
-          case "outofstockFBM":
-            isPassFilterArray.push(stockFBW <= 0);
-            break;
-          // Filter only instock on FBS products
-          case "instockFBS":
-            isPassFilterArray.push(stockFBS > 0);
-            break;
-          // Filter only instock on FBW products
-          case "instockFBM":
-            isPassFilterArray.push(stockFBW > 0);
-            break;
-          // Filter only instock on FBW or FBS products (some of them)
-          case "instockSome":
-            isPassFilterArray.push(stockFBS > 0 || stockFBW > 0);
-            break;
-        }
+      apiProduct.fbmStock = fbmStock.quantity;
+    }
 
-        // by actual (manual setup in DB)
-        switch (filters.isActual) {
-          case "notActual":
-            isPassFilterArray.push(dbProduct?.isActual === false);
-            break;
-          case "all":
-            isPassFilterArray.push(true);
-            break;
-          // Only actual or not specified by default
-          default:
-            isPassFilterArray.push(dbProduct?.isActual !== false);
-        }
+    for (const dbProduct of dbProducts) {
+      const apiProduct = apiProducts[dbProduct.sku];
+      if (!apiProduct) {
+        continue;
+      }
 
-        if (isPassFilterArray.every((pass) => pass)) {
-          return {
-            dbVariation,
-            dbProduct,
-            apiProduct,
-            stockFBW,
-            stockFBS,
-          };
-        }
-      };
-    });
+      const fbsStock = fbsStocks.find(
+        (fbsStock) => +fbsStock.sku === dbProduct.barcode
+      );
+
+      apiProduct.dbInfo = dbProduct;
+      apiProduct.fbsStock = fbsStock?.amount;
+    }
+
+    return apiProducts;
   }
 
-  static getApiProductsFbsStocks(search) {
+  static async getApiProductsFbsStocks(barcodes) {
     return wbAPI
-      .get(`api/v2/stocks?${search ? `search=${search}&` : ""}skip=0&take=1000`)
+      .post(`api/v3/stocks/206312`, { skus: barcodes })
       .then((response) => {
         return response.data.stocks;
       });
   }
 
-  static getApiProductsFbwStocks() {
+  static getApiProductFbsStock(barcode) {
+    const fbsStock = this.getApiProductsFbsStocks([barcode]);
+    return fbsStock[0];
+  }
+
+  static getApiProductsFbmStocks(skuFilter) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     return wbStatAPI
@@ -193,28 +150,53 @@ export class Wildberries extends Marketplace {
         )}`
       )
       .then((response) => {
-        const connectedDataBySku = {};
-        response.data.forEach((fbwStock) => {
-          if (!connectedDataBySku[fbwStock.nmId]) {
-            connectedDataBySku[fbwStock.nmId] = fbwStock.quantity;
-          } else {
-            connectedDataBySku[fbwStock.nmId] += fbwStock.quantity;
-          }
-        });
+        let fbmStocks = response.data;
 
-        return connectedDataBySku;
+        if (skuFilter) {
+          fbmStocks = fbmStocks.filter(
+            (fbmStock) => fbmStock["nmId"] === skuFilter
+          );
+        }
+
+        let formatFbmStocks = {};
+        for (const fbmStock of fbmStocks) {
+          if (!formatFbmStocks[fbmStock["nmId"]]) {
+            formatFbmStocks[fbmStock["nmId"]] = {
+              nmId: fbmStock["nmId"],
+              quantity: fbmStock.quantity,
+            };
+          } else {
+            formatFbmStocks[fbmStock["nmId"]].quantity += fbmStock.quantity;
+          }
+        }
+
+        const resultFbmStocks = Object.values(formatFbmStocks);
+
+        setTimeout(() => dbService.updateWbStocks(resultFbmStocks), 0);
+
+        return resultFbmStocks;
+      })
+      .catch(async (error) => {
+        console.error(error);
+
+        const dbProducts = await Wildberries.getDbProducts(
+          skuFilter ? { sku: skuFilter } : {}
+        );
+        return dbProducts.map((dbProduct) => {
+          return { nmId: dbProduct.sku, quantity: dbProduct.stock };
+        });
       });
   }
 
-  static getApiProductsStocks() {
+  static getApiProductsStocks(filter) {
     return async.parallel({
       fbsStocks: (callback) => {
-        this.getApiProductsFbsStocks()
+        this.getApiProductsFbsStocks(filter)
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
-      fbwStocks: (callback) => {
-        this.getApiProductsFbwStocks()
+      fbmStocks: (callback) => {
+        this.getApiProductsFbmStocks(filter)
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
@@ -244,23 +226,51 @@ export class Wildberries extends Marketplace {
       .then((response) => {
         this.#processWbApiErrors(response.data);
 
-        return response.data.data.cards;
+        const apiProducts = {};
+        response.data.data.cards.forEach((apiProduct) => {
+          apiProducts[apiProduct.nmID] = apiProduct;
+        });
+
+        return apiProducts;
       });
   }
 
-  static getApiProducts() {
-    return async.parallel({
-      productsStocks: (callback) => {
-        this.getApiProductsStocks()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      productsInfo: (callback) => {
-        this.getApiProductsInfo("")
-          .then((products) => callback(null, products))
-          .catch((error) => callback(error, null));
-      },
-    });
+  static async getApiProducts(sku) {
+    return async
+      .parallel({
+        productsInfo: (callback) => {
+          this.getApiProductsInfo(sku)
+            .then((result) => callback(null, result))
+            .catch((error) => callback(error, null));
+        },
+        fbmStocks: (callback) => {
+          this.getApiProductsFbmStocks(sku)
+            .then((result) => callback(null, result))
+            .catch((error) => callback(error, null));
+        },
+        fbsStocks: (callback) => {
+          this.getDbProducts(sku ? { sku } : {})
+            .then((dbProducts) => {
+              const barcodes = dbProducts.map((dbProduct) =>
+                dbProduct.barcode.toString()
+              );
+
+              this.getApiProductsFbsStocks(barcodes).then((result) =>
+                callback(null, result)
+              );
+            })
+            .catch((error) => callback(error, null));
+        },
+      })
+      .then((results) => {
+        return {
+          productsInfo: results.productsInfo,
+          productsStocks: {
+            fbmStocks: results.fbmStocks,
+            fbsStocks: results.fbsStocks,
+          },
+        };
+      });
   }
 
   /**
@@ -326,94 +336,6 @@ export class Wildberries extends Marketplace {
       });
   }
 
-  static getDbProductAndVariationForApiProduct(
-    apiProduct,
-    allDbVariations,
-    wbDbProducts
-  ) {
-    let dbProduct;
-    // Search variation for market product from api
-    const dbVariation = allDbVariations.find(
-      (variation) =>
-        // Search market product in db for market product from api
-        variation.wbProduct?.filter((variationWbDbProduct) => {
-          const isMarketProductMatch =
-            variationWbDbProduct.sku === apiProduct["nmID"];
-          // || variationWbDbProduct.article === apiProduct.offer_id;
-
-          // find -> save market product
-          if (isMarketProductMatch) {
-            dbProduct = variationWbDbProduct;
-          }
-
-          return isMarketProductMatch;
-        }).length > 0
-    );
-
-    if (!dbProduct) {
-      // Search fetched product from wb in DB
-      dbProduct = wbDbProducts.find(
-        (wbDbProduct) => wbDbProduct.sku === apiProduct["nmID"]
-      );
-    }
-
-    return { dbVariation, dbProduct };
-  }
-
-  static async getProducts(filters, allDbVariations) {
-    const data = await async.parallel({
-      wbApiProducts: (callback) => {
-        this.getApiProducts()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      wbDbProducts: (callback) => {
-        this.getDbProducts()
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      dbVariations: (callback) => {
-        if (!allDbVariations) {
-          dbService
-            .getAllVariations({}, ["product wbProduct"])
-            .then((result) => callback(null, result))
-            .catch((error) => callback(error, null));
-          return;
-        }
-
-        callback(null, allDbVariations);
-      },
-    });
-
-    const {
-      wbApiProducts: {
-        productsInfo,
-        productsStocks: { fbsStocks, fbwStocks },
-      },
-      wbDbProducts,
-      dbVariations,
-    } = data;
-
-    let connectedProducts = await async.parallel(
-      this.#getConnectWbDataRequests(
-        filters,
-        productsInfo,
-        fbsStocks,
-        fbwStocks,
-        wbDbProducts,
-        dbVariations
-      )
-    );
-
-    connectedProducts = connectedProducts.filter(
-      (connectedProduct) => !!connectedProduct
-    );
-
-    // setTimeout(() => dbService.updateWbStocks(connectedProducts), 0);
-
-    return connectedProducts;
-  }
-
   static async getApiShipmentPredict(mayakSellsPerYear) {
     return async
       .parallel({
@@ -463,15 +385,19 @@ export class Wildberries extends Marketplace {
             }
           })();
         },
-        allDbVariations(callback) {
-          dbService
-            .getAllVariations({}, ["product wbProduct"])
+        dbProducts: (callback) => {
+          this.getDbProducts()
+            .then((variations) => callback(null, variations))
+            .catch((error) => callback(error, null));
+        },
+        apiProducts: (callback) => {
+          this.getApiProducts()
             .then((variations) => callback(null, variations))
             .catch((error) => callback(error, null));
         },
       })
       .then((results) => {
-        const { allDbVariations, allSells } = results;
+        const { dbProducts, apiProducts, allSells } = results;
 
         allSells.sort((sell1, sell2) => sell1.date - sell2.date);
 
@@ -486,89 +412,94 @@ export class Wildberries extends Marketplace {
         const monthsBetweenFirstLastSell =
           (lastSellDate - firstSellDate) / (1000 * 60 * 60 * 24 * 30);
 
-        const allWbProducts = [];
+        const connectedProducts = Object.values(
+          this.connectDbApiData(dbProducts, apiProducts)
+        );
 
-        allDbVariations.forEach((variation) => {
-          if (variation.wbProduct && variation.wbProduct.length !== 0) {
-            let variationSells = 0;
-            let variationMonthSells = 0;
-            let variationMayakYearSells = 0;
-            for (const wbProduct of variation.wbProduct) {
-              const wbProductMayakSells = mayakSellsPerYear.find(
-                (mayakProduct) => mayakProduct.sku === wbProduct.sku
-              )?.sells;
+        // Connect products by variation
+        const wbVariations = {};
+        connectedProducts.forEach((product) => {
+          const productVariation = product.dbInfo?.variation;
 
-              const wbProductSells = allSells.filter(
-                (sell) =>
-                  sell.marketProduct?._id.toString() ===
-                    wbProduct._id.toString() ||
-                  sell.productIdentifier === wbProduct.sku
-              );
-              const wbProductMonthSells = wbProductSells.filter(
-                (sell) => sell.date >= monthBeforeLastSellDate
-              );
+          if (!productVariation) {
+            return;
+          }
 
-              // length used over quantity cause WB order always have only one position within
-              variationSells += wbProductSells.length;
-              variationMonthSells += wbProductMonthSells.length;
-              variationMayakYearSells += wbProductMayakSells ?? 0;
-            }
+          const wbVariation = wbVariations[productVariation._id];
 
-            variation.wbSells = variationSells;
-            variation.wbMonthSells = variationMonthSells;
-            variation.mayakYearSells = variationMayakYearSells;
+          const isActual = product.dbInfo.isActual;
+          const barcode = isActual ? product.dbInfo.barcode : null;
+          const sku = isActual ? product.dbInfo.sku : null;
 
-            allWbProducts.push(variation);
+          const dbSells = allSells.filter(
+            (sell) =>
+              sell.marketProduct?._id.toString() ===
+                product.dbInfo._id.toString() ||
+              sell.productIdentifier === product.nmID
+          );
+          const dbMonthSells = dbSells.filter(
+            (sell) => sell.date >= monthBeforeLastSellDate
+          );
+
+          const mayakSells = mayakSellsPerYear.find(
+            (mayakProduct) => mayakProduct.sku === product.nmID
+          )?.sells;
+
+          // length in dbSells used over quantity cause WB order always have only one position within
+          if (!wbVariation) {
+            wbVariations[productVariation._id] = {
+              productName: productVariation.product.name,
+              dbSells: dbSells.length,
+              dbMonthSells: dbMonthSells.length,
+              mayakSells: mayakSells ?? 0,
+              stock: product.fbmStock ?? 0,
+              barcode,
+              sku,
+              isActual,
+            };
+            return;
+          }
+
+          wbVariation.dbSells += dbSells.length;
+          wbVariation.dbMonthSells += dbMonthSells.length;
+          wbVariation.mayakSells += dbSells.mayakSells;
+          wbVariation.stock += product.fbmStock;
+          if (barcode) {
+            wbVariation.barcode = barcode;
+          }
+          if (sku) {
+            wbVariation.sku = sku;
+          }
+          if (isActual) {
+            wbVariation.isActual = isActual;
           }
         });
 
         const productsOnShipment = [];
 
-        allWbProducts.forEach((variation) => {
-          // const name = `${variation.product.name} - ${variation.volume}`;
-
-          const stock = variation.wbProduct.reduce(
-            (totalStock, currentProduct) => totalStock + currentProduct.stock,
-            0
-          );
-
+        Object.values(wbVariations).forEach((variation) => {
           const onShipment = Math.round(
             Math.max(
-              variation.wbSells / monthsBetweenFirstLastSell,
-              variation.wbMonthSells
-            ) - stock
+              variation.dbSells / monthsBetweenFirstLastSell,
+              variation.dbMonthSells
+            ) - variation.stock
           );
-
-          // const onShipmentMayak = Math.round(
-          //   Math.max(variation.wbMonthSells, variation.mayakYearSells / 12) -
-          //     stock
-          // );
 
           const onShipmentMayak = Math.round(
-            variation.mayakYearSells / 12 - stock
+            variation.mayakSells / 12 - variation.stock
           );
 
-          if (
-            (onShipment > 0 || onShipmentMayak > 0) &&
-            variation.wbProduct.find((wbProduct) => wbProduct.isActual === true)
-          ) {
+          if ((onShipment > 0 || onShipmentMayak > 0) && variation.isActual) {
             productsOnShipment.push({
-              barcode: variation.wbProduct.find(
-                (wbProduct) => wbProduct.isActual === true
-              )?.barcode,
-              sku: variation.wbProduct.find(
-                (wbProduct) => wbProduct.isActual === true
-              )?.sku,
-              name: variation.product.name,
-              stock,
-              sellPerMonth: variation.wbMonthSells,
+              barcode: variation.barcode,
+              sku: variation.sku,
+              name: variation.productName,
+              stock: variation.stock,
+              sellPerMonth: variation.dbMonthSells,
               [`sells (cр за ${monthsBetweenFirstLastSell.toFixed(1)} мес)`]: (
-                variation.wbSells / monthsBetweenFirstLastSell
+                variation.dbSells / monthsBetweenFirstLastSell
               ).toFixed(1),
-              sellMayakAvgPerYear: (
-                (variation.mayakYearSells / 12) *
-                2
-              ).toFixed(1),
+              sellMayakAvgPerYear: (variation.mayakSells / 12).toFixed(1),
               onShipment,
               onShipmentMayak,
             });
