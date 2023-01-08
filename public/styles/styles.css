@@ -744,6 +744,7 @@ header a {
   width: 10rem;
   z-index: -1;
   border-radius: 25px;
+  backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
 }
 
