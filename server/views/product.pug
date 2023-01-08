@@ -52,7 +52,7 @@ block content
                       if (marketProducts && marketProducts.length > 0)
                         each marketProduct in marketProducts
                           div.market-product--form
-                              h2= marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
+                              h3.align--center= marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
 
                               a.btn.navigate-btn(href=`/stocks/${marketType}/${marketProduct._id}`)
 

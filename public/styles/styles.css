@@ -200,6 +200,10 @@ hr {
   display: block;
 }
 
+.align--center {
+  text-align: center;
+}
+
 .order-last {
   order: 1;
 }
@@ -723,6 +727,26 @@ header a {
 .product-variation--cell {
   position: relative;
 }
+
+.product-variation--cell h2 {
+  position: sticky;
+  top: 4rem;
+  z-index: 2;
+}
+
+.product-variation--cell h2::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 50%;
+  transform: translate(50%, -50%);
+  height: 4rem;
+  width: 10rem;
+  z-index: -1;
+  border-radius: 25px;
+  -webkit-backdrop-filter: blur(5px);
+}
+
 
 .market-product--form.disabled {
   box-shadow: inset 0.359375px 0 9px 4px rgb(237, 193, 255);
