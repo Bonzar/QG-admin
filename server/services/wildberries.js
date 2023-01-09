@@ -125,9 +125,9 @@ export class Wildberries extends Marketplace {
     return apiProducts;
   }
 
-  static async getApiProductsFbsStocks(barcodes) {
+  static async getApiProductsFbsStocks(barcodes, warehouse = 206312) {
     return wbAPI
-      .post(`api/v3/stocks/206312`, { skus: barcodes })
+      .post(`api/v3/stocks/${warehouse}`, { skus: barcodes })
       .then((response) => {
         return response.data.stocks;
       });
