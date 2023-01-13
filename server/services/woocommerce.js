@@ -1,14 +1,14 @@
-import WooCommerceAPI from "woocommerce-api";
+import WooCommerceRestApi from "@woocommerce/woocommerce-rest-api";
+import https from "https";
 import async from "async";
 import { Marketplace } from "./marketplace.js";
 import WooProduct from "../models/WooProduct.js";
 import WooProductVariable from "../models/WooProductVariable.js";
 
-const woocommerceAPI = WooCommerceAPI({
+const woocommerceAPI = new WooCommerceRestApi.default({
   url: "https://queridosglitters.ru/",
   consumerKey: process.env.WOO_CLIENTID,
   consumerSecret: process.env.WOO_APIKEY,
-  wpAPI: true,
   version: "wc/v3",
 });
 
@@ -124,9 +124,9 @@ export class Woocommerce extends Marketplace {
       return async function getProductsPack(page = currentPage) {
         // Request it self
         return await woocommerceAPI
-          .getAsync(`products?per_page=10&page=${page}&order=asc`)
+          .get("products", { per_page: 10, page, order: "asc" })
           .then(async (response) => {
-            let productsPack = JSON.parse(response.body);
+            let productsPack = response.data;
 
             // if optimal count requests pages doesn't fit, missing pages will be caused by recursion
             const realTotalPages = +response.headers["x-wp-totalpages"];
@@ -162,6 +162,8 @@ export class Woocommerce extends Marketplace {
                 "Слишком много запросов к API, подождите немного"
               );
             }
+
+            throw e;
           });
       };
     });
@@ -172,14 +174,14 @@ export class Woocommerce extends Marketplace {
           return async.parallel(requests);
         };
 
-        const getApiProductsFbmStocksRequestCached = this.makeCachingForTime(
+        const getApiProductsCached = this.makeCachingForTime(
           getApiProducts,
           [],
           "WOO-GET-API-PRODUCTS",
           15 * 60 * 1000
         );
 
-        return getApiProductsFbmStocksRequestCached()
+        return getApiProductsCached()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
@@ -220,15 +222,15 @@ export class Woocommerce extends Marketplace {
 
   static getApiProductVariationInfo(variableId, productId) {
     return woocommerceAPI
-      .getAsync(`products/${variableId}/variations/${productId}`)
+      .get(`products/${variableId}/variations/${productId}`)
       .then((response) => {
-        return JSON.parse(response.body);
+        return response.data;
       });
   }
 
   static getApiSimpleProductInfo(productId) {
-    return woocommerceAPI.getAsync(`products/${productId}`).then((response) => {
-      return JSON.parse(response.body);
+    return woocommerceAPI.get(`products/${productId}`).then((response) => {
+      return response.data;
     });
   }
 
@@ -268,17 +270,17 @@ export class Woocommerce extends Marketplace {
 
   static updateApiSimpleProduct(productId, updateData) {
     return woocommerceAPI
-      .putAsync(`products/${productId}`, updateData)
+      .put(`products/${productId}`, updateData)
       .then((response) => {
-        return JSON.parse(response.body);
+        return response.data;
       });
   }
 
   static updateApiProductVariation(productId, variableId, updateData) {
     return woocommerceAPI
-      .putAsync(`products/${variableId}/variations/${productId}`, updateData)
+      .put(`products/${variableId}/variations/${productId}`, updateData)
       .then((response) => {
-        return JSON.parse(response.body);
+        return response.data;
       });
   }
 
@@ -335,9 +337,12 @@ export class Woocommerce extends Marketplace {
 
   static getProcessingOrders() {
     return woocommerceAPI
-      .getAsync(`orders?per_page=100&status=processing`)
+      .get(`orders`, {
+        per_page: 100,
+        status: "processing",
+      })
       .then((response) => {
-        return JSON.parse(response.body);
+        return response.data;
       });
   }
 
