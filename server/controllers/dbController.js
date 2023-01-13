@@ -840,7 +840,7 @@ export const updateVariationStock = async (req, res) => {
 
 export const redistributeVariationsStock = async (req, res) => {
   try {
-    const result = dbService.redistributeVariationsStock();
+    const result = await dbService.redistributeVariationsStock();
     res.json(result);
   } catch (error) {
     console.error(error);
