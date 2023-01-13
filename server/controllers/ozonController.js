@@ -23,7 +23,7 @@ export const getProductsListPage = async (req, res) => {
             : ""),
         stockFBO: apiProduct.fbmStock ?? 0,
         stockFBS: {
-          stock: apiProduct.fbsStock ?? 0,
+          stock: (apiProduct.fbsStock ?? 0) + (apiProduct.fbsReserve ?? 0),
           updateBy: apiProduct.offer_id,
           marketType: "ozon",
         },

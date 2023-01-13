@@ -22,7 +22,7 @@ export const getProductsList = (req, res) => {
               ? ` - ${variation?.volume}`
               : ""),
           inStock: {
-            stock: product.fbsStock,
+            stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             updateBy:
               product.type === "simple"
                 ? `simple-${product.id}`
@@ -61,12 +61,10 @@ export const updateStock = (req, res) => {
   try {
     const [productType, productId, variableId] = req.query.updateBy.split("-");
 
-    Woocommerce.updateApiProduct(
+    Woocommerce.updateApiStock(
       productId,
       productType,
-      {
-        stock_quantity: req.query.stock,
-      },
+      +req.query.stock,
       variableId
     )
       .then((result) => {

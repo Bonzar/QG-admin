@@ -69,6 +69,23 @@ router.post(
 // Get request for list of all DB products
 router.get("/db/products", dbController.getAllProductsPage);
 
+// Get request for list of all DB products
+router.get("/db/variations", dbController.getAllVariationsPage);
+
+// Post request for update variation stocks
+router.post(
+  "/db/variation/updateStock",
+  roleMiddleware(["ADMIN"]),
+  dbController.updateVariationStock
+);
+
+// Post request for redistribute all variations stocks
+router.post(
+  "/db/variation/redistributeStock",
+  roleMiddleware(["ADMIN"]),
+  dbController.redistributeVariationsStock
+);
+
 // Get request for add new DB product page
 router.get("/db/product/new", dbController.getProductPage);
 

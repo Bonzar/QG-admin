@@ -1,7 +1,8 @@
 import axios from "axios";
 import { Marketplace } from "./marketplace.js";
 import YandexProduct from "../models/YandexProduct.js";
-import { format } from "date-fns";
+import { format, parse as dateParse } from "date-fns";
+import async from "async";
 
 const yandexAPI = axios.create({
   baseURL: "https://api.partner.market.yandex.ru/",
@@ -31,11 +32,15 @@ export class Yandex extends Marketplace {
   }
 
   static async checkIdentifierExistsInApi(newProductData) {
-    const allApiOffers = await this.getApiOffers();
+    let isProductExistsOnMarketplace = true;
 
-    const isProductExistsOnMarketplace = allApiOffers.find(
-      (offer) => offer.offer.shopSku === newProductData.sku
-    );
+    if (newProductData.sku) {
+      const allApiOffers = await this.getApiOffers();
+
+      isProductExistsOnMarketplace = allApiOffers.find(
+        (offer) => offer.offer.shopSku === newProductData.sku
+      );
+    }
 
     if (!isProductExistsOnMarketplace) {
       throw new Error("Идентификатор товара не существует в базе маркетплейса");
@@ -67,10 +72,11 @@ export class Yandex extends Marketplace {
     ]);
   }
 
+  //todo update fbsStock in Db only on success api update
   /**
    * @param {[{warehouseId: number, sku, items: [{count, type: string, updatedAt: string}]}]} skus
    */
-  static updateApiStocks(skus) {
+  static async updateApiStocks(skus) {
     return yandexAPI
       .put("v2/campaigns/21938028/offers/stocks.json", { skus })
       .then((response) => {
@@ -92,27 +98,35 @@ export class Yandex extends Marketplace {
       skusList = offers.map((offer) => offer.offer.shopSku);
     }
 
-    // List of all products
-    return yandexAPI
-      .post("v2/campaigns/21938028/stats/skus.json", {
-        shopSkus: skusList,
-      })
-      .then((response) => {
-        const apiProducts = {};
-        response.data.result.shopSkus.forEach((apiProduct) => {
-          apiProducts[apiProduct["shopSku"]] = apiProduct;
-        });
+    const apiData = await async.parallel({
+      apiProductsData: (callback) => {
+        yandexAPI
+          .post("v2/campaigns/21938028/stats/skus", {
+            shopSkus: skusList,
+          })
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+      lastMonthOrders: (callback) => {
+        this.getApiOrders()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+    });
 
-        return apiProducts;
-      });
+    const apiProducts = {};
+    apiData.apiProductsData.data.result.shopSkus.forEach((apiProduct) => {
+      apiProducts[apiProduct["shopSku"]] = apiProduct;
+    });
+
+    return {
+      productsInfo: apiProducts,
+      lastMonthOrders: apiData.lastMonthOrders,
+    };
   }
 
-  static connectDbApiData(dbProducts, apiProducts) {
-    for (const apiProduct of Object.values(apiProducts)) {
-      apiProduct.fbsStock = apiProduct.warehouses?.[0].stocks.find(
-        (stockType) => stockType.type === "FIT"
-      )?.count;
-    }
+  static connectDbApiData(dbProducts, apiProductsData) {
+    const { productsInfo: apiProducts, lastMonthOrders } = apiProductsData;
 
     for (const dbProduct of dbProducts) {
       const apiProduct = apiProducts[dbProduct.sku];
@@ -120,13 +134,63 @@ export class Yandex extends Marketplace {
         continue;
       }
 
+      apiProduct.fbsStock = dbProduct.stockFbs;
       apiProduct.dbInfo = dbProduct;
+    }
+
+    for (const order of lastMonthOrders) {
+      for (const orderProduct of order.items) {
+        const apiProduct = apiProducts[orderProduct.offerId];
+        if (!apiProduct) {
+          continue;
+        }
+
+        if (order.substatus === "STARTED") {
+          if (!apiProduct.fbsReserve) {
+            apiProduct.fbsReserve = orderProduct.count;
+          } else {
+            apiProduct.fbsReserve += orderProduct.count;
+          }
+
+          if (!apiProduct.fbsStock) {
+            apiProduct.fbsStock = -orderProduct.count;
+          } else {
+            apiProduct.fbsStock -= orderProduct.count;
+          }
+
+          continue;
+        }
+
+        // skip not sold products
+        if (["CANCELLED", "REJECTED", "UNPAID"].includes(order.status)) {
+          continue;
+        }
+
+        // const orderCreationDate = new Date(order.creationDate);
+        const orderCreationDate = dateParse(
+          order.creationDate,
+          "dd-MM-yyyy HH:mm:ss",
+          new Date()
+        );
+        const stockFbsUpdateAt = apiProduct.dbInfo?.stockFbsUpdateAt;
+
+        // skip orders earlier that last stock update OR that have not last stock update date
+        if (!(orderCreationDate > stockFbsUpdateAt)) {
+          continue;
+        }
+
+        if (!apiProduct.fbsStock) {
+          apiProduct.fbsStock = -orderProduct.count;
+        } else {
+          apiProduct.fbsStock -= orderProduct.count;
+        }
+      }
     }
 
     return apiProducts;
   }
 
-  static getApiTodayOrders() {
+  static getApiOrdersToday() {
     const today = format(new Date(), "dd-MM-yyyy");
 
     return this.getApiOrders({
@@ -136,7 +200,7 @@ export class Yandex extends Marketplace {
     });
   }
 
-  static getApiStartedOrders() {
+  static getApiOrdersStarted() {
     return this.getApiOrders({
       substatus: "STARTED",
     });
@@ -148,10 +212,61 @@ export class Yandex extends Marketplace {
       .map(([key, value]) => `${key}=${value}`)
       .join("&");
 
-    return yandexAPI
-      .get(`v2/campaigns/21938028/orders.json?${optionsString}`)
-      .then((response) => {
-        return response.data.orders;
-      });
+    const getApiOrdersRequest = (optionsString) => {
+      return yandexAPI
+        .get(`v2/campaigns/21938028/orders?${optionsString}`)
+        .then(async (response) => {
+          const additionalOrders = [];
+          if (response.data.pager.pagesCount > 1) {
+            const additionalOrdersRequests = [];
+            for (
+              let pageIndex = 2;
+              pageIndex <= response.data.pager.pagesCount;
+              pageIndex++
+            ) {
+              additionalOrdersRequests.push((callback) => {
+                return yandexAPI
+                  .get(
+                    `v2/campaigns/21938028/orders?page=${pageIndex}&${optionsString}`
+                  )
+                  .then((response) => callback(null, response.data.orders))
+                  .catch((error) => callback(error, null));
+              });
+            }
+
+            const additionalOrdersPacks = await async.parallelLimit(
+              additionalOrdersRequests,
+              3
+            );
+            additionalOrdersPacks.forEach((orderPack) =>
+              additionalOrders.push(...orderPack)
+            );
+          }
+
+          return [...response.data.orders, ...additionalOrders];
+        });
+    };
+
+    const cachedRequest = this.makeCachingForTime(
+      getApiOrdersRequest,
+      [optionsString],
+      "YANDEX-GET-API-ORDERS",
+      60000
+    );
+
+    return cachedRequest();
+  }
+
+  static async getMarketProductDetails(marketProductData) {
+    const marketProductDetails = await super.getMarketProductDetails(
+      marketProductData
+    );
+
+    if (marketProductData.stockFBS) {
+      marketProductDetails.stockFbs = +marketProductData.stockFBS;
+      marketProductDetails.stockFbsUpdateAt = new Date();
+    }
+
+    return marketProductDetails;
   }
 }

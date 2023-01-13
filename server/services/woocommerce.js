@@ -18,6 +18,7 @@ export class Woocommerce extends Marketplace {
   // INSTANCE METHODS
   async getApiProduct() {
     const product = await this.getDbProduct();
+
     return Woocommerce.getApiProduct(
       product.id,
       product.type,
@@ -26,7 +27,14 @@ export class Woocommerce extends Marketplace {
   }
 
   async updateApiStock(newStock) {
-    return this.updateApiProduct({ stock_quantity: newStock });
+    const product = await this.getDbProduct();
+
+    return Woocommerce.updateApiStock(
+      product.id,
+      product.type,
+      +newStock,
+      product.parentVariable?.id
+    );
   }
 
   async updateApiProduct(updateData) {
@@ -48,18 +56,48 @@ export class Woocommerce extends Marketplace {
 
   // CLASS METHODS
   static async checkIdentifierExistsInApi(newProductData) {
-    const allApiProducts = await this.getApiProducts();
+    let isProductExistsOnMarketplace = true;
 
-    const isProductExistsOnMarketplace = !!allApiProducts[newProductData.id];
+    if (newProductData.id) {
+      const allApiProductsData = await this.getApiProducts();
+
+      isProductExistsOnMarketplace =
+        !!allApiProductsData.productsInfo[newProductData.id];
+    }
 
     if (!isProductExistsOnMarketplace) {
       throw new Error("Идентификатор товара не существует в базе маркетплейса");
     }
   }
 
-  static connectDbApiData(dbProducts, apiProducts) {
+  static connectDbApiData(dbProducts, apiProductsData) {
+    const {
+      productsInfo: apiProducts,
+      productsStocks: { fbsReserves },
+    } = apiProductsData;
+
     for (const apiProduct of Object.values(apiProducts)) {
       apiProduct.fbsStock = apiProduct.stock_quantity;
+    }
+
+    for (const fbsReserve of fbsReserves) {
+      for (const fbsReserveProduct of fbsReserve.line_items) {
+        const apiProduct =
+          apiProducts[
+            fbsReserveProduct.parent_name
+              ? fbsReserveProduct.variation_id
+              : fbsReserveProduct.product_id
+          ];
+        if (!apiProduct) {
+          continue;
+        }
+
+        if (!apiProduct.fbsReserve) {
+          apiProduct.fbsReserve = fbsReserveProduct.quantity;
+        } else {
+          apiProduct.fbsReserve += fbsReserveProduct.quantity;
+        }
+      }
     }
 
     for (const dbProduct of dbProducts) {
@@ -76,7 +114,7 @@ export class Woocommerce extends Marketplace {
 
   static async getApiProducts() {
     // Setup optimal count requests pages
-    let totalPages = 30;
+    let totalPages = 25;
 
     // Array of page numbers for requests
     const pages = [...Array.from({ length: totalPages + 1 }).keys()].slice(1);
@@ -128,10 +166,32 @@ export class Woocommerce extends Marketplace {
       };
     });
 
-    const fetchedProducts = await async.parallel(requests);
+    const apiData = await async.parallel({
+      fetchedProducts: (callback) => {
+        const getApiProducts = () => {
+          return async.parallel(requests);
+        };
+
+        const getApiProductsFbmStocksRequestCached = this.makeCachingForTime(
+          getApiProducts,
+          [],
+          "WOO-GET-API-PRODUCTS",
+          15 * 60 * 1000
+        );
+
+        return getApiProductsFbmStocksRequestCached()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+      newOrders: (callback) => {
+        this.getProcessingOrders()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+    });
 
     const apiProducts = {};
-    fetchedProducts.forEach((productPack) => {
+    apiData.fetchedProducts.forEach((productPack) => {
       productPack.forEach((product) => {
         switch (product.type) {
           case "simple":
@@ -150,7 +210,12 @@ export class Woocommerce extends Marketplace {
       });
     });
 
-    return apiProducts;
+    return {
+      productsInfo: apiProducts,
+      productsStocks: {
+        fbsReserves: apiData.newOrders,
+      },
+    };
   }
 
   static getApiProductVariationInfo(variableId, productId) {
@@ -168,21 +233,37 @@ export class Woocommerce extends Marketplace {
   }
 
   static async getApiProduct(productId, productType, variableId = null) {
-    let apiProduct;
+    let apiProductRequest;
 
     switch (productType) {
       case "simple":
-        apiProduct = await this.getApiSimpleProductInfo(productId);
+        apiProductRequest = this.getApiSimpleProductInfo(productId);
         break;
       case "variation":
-        apiProduct = await this.getApiProductVariationInfo(
+        apiProductRequest = this.getApiProductVariationInfo(
           variableId,
           productId
         );
         break;
     }
 
-    return { [apiProduct.id]: apiProduct };
+    const apiData = await async.parallel({
+      apiProduct: (callback) => {
+        apiProductRequest
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+      newOrders: (callback) => {
+        this.getProcessingOrders()
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      },
+    });
+
+    return {
+      productsInfo: { [apiData.apiProduct.id]: apiData.apiProduct },
+      productsStocks: { fbsReserves: apiData.newOrders },
+    };
   }
 
   static updateApiSimpleProduct(productId, updateData) {
@@ -219,17 +300,46 @@ export class Woocommerce extends Marketplace {
     }
   }
 
+  static async updateApiStock(
+    productId,
+    productType,
+    newStock,
+    variableId = null
+  ) {
+    const processingOrders = await this.getProcessingOrders();
+
+    for (const processingOrder of processingOrders) {
+      for (const orderProduct of processingOrder.line_items) {
+        if (
+          productId ===
+          (orderProduct.parent_name
+            ? orderProduct.variation_id
+            : orderProduct.product_id)
+        ) {
+          newStock -= orderProduct.quantity;
+        }
+      }
+    }
+
+    return this.updateApiProduct(
+      productId,
+      productType,
+      { stock_quantity: newStock },
+      variableId
+    );
+  }
+
   static getDbVariableProducts(filter) {
     return WooProductVariable.find(filter);
   }
 
-  static getProcessingOrders = () => {
+  static getProcessingOrders() {
     return woocommerceAPI
       .getAsync(`orders?per_page=100&status=processing`)
       .then((response) => {
         return JSON.parse(response.body);
       });
-  };
+  }
 
   static getDbProductById(id) {
     return super.getDbProductById(id).populate("parentVariable");
@@ -258,7 +368,7 @@ export class Woocommerce extends Marketplace {
       marketProductDetails.parentVariable = await WooProductVariable.findOne({
         id: marketProductData.parentVariable,
       });
-    } else {
+    } else if (marketProductDetails.parentVariable === "") {
       marketProductDetails.parentVariable = undefined;
     }
 

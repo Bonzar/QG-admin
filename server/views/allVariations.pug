@@ -1,0 +1,46 @@
+extends layout
+block main
+    main(class=mainClass)
+        block content
+            section
+                block headerSection
+                    h1.snap-scroll-stop--end= title
+            block beforeTables
+            section.section--wide
+                div.stocks-tables
+                  for table in tables
+                    - const {tableName, products} = table
+                      div.stocks-tables--cell.snap-scroll-stop--center
+                        h2= tableName
+                        div.stocks-table--wrapper
+                            div.stocks-table--inner
+                                table(id=marketType, class="stocks-table")
+                                    thead
+                                        tr
+                                            block table-stock-headers
+                                              each column in Object.entries(headers)
+                                                -let [headerName, headerData] = column;
+                                                  th(class=`col--${headerData.type}`)= headerName
+                                    block table-stock-body
+                                        if products.length > 0
+                                            tbody
+                                              each product in products
+                                                  tr
+                                                    each headerData in Object.values(headers)
+                                                        block tableCells
+                                                            case headerData.type
+                                                                when 'name'
+                                                                    td( class=`col--${headerData.type}` )
+                                                                        div.stocks-table--name-cell--container
+                                                                            block tableCellName
+                                                                                //- if name has a parentheses, put within text to description tag attribute
+                                                                                a.a--no-decorations(href=`/stocks/db/product/${product.productInnerId}`)
+                                                                                    if (product[headerData.field].includes("("))
+                                                                                      - const [ , productName, productDescription] = product[headerData.field].match(/(.*) \((.*)\)/);
+                                                                                          | #{productName}
+                                                                                          br
+                                                                                          i.product-description #{productDescription}
+                                                                                    else
+                                                                                        | #{product[headerData.field]}
+            section
+                block afterTables

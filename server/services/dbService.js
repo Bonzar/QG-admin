@@ -13,6 +13,177 @@ import { Ozon } from "./ozon.js";
 import { Wildberries } from "./wildberries.js";
 import { getMarketplaceClasses } from "./helpers.js";
 
+/**
+ * Returns the market products list for given variation
+ * @param {string} variationId
+ * @returns {Promise[{marketProductInstance, marketProductData: {dbInfo: {}, fbsStock: number, fbmStock: number, fbsReserve: number}}]} Market products for given variation
+ */
+const getVariationActualMarketProducts = async (variationId) => {
+  const marketProductInstances = Object.values(getMarketplaceClasses()).map(
+    (Marketplace) => {
+      return new Marketplace({
+        variation: variationId,
+        isActual: true,
+      });
+    }
+  );
+
+  const marketProducts = await async.parallel(
+    marketProductInstances.map((marketProductInstance) => {
+      return (callback) => {
+        marketProductInstance
+          .getProduct()
+          .then((marketProductData) => {
+            callback(null, { marketProductInstance, marketProductData });
+          })
+          .catch((error) => {
+            if (error.code === "NO-DB-DATA") {
+              callback(null, null);
+              return;
+            }
+
+            callback(error, null);
+          });
+      };
+    })
+  );
+
+  return marketProducts.filter((marketProduct) => !!marketProduct);
+};
+
+export const redistributeVariationsStock = async () => {
+  const allVariations = await getProductVariations();
+  let index = 0;
+  console.log(allVariations.length);
+  const variationUpdateRequests = allVariations.map((variation) => {
+    return (callback) => {
+      console.log(index++);
+      getVariationActualMarketProducts(variation._id)
+        .then((marketProducts) => {
+          if (marketProducts.length === 0) {
+            return null;
+          }
+
+          const allAvailableStock = marketProducts.reduce(
+            (total, marketProduct) =>
+              total +
+              (marketProduct.marketProductData.fbsStock ?? 0) +
+              (marketProduct.marketProductData.fbsReserve ?? 0),
+            0
+          );
+
+          return updateVariationStock(
+            variation._id,
+            allAvailableStock,
+            marketProducts
+          );
+        })
+        .then((result) => callback(null, result))
+        .catch((error) => callback(error, null));
+    };
+  });
+
+  await async.parallelLimit(variationUpdateRequests, 4);
+};
+
+export const updateVariationStock = async (
+  variationId,
+  readyStock,
+  dryStock,
+  marketProducts
+) => {
+  if (!marketProducts) {
+    marketProducts = await getVariationActualMarketProducts(variationId);
+  }
+
+  if (marketProducts.length <= 0) {
+    throw new Error("Не найдены продукты для обновления");
+  }
+
+  let allFbsReserve = 0;
+  let variationVolume =
+    marketProducts[0].marketProductData.dbInfo.variation.volume;
+
+  marketProducts.forEach((marketProduct) => {
+    allFbsReserve += marketProduct.marketProductData.fbsReserve ?? 0;
+
+    marketProduct.fbsReserve = marketProduct.marketProductData.fbsReserve ?? 0;
+    marketProduct.fbmStock = marketProduct.marketProductData.fbmStock ?? 0;
+    marketProduct.updateStock = 0;
+  });
+
+  const variationVolumeDryStockCof = {
+    "3 мл": 0.6,
+    "6 мл": 0.3,
+  };
+
+  const allUpdateStock = Math.trunc(
+    readyStock +
+      (isNaN(dryStock) ? 0 : dryStock) *
+        (variationVolumeDryStockCof[variationVolume] ?? 0)
+  );
+
+  const allAvailableStock = allUpdateStock - allFbsReserve;
+
+  const calculateUpdateStocks = (availableStocks, marketProducts) => {
+    if (availableStocks <= 0) {
+      return;
+    }
+
+    if (availableStocks < marketProducts.length) {
+      marketProducts.forEach((marketProduct) => {
+        if (availableStocks > 0 && marketProduct.fbmStock <= 0) {
+          marketProduct.updateStock++;
+          availableStocks--;
+        }
+      });
+      return;
+    }
+
+    const stockByMarketplace = Math.trunc(
+      availableStocks / marketProducts.length
+    );
+
+    availableStocks -= stockByMarketplace * marketProducts.length;
+
+    marketProducts.forEach((marketProduct) => {
+      if (marketProduct.fbmStock > 0) {
+        const fbmStock = marketProduct.fbmStock;
+        if (stockByMarketplace >= fbmStock) {
+          const updateStock = stockByMarketplace - fbmStock;
+          marketProduct.updateStock = updateStock;
+          availableStocks += stockByMarketplace - updateStock;
+        } else {
+          availableStocks += stockByMarketplace;
+        }
+        marketProduct.fbmStock -= stockByMarketplace;
+        return;
+      }
+
+      marketProduct.updateStock += stockByMarketplace;
+    });
+
+    return calculateUpdateStocks(availableStocks, marketProducts);
+  };
+
+  calculateUpdateStocks(allAvailableStock, marketProducts);
+
+  const updateRequests = {};
+  marketProducts.forEach(
+    ({ marketProductInstance, fbsReserve, updateStock }) => {
+      updateRequests[marketProductInstance.constructor.name] = (callback) => {
+        let newStock = updateStock + fbsReserve;
+        marketProductInstance
+          .addUpdateProduct({ stockFBS: newStock })
+          .then((result) => callback(null, result))
+          .catch((error) => callback(error, null));
+      };
+    }
+  );
+
+  return async.parallel(updateRequests);
+};
+
 export const getProductVariation = (filter, populate) => {
   return ProductVariation.findOne(filter).populate(populate);
 };

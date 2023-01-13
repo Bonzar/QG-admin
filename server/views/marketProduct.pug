@@ -41,8 +41,10 @@ block section
                 input(required name="isActual" type="radio" value="true" checked=(marketProduct ? marketProduct.isActual : false))
             label.inline #{" "}Неактуальный#{" "}
                 input(required name="isActual" type="radio" value="false" checked=(marketProduct ? !marketProduct.isActual : false))
-        label FBS:#{" "}
-            input(name="stockFBS" type="number" value=(fbsStocks ? fbsStocks : 0) disabled=(marketProduct && fbsStocks === undefined))
+        label.label--first-half FBS:#{" "}
+            input(name="stockFBS" type="number" min=(marketProduct.fbsReserve ? marketProduct.fbsReserve : 0) value=(marketProduct.fbsStock) placeholder="FBS + Reserve")
+        label.label--last-half Резерв:#{" "}
+            input(required name="reserved" type="" value=marketProduct.fbsReserve disabled)
         if marketProduct
             case marketType
                 when "wb"

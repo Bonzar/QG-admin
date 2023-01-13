@@ -26,7 +26,7 @@ block content
     if product
         form.add-variation--form
             a.btn.add-variation--btn
-            label.select--arrow.add-variation-volume--block(disabled)
+            label.select--arrow.add-variation-volume--block.disabled
                 select.select--style( name="variation_volume" required)
                     option(value="") Выберете
                       each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
@@ -92,8 +92,10 @@ block content
                                           input(required name="isActual" type="radio" value="true" checked=marketProduct.isActual)
                                       label.inline #{" "}Нет#{" "}
                                           input(required name="isActual" type="radio" value="false" checked=!marketProduct.isActual)
-                                  label FBS:#{" "}
-                                      input(name="stockFBS" type="number" min=0 value=(marketProduct.fbsStock) disabled=(marketProduct.fbsStock === undefined))
+                                  label.label--first-half FBS:#{" "}
+                                      input(name="stockFBS" type="number" min=(marketProduct.fbsReserve ? marketProduct.fbsReserve : 0) value=(marketProduct.fbsStock) placeholder="FBS + Reserve")
+                                  label.label--last-half Резерв:#{" "}
+                                      input(required name="reserved" type="" value=marketProduct.fbsReserve disabled)
                                   case marketType
                                       when 'wb'
                                       when 'ozon'

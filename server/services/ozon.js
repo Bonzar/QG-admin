@@ -47,16 +47,25 @@ export class Ozon extends Marketplace {
   }
 
   static async checkIdentifierExistsInApi(newProductData) {
+    if (!newProductData.sku && !newProductData.article) {
+      return true;
+    }
+
+    let isProductExistsOnMarketplace = true;
+
     const allApiProducts = await this.getApiProductsStocks();
 
-    const isProductExistsOnMarketplace = [
-      allApiProducts.find(
+    if (newProductData.sku) {
+      isProductExistsOnMarketplace = !!allApiProducts.find(
         (product) => +product.product_id === +newProductData.sku
-      ),
-      allApiProducts.find(
+      );
+    }
+
+    if (newProductData.article) {
+      isProductExistsOnMarketplace = !!allApiProducts.find(
         (product) => product.offer_id === newProductData.article
-      ),
-    ].every((check) => check);
+      );
+    }
 
     if (!isProductExistsOnMarketplace) {
       throw new Error("Идентификатор товара не существует в базе маркетплейса");
@@ -118,7 +127,24 @@ export class Ozon extends Marketplace {
   /**
    * @param {[{stock, offer_id}]} stocks
    */
-  static updateApiStocks(stocks) {
+  static async updateApiStocks(stocks) {
+    const productsStocks = await this.getApiProductsStocks({
+      offer_id: stocks.map((stock) => stock.offer_id),
+    });
+
+    stocks.forEach((stock) => {
+      const reserveStocks = productsStocks.find(
+        (reserve) => reserve.offer_id === stock.offer_id
+      );
+      const reserve = reserveStocks.stocks.find(
+        (reserveStock) => reserveStock.type === "fbs"
+      )?.reserved;
+
+      if (reserve) {
+        stock.stock -= reserve;
+      }
+    });
+
     return ozonAPI
       .post("v1/product/import/stocks", {
         stocks,
@@ -389,6 +415,7 @@ export class Ozon extends Marketplace {
       );
 
       apiProduct.fbsStock = fbsStocks?.present - fbsStocks?.reserved;
+      apiProduct.fbsReserve = fbsStocks?.reserved;
       apiProduct.fbmStock = productsStock.stocks.find(
         (stock) => stock.type === "fbo"
       )?.present;

@@ -75,7 +75,7 @@ const getAllOzonOrders = async () => {
 };
 
 const getYandexOrders = async () => {
-  const yandexOrders = await Yandex.getApiTodayOrders();
+  const yandexOrders = await Yandex.getApiOrdersToday();
 
   const yandexOrdersFormatRequests = yandexOrders.map((order) => {
     let order_status = "";
@@ -193,19 +193,18 @@ const getWooOrders = async () => {
   return async.parallel(wooOrdersFormatRequests);
 };
 
-const getWbOrders = async () => {
-  const newOrders = await Wildberries.getApiNewOrders();
-  const reservedProductsRequests = newOrders.map((newOrder) => {
+const getWbProductInOrderRequests = (orders) => {
+  return orders.map((order) => {
     return (callback) =>
-      Wildberries.getDbProduct({ sku: newOrder.nmId })
+      Wildberries.getDbProduct({ sku: order.nmId })
         .then((dbProduct) =>
           callback(null, {
-            order_number: newOrder.id,
+            order_number: order.id,
             order_status: "Новый",
             products: [
               {
                 name: dbProduct?.variation.product.name ?? "",
-                article: dbProduct?.article ?? "",
+                article: order.article ?? "",
                 quantity: 1,
               },
             ],
@@ -213,8 +212,25 @@ const getWbOrders = async () => {
         )
         .catch((error) => callback(error, null));
   });
+};
 
-  return async.parallel(reservedProductsRequests);
+const getAllWbOrders = () => {
+  return async.parallel({
+    todayOrders: (callback) => {
+      Wildberries.getApiNewOrders().then((orders) => {
+        const productInOrderRequests = getWbProductInOrderRequests(orders);
+
+        async.parallel(productInOrderRequests, callback);
+      });
+    },
+    overdueOrders: (callback) => {
+      Wildberries.getApiReshipmentOrders().then((orders) => {
+        const productInOrderRequests = getWbProductInOrderRequests(orders);
+
+        async.parallel(productInOrderRequests, callback);
+      });
+    },
+  });
 };
 
 export const getOrdersList = (req, res) => {
@@ -236,7 +252,7 @@ export const getOrdersList = (req, res) => {
           .catch((error) => callback(error, null));
       },
       wbOrders(callback) {
-        getWbOrders()
+        getAllWbOrders()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
@@ -270,12 +286,12 @@ export const getOrdersList = (req, res) => {
           {
             name: "WB",
             today: {
-              status: results.wbOrders.length > 0,
-              orders: results.wbOrders,
+              status: results.wbOrders.todayOrders.length > 0,
+              orders: results.wbOrders.todayOrders,
             },
             overdue: {
-              status: false,
-              orders: [],
+              status: results.wbOrders.overdueOrders.length > 0,
+              orders: results.wbOrders.overdueOrders,
             },
           },
           {

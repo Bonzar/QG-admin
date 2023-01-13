@@ -24,7 +24,7 @@ export const getProductsListPage = async (req, res) => {
             : ""),
         stockFBW: product.fbmStock ?? 0,
         stockFBS: {
-          stock: product.fbsStock ?? 0,
+          stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
           updateBy: product.dbInfo?.barcode ?? "",
           marketType: "wb",
         },

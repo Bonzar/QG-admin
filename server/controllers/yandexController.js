@@ -22,7 +22,7 @@ export const getProductsListPage = (req, res) => {
               ? ` - ${variation?.volume}`
               : ""),
           productStock: {
-            stock: product.fbsStock ?? 0,
+            stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             updateBy: product.shopSku,
             marketType: "yandex",
           },

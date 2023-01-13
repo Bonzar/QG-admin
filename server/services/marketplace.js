@@ -3,6 +3,7 @@ import async from "async";
 export class Marketplace {
   #dbData;
   static marketProductSchema;
+  static cacheStore = {};
 
   constructor(search) {
     if (typeof search !== "object") {
@@ -10,7 +11,7 @@ export class Marketplace {
     }
 
     this.search = search;
-    this.setProductInfoFromDb(search);
+    // this.setProductInfoFromDb(search);
   }
 
   /**
@@ -26,6 +27,13 @@ export class Marketplace {
 
   async setProductInfoFromDb(search) {
     this.#dbData = await this.constructor.getDbProduct(search);
+    if (!this.#dbData) {
+      const error = new Error("Market product not found in db");
+      error.code = "NO-DB-DATA";
+
+      throw error;
+    }
+
     return this.#dbData;
   }
 
@@ -91,9 +99,12 @@ export class Marketplace {
       marketProductDetails.sku = marketProductData.sku;
     }
 
-    marketProductDetails.article = marketProductData.article
-      ? marketProductData.article
-      : undefined;
+    if (marketProductData.article) {
+      marketProductDetails.article =
+        marketProductData.article !== ""
+          ? marketProductData.article
+          : undefined;
+    }
 
     marketProductDetails.isActual = marketProductData.isActual
       ? marketProductData.isActual === "true"
@@ -104,7 +115,10 @@ export class Marketplace {
         product: marketProductData.product_id,
         volume: marketProductData.variation_volume,
       });
-    } else {
+    } else if (
+      marketProductData.variation_volume === "" ||
+      marketProductData.product_id === ""
+    ) {
       marketProductDetails.variation = null;
     }
 
@@ -155,5 +169,27 @@ export class Marketplace {
 
   static connectDbApiData() {
     throw new Error("Method should be overwritten and run by child class");
+  }
+
+  static makeCachingForTime(func, argsList, funcCode, cacheTime) {
+    return () => {
+      if (
+        this.cacheStore[`${funcCode}-args:${argsList.toString()}`]
+          ?.cacheEndTime > Date.now()
+      ) {
+        // console.log("return cached");
+        return this.cacheStore[`${funcCode}-args:${argsList.toString()}`]
+          .funcResult;
+      }
+
+      const updatedResult = func(...argsList);
+      this.cacheStore[`${funcCode}-args:${argsList.toString()}`] = {
+        cacheEndTime: Date.now() + cacheTime,
+        funcResult: updatedResult,
+      };
+
+      // console.log("return actual");
+      return updatedResult;
+    };
   }
 }

@@ -65,5 +65,5 @@ export const filterMarketProducts = (products, filters) => {
 };
 
 export const getMarketplaceClasses = () => {
-  return { wb: Wildberries, woo: Woocommerce, yandex: Yandex, ozon: Ozon };
+  return { woo: Woocommerce, wb: Wildberries, ozon: Ozon, yandex: Yandex };
 };

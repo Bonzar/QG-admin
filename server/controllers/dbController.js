@@ -34,7 +34,11 @@ const getMarketProductRequest = (
     marketProductInstance
       .getProduct()
       .then((marketProductData) => {
-        marketVariationDbProduct.fbsStock = marketProductData.fbsStock;
+        const reserve = marketProductData.fbsReserve ?? 0;
+
+        marketVariationDbProduct.fbsStock =
+          (marketProductData.fbsStock ?? 0) + reserve;
+        marketVariationDbProduct.fbsReserve = reserve;
         if (["wb", "ozon"].includes(marketType)) {
           marketVariationDbProduct.fbmStock = marketProductData.fbmStock;
         }
@@ -158,7 +162,9 @@ export const getDbMarketProductPage = async (req, res) => {
       const marketProductInstance = new Marketplace(productId);
       const marketProductData = await marketProductInstance.getProduct();
       const marketProduct = marketProductData.dbInfo;
-      const fbsStocks = marketProductData.fbsStock;
+      const fbsReserve = marketProductData.fbsReserve ?? 0;
+      marketProduct.fbsReserve = fbsReserve;
+      marketProduct.fbsStock = marketProductData.fbsStock + fbsReserve;
 
       if (marketProduct) {
         res.render("marketProduct", {
@@ -173,7 +179,6 @@ export const getDbMarketProductPage = async (req, res) => {
           marketType,
           allProducts,
           marketProduct,
-          fbsStocks,
           wooVariableProducts,
         });
       }
@@ -503,7 +508,7 @@ export const getAllProductsStockPage = async (req, res) => {
 
       if (variationStock) {
         variationStock.yandexStock = {
-          stock: product.fbsStock ?? 0,
+          stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
           updateBy: product.shopSku,
           marketType: "yandex",
         };
@@ -512,13 +517,9 @@ export const getAllProductsStockPage = async (req, res) => {
           variationInnerId: variation?._id.toString(),
           productInnerId: variation?.product._id,
           volume: variation?.volume,
-          productName:
-            (variation?.product.name ?? "") +
-            (["3 мл", "10 мл"].includes(variation?.volume)
-              ? ` - ${variation?.volume}`
-              : ""),
+          productName: variation?.product.name ?? "",
           yandexStock: {
-            stock: product.fbsStock ?? 0,
+            stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             updateBy: product.shopSku,
             marketType: "yandex",
           },
@@ -537,7 +538,7 @@ export const getAllProductsStockPage = async (req, res) => {
 
       if (variationStock) {
         variationStock.wooStock = {
-          stock: product.fbsStock,
+          stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
           updateBy:
             product.type === "simple"
               ? `simple-${product.id}`
@@ -549,13 +550,9 @@ export const getAllProductsStockPage = async (req, res) => {
           variationInnerId: variation?._id.toString(),
           productInnerId: variation?.product._id,
           volume: variation?.volume,
-          productName:
-            (variation?.product.name ?? "") +
-            (["3 мл", "10 мл"].includes(variation?.volume)
-              ? ` - ${variation?.volume}`
-              : ""),
+          productName: variation?.product.name ?? "",
           wooStock: {
-            stock: product.fbsStock,
+            stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             updateBy:
               product.type === "simple"
                 ? `simple-${product.id}`
@@ -578,7 +575,7 @@ export const getAllProductsStockPage = async (req, res) => {
 
       if (variationStock) {
         variationStock.wbStock = {
-          stock: product.fbsStock ?? 0,
+          stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
           updateBy: product.dbInfo?.barcode ?? "",
           marketType: "wb",
         };
@@ -589,13 +586,9 @@ export const getAllProductsStockPage = async (req, res) => {
           variationInnerId: variation?._id.toString(),
           productInnerId: variation?.product._id,
           volume: variation?.volume,
-          productName:
-            (variation?.product.name ?? "") +
-            (["3 мл", "10 мл"].includes(variation?.volume)
-              ? ` - ${variation?.volume}`
-              : ""),
+          productName: variation?.product.name ?? "",
           wbStock: {
-            stock: product.fbsStock ?? 0,
+            stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             updateBy: product.dbInfo?.barcode ?? "",
             marketType: "wb",
           },
@@ -616,7 +609,7 @@ export const getAllProductsStockPage = async (req, res) => {
 
       if (variationStock) {
         variationStock.ozonStock = {
-          stock: product.fbsStock ?? 0,
+          stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
           updateBy: product.offer_id,
           marketType: "ozon",
         };
@@ -626,13 +619,9 @@ export const getAllProductsStockPage = async (req, res) => {
           variationInnerId: variation?._id.toString(),
           productInnerId: variation?.product._id,
           volume: variation?.volume,
-          productName:
-            (variation?.product.name ?? "") +
-            (["3 мл", "10 мл"].includes(variation?.volume)
-              ? ` - ${variation?.volume}`
-              : ""),
+          productName: variation?.product.name ?? "",
           ozonStock: {
-            stock: product.fbsStock ?? 0,
+            stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             updateBy: product.offer_id,
             marketType: "ozon",
           },
@@ -740,6 +729,7 @@ export const getAllProductsStockPage = async (req, res) => {
       Набор: 20,
       Стикеры: 10,
     };
+
     tablesArray.sort(
       (table1, table2) =>
         volumeSortRating[table2.tableName] - volumeSortRating[table1.tableName]
@@ -765,6 +755,98 @@ export const getAllProductsStockPage = async (req, res) => {
         "Error while getting all variations stock page. Try again later.",
       code: err.code,
       status: err.response?.status,
+    });
+  }
+};
+
+export const getAllVariationsPage = async (req, res) => {
+  try {
+    const allVariations = await dbService.getAllVariations({}, ["product"]);
+
+    allVariations.forEach((variation) => {
+      variation.name = variation.product.name;
+      variation.productInnerId = variation.product._id;
+      variation.variationId = variation._id;
+    });
+
+    // Sorting
+    allVariations.sort((variation1, variation2) =>
+      variation1.name.localeCompare(variation2.name, "ru")
+    );
+
+    const splitTables = {};
+    allVariations.forEach((variation) => {
+      if (!variation.volume) return;
+      if (!splitTables[variation.volume]) {
+        splitTables[variation.volume] = [];
+      }
+
+      splitTables[variation.volume].push(variation);
+    });
+
+    const tablesArray = Object.keys(splitTables).map((tableName) => ({
+      tableName,
+      products: splitTables[tableName],
+    }));
+
+    const volumeSortRating = {
+      "3 мл": 50,
+      "6 мл": 40,
+      "10 мл": 30,
+      Набор: 20,
+      Стикеры: 10,
+    };
+
+    tablesArray.sort(
+      (table1, table2) =>
+        volumeSortRating[table2.tableName] - volumeSortRating[table1.tableName]
+    );
+
+    res.render("allVariationsPage", {
+      title: "Все вариации",
+      mainClass: "all-variations-stock-update",
+      headers: {
+        Name: { type: "name", field: "name" },
+      },
+      tables: tablesArray,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({
+      message:
+        "Error while getting all variations stock page. Try again later.",
+      code: err.code,
+      status: err.response?.status,
+    });
+  }
+};
+
+export const updateVariationStock = async (req, res) => {
+  try {
+    const result = dbService.updateVariationStock(
+      req.body.variationId,
+      +req.body.readyStock,
+      +req.body.dryStock
+    );
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      error,
+      message: `Error while updating variation stock. - ${error.message}`,
+    });
+  }
+};
+
+export const redistributeVariationsStock = async (req, res) => {
+  try {
+    const result = dbService.redistributeVariationsStock();
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      error,
+      message: `Error while updating variation stock. - ${error.message}`,
     });
   }
 };

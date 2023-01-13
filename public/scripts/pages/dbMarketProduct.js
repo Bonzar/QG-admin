@@ -8,7 +8,7 @@ const parentVariableSelect = document.querySelector(
   "select[name='parentVariable']"
 );
 const productTypeSelect = document.querySelector("select[name='type']");
-productTypeSelect.addEventListener("change", (e) => {
+productTypeSelect?.addEventListener("change", (e) => {
   const productType = e.currentTarget;
   if (productType.value === "variation") {
     parentVariableSelect.removeAttribute("disabled");

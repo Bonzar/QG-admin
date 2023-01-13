@@ -120,9 +120,9 @@ const styleDisabledMarketProductCard = (e) => {
   }
 
   if (e.target.value === "true") {
-    marketProductForm.classList.remove("disabled");
+    marketProductForm.classList.remove("market-product--form-not-actual");
   } else if (e.target.value === "false") {
-    marketProductForm.classList.add("disabled");
+    marketProductForm.classList.add("market-product--form-not-actual");
   }
 };
 
@@ -157,7 +157,7 @@ for (const marketProductForm of marketProductForms) {
       (input) => input.value === "false" && input.hasAttribute("checked")
     )
   ) {
-    marketProductForm.classList.add("disabled");
+    marketProductForm.classList.add("market-product--form-not-actual");
     marketProductForm.classList.add("order-last");
   }
 }
@@ -172,10 +172,10 @@ addVariationForm.addEventListener("click", (e) => {
     ".add-variation-volume--block"
   );
 
-  if (volumeLabel.hasAttribute("disabled")) {
-    volumeLabel.removeAttribute("disabled");
+  if (volumeLabel.classList.contains("disabled")) {
+    volumeLabel.classList.remove("disabled");
   } else if (!volumeSelect.value) {
-    volumeLabel.setAttribute("disabled", "disabled");
+    volumeLabel.classList.add("disabled");
   } else {
     if (!volumeSelect.reportValidity()) {
       return;

@@ -54,15 +54,19 @@ export class Wildberries extends Marketplace {
 
   // CLASS METHODS
   static async checkIdentifierExistsInApi(newProductData) {
-    const allApiProducts = await this.getApiProductsInfo();
+    let isProductExistsOnMarketplace = true;
+    if (newProductData.sku) {
+      const allApiProducts = await this.getApiProductsInfo();
 
-    const isProductExistsOnMarketplace = [
-      !!allApiProducts[newProductData.sku],
-      newProductData.article
-        ? allApiProducts[newProductData.sku]?.["vendorCode"] ===
-          newProductData.article
-        : true,
-    ].every((check) => check);
+      const apiProduct = allApiProducts[newProductData.sku];
+
+      isProductExistsOnMarketplace = !!apiProduct;
+
+      if (newProductData.article && apiProduct) {
+        isProductExistsOnMarketplace =
+          newProductData.article === apiProduct["vendorCode"];
+      }
+    }
 
     if (!isProductExistsOnMarketplace) {
       throw new Error("Идентификатор товара не существует в базе маркетплейса");
@@ -96,7 +100,7 @@ export class Wildberries extends Marketplace {
   static connectDbApiData(dbProducts, apiProductsData) {
     const {
       productsInfo: apiProducts,
-      productsStocks: { fbsStocks, fbmStocks },
+      productsStocks: { fbsStocks, fbmStocks, fbsReserves },
     } = apiProductsData;
 
     for (const fbmStock of fbmStocks) {
@@ -106,6 +110,19 @@ export class Wildberries extends Marketplace {
       }
 
       apiProduct.fbmStock = fbmStock.quantity;
+    }
+
+    for (const fbsReserve of fbsReserves) {
+      const apiProduct = apiProducts[fbsReserve["nmId"]];
+      if (!apiProduct) {
+        continue;
+      }
+
+      if (!apiProduct.fbsReserve) {
+        apiProduct.fbsReserve = 1;
+      } else {
+        apiProduct.fbsReserve++;
+      }
     }
 
     for (const dbProduct of dbProducts) {
@@ -133,22 +150,27 @@ export class Wildberries extends Marketplace {
       });
   }
 
-  static getApiProductFbsStock(barcode) {
-    const fbsStock = this.getApiProductsFbsStocks([barcode]);
-    return fbsStock[0];
-  }
-
   static getApiProductsFbmStocks(skuFilter) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    return wbStatAPI
-      .get(
+
+    const getApiProductsFbmStocksRequest = () =>
+      wbStatAPI.get(
         `api/v1/supplier/stocks?dateFrom=${formatInTimeZone(
           yesterday,
           "UTC",
           "yyyy-MM-dd"
         )}`
-      )
+      );
+
+    const getApiProductsFbmStocksRequestCached = this.makeCachingForTime(
+      getApiProductsFbmStocksRequest,
+      [],
+      "WB-GET-API-PRODUCTS-FBM-STOCKS",
+      15 * 60 * 1000
+    );
+
+    return getApiProductsFbmStocksRequestCached()
       .then((response) => {
         let fbmStocks = response.data;
 
@@ -177,7 +199,11 @@ export class Wildberries extends Marketplace {
         return resultFbmStocks;
       })
       .catch(async (error) => {
-        console.error(error);
+        if (error.response.status === 429) {
+          console.error("Ошибка получания остатков FBW");
+        } else {
+          console.error(error);
+        }
 
         const dbProducts = await Wildberries.getDbProducts(
           skuFilter ? { sku: skuFilter } : {}
@@ -186,21 +212,6 @@ export class Wildberries extends Marketplace {
           return { nmId: dbProduct.sku, quantity: dbProduct.stock };
         });
       });
-  }
-
-  static getApiProductsStocks(filter) {
-    return async.parallel({
-      fbsStocks: (callback) => {
-        this.getApiProductsFbsStocks(filter)
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      fbmStocks: (callback) => {
-        this.getApiProductsFbmStocks(filter)
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-    });
   }
 
   //todo add pagination processing
@@ -261,6 +272,11 @@ export class Wildberries extends Marketplace {
             })
             .catch((error) => callback(error, null));
         },
+        fbsReserves: (callback) => {
+          this.getApiNewOrders()
+            .then((newOrders) => callback(null, newOrders))
+            .catch((error) => callback(error, null));
+        },
       })
       .then((results) => {
         return {
@@ -268,6 +284,7 @@ export class Wildberries extends Marketplace {
           productsStocks: {
             fbmStocks: results.fbmStocks,
             fbsStocks: results.fbsStocks,
+            fbsReserves: results.fbsReserves,
           },
         };
       });
@@ -286,7 +303,21 @@ export class Wildberries extends Marketplace {
    * @param {number} warehouse
    * @description sku is a barcode (WildBerries API troubles)
    */
-  static updateApiStocks(stocks, warehouse = 206312) {
+  static async updateApiStocks(stocks, warehouse = 206312) {
+    const newOrders = await this.getApiNewOrders();
+    for (const newOrder of newOrders) {
+      const stock = stocks.find((stock) => stock.sku === newOrder.skus[0]);
+      if (!stock) {
+        continue;
+      }
+
+      if (stock.amount <= 0) {
+        continue;
+      }
+
+      stock.amount--;
+    }
+
     return wbAPI
       .put(`api/v3/stocks/${warehouse}`, { stocks })
       .then((response) => {
@@ -297,9 +328,19 @@ export class Wildberries extends Marketplace {
   }
 
   static getApiNewOrders() {
-    return wbAPI.get("api/v3/orders/new").then((response) => {
-      return response.data.orders;
-    });
+    const getNewOrdersRequest = () =>
+      wbAPI.get("api/v3/orders/new").then((response) => {
+        return response.data.orders;
+      });
+
+    const cachedRequest = this.makeCachingForTime(
+      getNewOrdersRequest,
+      [],
+      "WB-GET-API-NEW-ORDERS",
+      60000
+    );
+
+    return cachedRequest();
   }
 
   static getApiReshipmentOrders() {
