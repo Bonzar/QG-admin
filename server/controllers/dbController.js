@@ -823,7 +823,7 @@ export const getAllVariationsPage = async (req, res) => {
 
 export const updateVariationStock = async (req, res) => {
   try {
-    const result = dbService.updateVariationStock(
+    const result = await dbService.updateVariationStock(
       req.body.variationId,
       +req.body.readyStock,
       +req.body.dryStock

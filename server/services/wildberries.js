@@ -179,10 +179,11 @@ export class Wildberries extends Marketplace {
             (fbmStock) => fbmStock["nmId"] === skuFilter
           );
         }
-
+        let allFbmStocks = 0;
         let formatFbmStocks = {};
         for (const fbmStock of fbmStocks) {
           if (!formatFbmStocks[fbmStock["nmId"]]) {
+            allFbmStocks += fbmStock.quantity;
             formatFbmStocks[fbmStock["nmId"]] = {
               nmId: fbmStock["nmId"],
               quantity: fbmStock.quantity,
@@ -192,6 +193,10 @@ export class Wildberries extends Marketplace {
           }
         }
 
+        if (allFbmStocks === 0) {
+          throw new Error("FBW stocks from API is empty.");
+        }
+
         const resultFbmStocks = Object.values(formatFbmStocks);
 
         setTimeout(() => dbService.updateWbStocks(resultFbmStocks), 0);
@@ -199,7 +204,7 @@ export class Wildberries extends Marketplace {
         return resultFbmStocks;
       })
       .catch(async (error) => {
-        if (error.response.status === 429) {
+        if (error.response?.status === 429) {
           console.error("Ошибка получания остатков FBW");
         } else {
           console.error(error);
