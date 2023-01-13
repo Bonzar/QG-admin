@@ -13,6 +13,42 @@ import { Ozon } from "./ozon.js";
 import { Wildberries } from "./wildberries.js";
 import { getMarketplaceClasses } from "./helpers.js";
 
+import cron from "node-cron";
+import winston from "winston";
+
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.json(),
+  defaultMeta: { service: "db-service" },
+  transports: [
+    //
+    // - Write all logs with importance level of `error` or less to `error.log`
+    // - Write all logs with importance level of `info` or less to `combined.log`
+    //
+    new winston.transports.File({ filename: "error.log", level: "error" }),
+    new winston.transports.File({ filename: "combined.log" }),
+  ],
+});
+
+cron.schedule("0 3 */2 * *", () => {
+  redistributeVariationsStock
+    .then(() => {
+      logger.log({
+        level: "info",
+        date: new Date(),
+        message: "Success scheduled redistribute variations stock.",
+      });
+    })
+    .catch((error) => {
+      logger.log({
+        level: "error",
+        date: new Date(),
+        message: "Error while scheduled redistribute variations stock.",
+        error,
+      });
+    });
+});
+
 /**
  * Returns the market products list for given variation
  * @param {string} variationId
@@ -83,7 +119,7 @@ export const redistributeVariationsStock = async () => {
     };
   });
 
-  await async.parallelLimit(variationUpdateRequests, 4);
+  await async.parallelLimit(variationUpdateRequests, 7);
 };
 
 export const updateVariationStock = async (

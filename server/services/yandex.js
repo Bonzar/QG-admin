@@ -3,9 +3,11 @@ import { Marketplace } from "./marketplace.js";
 import YandexProduct from "../models/YandexProduct.js";
 import { format, parse as dateParse } from "date-fns";
 import async from "async";
+import https from "https";
 
 const yandexAPI = axios.create({
   baseURL: "https://api.partner.market.yandex.ru/",
+  httpsAgent: new https.Agent({ keepAlive: true }),
   headers: {
     "Content-Type": "application/json",
     Authorization: `OAuth oauth_token="${process.env.YANDEX_OAUTHTOKEN}", oauth_client_id="${process.env.YANDEX_CLIENTID}"`,

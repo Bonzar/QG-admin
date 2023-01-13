@@ -4,9 +4,11 @@ import { format as formatDate, sub as subFromDate, addDays } from "date-fns";
 import * as dbService from "./dbService.js";
 import OzonProduct from "../models/OzonProduct.js";
 import { Marketplace } from "./marketplace.js";
+import * as https from "https";
 
 const ozonAPI = axios.create({
   baseURL: "https://api-seller.ozon.ru/",
+  httpsAgent: new https.Agent({ keepAlive: true }),
   headers: {
     "Content-Type": "application/json",
     "Client-Id": process.env.OZON_CLIENTID,

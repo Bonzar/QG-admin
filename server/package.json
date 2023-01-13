@@ -26,6 +26,8 @@
     "helmet": "^6.0.0",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.6.4",
-    "pug": "^3.0.2"
+    "node-cron": "^3.0.2",
+    "pug": "^3.0.2",
+    "winston": "^3.8.2"
   }
 }

@@ -4,11 +4,13 @@ import { Marketplace } from "./marketplace.js";
 import WbProduct from "../models/WbProduct.js";
 import fns from "date-fns-tz";
 import * as dbService from "./dbService.js";
+import https from "https";
 
 const { formatInTimeZone } = fns;
 
 const wbAPI = axios.create({
   baseURL: "https://suppliers-api.wildberries.ru/",
+  httpsAgent: new https.Agent({ keepAlive: true }),
   headers: {
     "Content-Type": "application/json",
     Authorization: process.env.WB_APIKEY,
@@ -17,6 +19,7 @@ const wbAPI = axios.create({
 
 const wbStatAPI = axios.create({
   baseURL: "https://statistics-api.wildberries.ru/",
+  httpsAgent: new https.Agent({ keepAlive: true }),
   headers: {
     "Content-Type": "application/json",
     Authorization: process.env.WB_APISTATKEY,

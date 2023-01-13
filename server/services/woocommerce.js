@@ -5,11 +5,13 @@ import { Marketplace } from "./marketplace.js";
 import WooProduct from "../models/WooProduct.js";
 import WooProductVariable from "../models/WooProductVariable.js";
 
+// noinspection JSPotentiallyInvalidConstructorUsage
 const woocommerceAPI = new WooCommerceRestApi.default({
   url: "https://queridosglitters.ru/",
   consumerKey: process.env.WOO_CLIENTID,
   consumerSecret: process.env.WOO_APIKEY,
   version: "wc/v3",
+  axiosConfig: { httpsAgent: new https.Agent({ keepAlive: true }) },
 });
 
 export class Woocommerce extends Marketplace {
