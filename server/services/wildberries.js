@@ -121,7 +121,7 @@ export class Wildberries extends Marketplace {
         continue;
       }
 
-      if (!apiProduct.fbsReserve) {
+      if (!Number.isFinite(apiProduct.fbsReserve)) {
         apiProduct.fbsReserve = 1;
       } else {
         apiProduct.fbsReserve++;

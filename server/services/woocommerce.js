@@ -94,7 +94,7 @@ export class Woocommerce extends Marketplace {
           continue;
         }
 
-        if (!apiProduct.fbsReserve) {
+        if (!Number.isFinite(apiProduct.fbsReserve)) {
           apiProduct.fbsReserve = fbsReserveProduct.quantity;
         } else {
           apiProduct.fbsReserve += fbsReserveProduct.quantity;

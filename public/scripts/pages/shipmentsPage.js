@@ -61,9 +61,9 @@ getOzonShipmentButton.addEventListener("click", (event) => {
     10
   );
 
-  if (!dateShiftDays || !predictPeriodDays) {
+  if (!Number.isInteger(dateShiftDays) || !Number.isInteger(dateShiftDays)) {
     alert(
-      "Ошибка, неверный формат параметров. Укажите в параметрах только числа."
+      "Ошибка, неверный формат параметров. Укажите в параметрах только целые числа."
     );
     return;
   }

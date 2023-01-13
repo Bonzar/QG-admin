@@ -264,7 +264,7 @@ export class Yandex extends Marketplace {
       marketProductData
     );
 
-    if (marketProductData.stockFBS) {
+    if (Number.isFinite(marketProductData.stockFBS)) {
       marketProductDetails.stockFbs = +marketProductData.stockFBS;
       marketProductDetails.stockFbsUpdateAt = new Date();
     }

@@ -142,7 +142,7 @@ export class Ozon extends Marketplace {
         (reserveStock) => reserveStock.type === "fbs"
       )?.reserved;
 
-      if (reserve) {
+      if (Number.isFinite(reserve)) {
         stock.stock -= reserve;
       }
     });
