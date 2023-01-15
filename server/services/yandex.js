@@ -208,7 +208,6 @@ export class Yandex extends Marketplace {
     });
   }
 
-  //todo add pagination
   static getApiOrders(options = {}) {
     let optionsString = Object.entries(options)
       .map(([key, value]) => `${key}=${value}`)
@@ -265,7 +264,7 @@ export class Yandex extends Marketplace {
     );
 
     if (Number.isFinite(marketProductData.stockFBS)) {
-      marketProductDetails.stockFbs = +marketProductData.stockFBS;
+      marketProductDetails.stockFbs = marketProductData.stockFBS;
       marketProductDetails.stockFbsUpdateAt = new Date();
     }
 
