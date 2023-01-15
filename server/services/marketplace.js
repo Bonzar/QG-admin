@@ -174,21 +174,19 @@ export class Marketplace {
   static makeCachingForTime(func, argsList, funcCode, cacheTime) {
     return () => {
       if (
-        this.cacheStore[`${funcCode}-args:${argsList.toString()}`]
+        this.cacheStore[`${funcCode}-args:${JSON.stringify(argsList)}`]
           ?.cacheEndTime > Date.now()
       ) {
-        // console.log("return cached");
-        return this.cacheStore[`${funcCode}-args:${argsList.toString()}`]
+        return this.cacheStore[`${funcCode}-args:${JSON.stringify(argsList)}`]
           .funcResult;
       }
 
       const updatedResult = func(...argsList);
-      this.cacheStore[`${funcCode}-args:${argsList.toString()}`] = {
+      this.cacheStore[`${funcCode}-args:${JSON.stringify(argsList)}`] = {
         cacheEndTime: Date.now() + cacheTime,
         funcResult: updatedResult,
       };
 
-      // console.log("return actual");
       return updatedResult;
     };
   }
