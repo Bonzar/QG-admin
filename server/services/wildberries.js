@@ -335,7 +335,7 @@ export class Wildberries extends Marketplace {
       });
   }
 
-  static getApiNewOrders() {
+  static getApiNewOrders(useCache = true) {
     const getNewOrdersRequest = () =>
       wbAPI.get("api/v3/orders/new").then((response) => {
         return response.data.orders;
@@ -345,7 +345,8 @@ export class Wildberries extends Marketplace {
       getNewOrdersRequest,
       [],
       "WB-GET-API-NEW-ORDERS",
-      60000
+      60000,
+      !useCache
     );
 
     return cachedRequest();

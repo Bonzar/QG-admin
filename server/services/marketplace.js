@@ -171,18 +171,26 @@ export class Marketplace {
     throw new Error("Method should be overwritten and run by child class");
   }
 
-  static makeCachingForTime(func, argsList, funcCode, cacheTime) {
+  static makeCachingForTime(
+    func,
+    argsList,
+    funcCode,
+    cacheTime,
+    forceUpdate = false
+  ) {
     return () => {
+      const cacheStoreKey = `${funcCode}-args:${JSON.stringify(argsList)}`;
+
       if (
-        this.cacheStore[`${funcCode}-args:${JSON.stringify(argsList)}`]
-          ?.cacheEndTime > Date.now()
+        this.cacheStore[cacheStoreKey]?.cacheEndTime > Date.now() &&
+        !forceUpdate
       ) {
         return this.cacheStore[`${funcCode}-args:${JSON.stringify(argsList)}`]
           .funcResult;
       }
 
       const updatedResult = func(...argsList);
-      this.cacheStore[`${funcCode}-args:${JSON.stringify(argsList)}`] = {
+      this.cacheStore[cacheStoreKey] = {
         cacheEndTime: Date.now() + cacheTime,
         funcResult: updatedResult,
       };
