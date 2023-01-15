@@ -58,16 +58,34 @@ export class Wildberries extends Marketplace {
   // CLASS METHODS
   static async checkIdentifierExistsInApi(newProductData) {
     let isProductExistsOnMarketplace = true;
+
     if (newProductData.sku) {
       const allApiProducts = await this.getApiProductsInfo();
 
       const apiProduct = allApiProducts[newProductData.sku];
 
-      isProductExistsOnMarketplace = !!apiProduct;
+      if (!apiProduct) {
+        throw new Error(
+          `Идентификатор товара (sku - ${newProductData.sku}) не существует в базе маркетплейса.`
+        );
+      }
 
-      if (newProductData.article && apiProduct) {
-        isProductExistsOnMarketplace =
-          newProductData.article === apiProduct["vendorCode"];
+      if (
+        newProductData.article &&
+        newProductData.article !== apiProduct["vendorCode"]
+      ) {
+        throw new Error(
+          `Идентификатор товара (article - ${newProductData.article}) не соответствует sku товара.`
+        );
+      }
+
+      if (
+        newProductData.barcode &&
+        newProductData.barcode !== apiProduct.sizes[0].skus[0]
+      ) {
+        throw new Error(
+          `Идентификатор товара (barcode - ${newProductData.barcode}) не соответствует sku товара.`
+        );
       }
     }
 
