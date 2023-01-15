@@ -30,8 +30,8 @@ const logger = winston.createLogger({
   ],
 });
 
-cron.schedule("0 3 */2 * *", () => {
-  redistributeVariationsStock
+cron.schedule("0 16 */2 * *", () => {
+  redistributeVariationsStock()
     .then(() => {
       logger.log({
         level: "info",
@@ -89,11 +89,8 @@ const getVariationActualMarketProducts = async (variationId) => {
 
 export const redistributeVariationsStock = async () => {
   const allVariations = await getProductVariations();
-  let index = 0;
-  console.log(allVariations.length);
   const variationUpdateRequests = allVariations.map((variation) => {
     return (callback) => {
-      console.log(index++);
       getVariationActualMarketProducts(variation._id)
         .then((marketProducts) => {
           if (marketProducts.length === 0) {
@@ -119,7 +116,7 @@ export const redistributeVariationsStock = async () => {
     };
   });
 
-  await async.parallelLimit(variationUpdateRequests, 7);
+  return async.parallelLimit(variationUpdateRequests, 7);
 };
 
 export const updateVariationStock = async (
