@@ -115,6 +115,7 @@ export class Wildberries extends Marketplace {
       apiProduct.fbmStock = fbmStock.quantity;
     }
 
+    // fbsReserves contains all new orders in each order by only one product
     for (const fbsReserve of fbsReserves) {
       const apiProduct = apiProducts[fbsReserve["nmId"]];
       if (!apiProduct) {
@@ -312,7 +313,7 @@ export class Wildberries extends Marketplace {
    * @description sku is a barcode (WildBerries API troubles)
    */
   static async updateApiStocks(stocks, warehouse = 206312) {
-    const newOrders = await this.getApiNewOrders();
+    const newOrders = await this.getApiNewOrders(false);
     for (const newOrder of newOrders) {
       const stock = stocks.find((stock) => stock.sku === newOrder.skus[0]);
       if (!stock) {
