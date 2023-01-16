@@ -1,31 +1,32 @@
 import { addLoading } from "./addLoadingIcon.js";
 import authCheck from "./getAuthToken.js";
 
-export default (e) => {
-  if (!e.target.classList.contains("submit-button")) return;
-  e.stopPropagation();
+export default (event) => {
+  if (!event.target.classList.contains("submit-button")) return;
+  event.stopPropagation();
 
   const authToken = authCheck();
 
-  const form = e.target.parentElement;
+  const form = event.target.parentElement;
 
   if (!form.reportValidity()) {
     return;
   }
 
   const FD = new FormData(form);
-  if (!FD.has("product_id")) {
-    FD.set(
-      "product_id",
-      document.querySelector("input[name=product_id][hidden]").value
-    );
+
+  const productId = event.currentTarget.querySelector(
+    "input[name=product_id][hidden]"
+  )?.value;
+  if (productId) {
+    FD.set("product_id", productId);
   }
-  if (!FD.has("variation_volume")) {
-    FD.set(
-      "variation_volume",
-      e.currentTarget.querySelector("input[name=variation_volume][hidden]")
-        .value
-    );
+
+  const variationVolume = event.currentTarget.querySelector(
+    "input[name=variation_volume][hidden]"
+  )?.value;
+  if (variationVolume) {
+    FD.set("variation_volume", variationVolume);
   }
 
   let updateProps = {};

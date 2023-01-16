@@ -35,14 +35,14 @@ router.post(
   yandex_controller.updateApiStock
 );
 
-const productAddSanitizers = [
-  // Validate and sanitize fields.
-  body("product_id").trim().escape(),
-  body("variation_volume").trim().escape(),
-  body("article").trim().escape(),
-  body("isActual").trim().escape(),
-  body("barcode").trim().escape(),
-];
+// const productAddSanitizers = [
+//   // Validate and sanitize fields.
+//   body("product_id").trim().escape(),
+//   body("variation_volume").trim().escape(),
+//   body("article").trim().escape(),
+//   body("isActual").trim().escape(),
+//   body("barcode").trim().escape(),
+// ];
 
 // Get request for list of all Ozon products
 router.get("/ozon", ozon_controller.getProductsListPage);
@@ -161,7 +161,7 @@ router.post(
   "/:marketType/new",
   roleMiddleware(["ADMIN"]),
   // body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
-  ...productAddSanitizers,
+  // ...productAddSanitizers,
   dbController.addUpdateDbMarketProduct
 );
 
@@ -173,7 +173,7 @@ router.post(
   "/:marketType/:product_id",
   roleMiddleware(["ADMIN"]),
   // body("sku", "Sku must not be empty.").trim().isLength({ min: 1 }).escape(),
-  ...productAddSanitizers,
+  // ...productAddSanitizers,
   dbController.addUpdateDbMarketProduct
 );
 
@@ -181,7 +181,7 @@ router.post(
 router.post(
   "/:marketType/:_id/delete",
   roleMiddleware(["ADMIN"]),
-  ...productAddSanitizers,
+  // ...productAddSanitizers,
   dbController.deleteDbMarketProduct
 );
 
