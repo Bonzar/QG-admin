@@ -1,0 +1,28 @@
+extends layout
+
+append scripts
+    script(src="/scripts/pages/dbMarketProduct.js" type="module" defer)
+
+block section
+    h1= title
+        if marketProduct ? marketProduct.variation : false
+            a.btn.navigate-btn.navigate-btn--back(href=`/stocks/db/product/${marketProduct.variation.product._id}`)
+    form.market-product--form
+        include marketProductForm
+
+        fieldset
+            legend Связь с вариацией (необязательно)
+            label.select--arrow Продукт:#{" "}
+                select.select--style( name="product_id")
+                    option(value="") Выберете продукт
+                      each product in allProducts
+                          option(value=product._id selected=(marketProduct ? marketProduct.variation ? product._id.toString() === marketProduct.variation.product._id.toString() : false : false))= product.name
+            label.select--arrow Объем:#{" "}
+                select.select--style( name="variation_volume")
+                    option(value="") Выберете объем
+                      each volume in ['3 мл', '6 мл', '10 мл', 'Набор', 'Стикеры']
+                          option(value=volume selected=(marketProduct ? marketProduct.variation ? volume === marketProduct.variation.volume : false : false))= volume
+        if marketProduct
+            input.btn.delete-button.delete-button--market-product.inline(type="button")
+
+        input.btn.submit-button.market-product--submit-button(type="button" value=(marketProduct ? "Обновить" : "Добавить") style="float: right;")

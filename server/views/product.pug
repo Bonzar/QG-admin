@@ -39,7 +39,6 @@ block content
           each variation in variations
             div.product-variation--cell
                 h2= variation.volume
-                input(required name="variation_volume" value=variation.volume hidden)
                 input(required name="variation_id" value=variation._id hidden)
 
                 input.btn.delete-button.delete-button--variation.inline(type="button")
@@ -48,7 +47,7 @@ block content
 
                 div.variation-market-products--block
                   each marketType in ['yandex', 'wb', 'woo', 'ozon']
-                    - const marketProducts = variation[`${marketType}Products`]
+                      - marketProducts = variation[`${marketType}Products`]
                       if (marketProducts && marketProducts.length > 0)
                         each marketProduct in marketProducts
                           div.market-product--form
@@ -57,48 +56,6 @@ block content
                               a.btn.navigate-btn(href=`/stocks/${marketType}/${marketProduct._id}`)
 
                               form
-                                  input(required name="marketType" value=marketType hidden)
-                                  input(required name="_id" value=marketProduct._id hidden)
-                                  case marketType
-                                      when 'wb'
-                                          label SKU:#{" "}
-                                              input(name="sku" value=marketProduct.sku disabled)
-                                              input(name="sku" value=marketProduct.sku hidden)
-                                          label Barcode:#{" "}
-                                              input(name="barcode" value=marketProduct.barcode disabled)
-                                              input(name="barcode" value=marketProduct.barcode hidden)
-                                      when 'yandex'
-                                      when 'ozon'
-                                          label SKU:#{" "}
-                                              input(name="sku" value=marketProduct.sku disabled)
-                                              input(name="sku" value=marketProduct.sku hidden)
-                                      when 'woo'
-                                          label ID:#{" "}
-                                              input(required name="id" value=`${marketProduct.id}` disabled)
-                                              input(required name="id" value=`${marketProduct.id}` hidden)
-                                          label Type:#{" "}
-                                              input(name="type" value=marketProduct.type disabled)
-                                              input(name="type" value=marketProduct.type hidden)
-                                          if marketProduct.type === 'variation'
-                                              label Parent:#{" "}
-                                                  input(required name="parentVariable" value=`${marketProduct.parentVariable.id}` disabled)
-                                                  input(required name="parentVariable" value=`${marketProduct.parentVariable.id}` hidden)
-                                  label Article:#{" "}
-                                      input(name="article" value=marketProduct.article disabled)
-                                      input(name="article" value=marketProduct.article hidden)
-                                  fieldset
-                                      legend Актуальный?
-                                      label.inline Да#{" "}
-                                          input(required name="isActual" type="radio" value="true" checked=marketProduct.isActual)
-                                      label.inline #{" "}Нет#{" "}
-                                          input(required name="isActual" type="radio" value="false" checked=!marketProduct.isActual)
-                                  label.label--first-half FBS:#{" "}
-                                      input(name="stockFBS" type="number" min=(marketProduct.fbsReserve ? marketProduct.fbsReserve : 0) value=(marketProduct.fbsStock) placeholder="FBS + Reserve")
-                                  label.label--last-half Резерв:#{" "}
-                                      input(required name="reserved" type="" value=marketProduct.fbsReserve disabled)
-                                  case marketType
-                                      when 'wb'
-                                      when 'ozon'
-                                          label FBM:#{" "}
-                                              input(required name="stock" type="number" value=marketProduct.fbmStock disabled)
+                                  - isMarketProductInstanceEditMode = false
+                                  include marketProductForm
                                   input.btn.submit-button(type="button" value="Обновить" )

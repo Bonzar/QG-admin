@@ -164,10 +164,13 @@ export const getDbMarketProductPage = async (req, res) => {
       const marketProduct = marketProductData.dbInfo;
       const fbsReserve = marketProductData.fbsReserve ?? 0;
       marketProduct.fbsReserve = fbsReserve;
-      marketProduct.fbsStock = marketProductData.fbsStock + fbsReserve;
+      marketProduct.fbsStock = (marketProductData.fbsStock ?? 0) + fbsReserve;
+      if (["wb", "ozon"].includes(marketType)) {
+        marketProduct.fbmStock = marketProductData.fbmStock;
+      }
 
       if (marketProduct) {
-        res.render("marketProduct", {
+        res.render("marketProductPage", {
           title: `${
             marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
           } - ${
@@ -183,7 +186,7 @@ export const getDbMarketProductPage = async (req, res) => {
         });
       }
     } else {
-      res.render("marketProduct", {
+      res.render("marketProductPage", {
         title: `Добавить новый товар ${
           marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
         } (БД)`,
@@ -509,6 +512,7 @@ export const getAllProductsStockPage = async (req, res) => {
       if (variationStock) {
         variationStock.yandexStock = {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
+          reserve: product.fbsReserve ?? 0,
           updateBy: product.shopSku,
           marketType: "yandex",
         };
@@ -520,6 +524,7 @@ export const getAllProductsStockPage = async (req, res) => {
           productName: variation?.product.name ?? "",
           yandexStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
+            reserve: product.fbsReserve ?? 0,
             updateBy: product.shopSku,
             marketType: "yandex",
           },
@@ -539,6 +544,7 @@ export const getAllProductsStockPage = async (req, res) => {
       if (variationStock) {
         variationStock.wooStock = {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
+          reserve: product.fbsReserve ?? 0,
           updateBy:
             product.type === "simple"
               ? `simple-${product.id}`
@@ -553,6 +559,7 @@ export const getAllProductsStockPage = async (req, res) => {
           productName: variation?.product.name ?? "",
           wooStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
+            reserve: product.fbsReserve ?? 0,
             updateBy:
               product.type === "simple"
                 ? `simple-${product.id}`
@@ -576,6 +583,7 @@ export const getAllProductsStockPage = async (req, res) => {
       if (variationStock) {
         variationStock.wbStock = {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
+          reserve: product.fbsReserve ?? 0,
           updateBy: product.dbInfo?.barcode ?? "",
           marketType: "wb",
         };
@@ -589,6 +597,7 @@ export const getAllProductsStockPage = async (req, res) => {
           productName: variation?.product.name ?? "",
           wbStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
+            reserve: product.fbsReserve ?? 0,
             updateBy: product.dbInfo?.barcode ?? "",
             marketType: "wb",
           },
@@ -610,6 +619,7 @@ export const getAllProductsStockPage = async (req, res) => {
       if (variationStock) {
         variationStock.ozonStock = {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
+          reserve: product.fbsReserve ?? 0,
           updateBy: product.offer_id,
           marketType: "ozon",
         };
@@ -622,6 +632,7 @@ export const getAllProductsStockPage = async (req, res) => {
           productName: variation?.product.name ?? "",
           ozonStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
+            reserve: product.fbsReserve ?? 0,
             updateBy: product.offer_id,
             marketType: "ozon",
           },

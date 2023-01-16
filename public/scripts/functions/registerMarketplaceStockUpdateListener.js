@@ -37,7 +37,7 @@ const updateStockListener = function (e) {
     cell.classList.add("col--fbs--changing");
     cell.innerHTML = `<form class="change-stock--form">
           <input class="btn change-stock--submit-button" type="button" value="OK">
-          <input class="change-stock--input-number" name="stock" type="number" min="0" required value="${cell.textContent}">
+          <input class="change-stock--input-number" name="stock" type="number" min=${cell.dataset.fbsReserve} required value="${cell.textContent}">
         </form>`;
 
     const form = cell.querySelector(".change-stock--form");

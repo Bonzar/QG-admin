@@ -19,9 +19,12 @@ append tableCells
             a.a--no-decorations(href=`/stocks/db/product/${product.marketProductInnerId}`)
                 | #{product[headerData.field]}
         when 'fbs'
-            td( class=`col--${headerData.type} ${product[headerData.field] ? product[headerData.field].stock === 0 ? 'out-of-stock' : '' : ''}`
+            td(
+                class=`col--${headerData.type} ${product[headerData.field] ? product[headerData.field].stock === 0 ? 'out-of-stock' : '' : ''}`
                 updateBy=`${product[headerData.field] ? product[headerData.field].updateBy : ''}`
-                marketType=`${product[headerData.field] ? product[headerData.field].marketType : ''}`)
+                marketType=`${product[headerData.field] ? product[headerData.field].marketType : ''}`
+                data-fbs-reserve=`${product[headerData.field] ? product[headerData.field].reserve : ''}`
+                )
                 | #{product[headerData.field] ? product[headerData.field].stock : ''}
         when 'fbm'
             td( class=`col--${headerData.type} ${product[headerData.field] === 0 ? 'out-of-stock' : ''}`)

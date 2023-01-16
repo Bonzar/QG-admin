@@ -1,0 +1,123 @@
+- marketProductInstance = marketProduct ? marketProduct : {}
+- isMarketProductInstanceEdit = isMarketProductInstanceEditMode !== undefined ? isMarketProductInstanceEditMode : true
+input(required name="marketType" value=marketType hidden)
+input(required name="_id" value=marketProductInstance._id hidden)
+
+case marketType
+    when 'wb'
+        label SKU:#{" "}
+            input(
+                name="sku"
+                value=marketProductInstance.sku
+                disabled=!isMarketProductInstanceEdit
+            )
+        label Barcode:#{" "}
+            input(
+                name="barcode"
+                value=marketProductInstance.barcode
+                disabled=!isMarketProductInstanceEdit
+            )
+    when 'yandex'
+    when 'ozon'
+        label SKU:#{" "}
+            input(
+                name="sku"
+                value=marketProductInstance.sku
+                disabled=!isMarketProductInstanceEdit
+            )
+    when 'woo'
+        label ID:#{" "}
+            input(
+                name="id"
+                value=marketProductInstance.id
+                required
+                disabled=!isMarketProductInstanceEdit
+            )
+        label.select--arrow Type:#{" "}
+            if isMarketProductInstanceEdit
+                select.select--style(
+                    name="type"
+                    required
+                    )
+                  option(value="" disabled selected hidden) Выберете тип
+                  each type in ['simple', 'variation']
+                      option(value=type selected=(marketProduct ? type === marketProduct.type : false))= type
+            else
+                input(
+                    name="type"
+                    value=marketProductInstance.type
+                    disabled=true
+                )
+        label.select--arrow Parent:#{" "}
+          if isMarketProductInstanceEdit
+            select.select--style(
+                name="parentVariable"
+                disabled=(marketProductInstance ? marketProductInstance.type !== "variation" : true)
+                required
+                )
+              option(value="" disabled selected hidden) Выберете связанный продукт
+              each wooVariableProduct in wooVariableProducts
+                  option(
+                      value=wooVariableProduct.id
+                      selected=(marketProductInstance.parentVariable ? wooVariableProduct.id === marketProductInstance.parentVariable.id : false)
+                      )= wooVariableProduct.id
+          else
+            input(
+                required
+                name="parentVariable"
+                value=marketProductInstance.parentVariable.id
+                disabled=true
+            )
+
+label Article:#{" "}
+    input(
+        name="article"
+        value=marketProductInstance.article
+        disabled=!isMarketProductInstanceEdit
+    )
+fieldset
+    legend Актуальный?
+    label.inline Да#{" "}
+        input(
+            name="isActual"
+            type="radio"
+            value="true"
+            required
+            checked=(marketProduct ? marketProductInstance.isActual : true)
+        )
+    label.inline #{" "}Нет#{" "}
+        input(
+            name="isActual"
+            type="radio"
+            value="false"
+            required
+            checked=(marketProduct ? !marketProductInstance.isActual : false)
+        )
+label.label--first-half FBS:#{" "}
+    input(
+        name="stockFBS"
+        type="number"
+        min=(marketProductInstance.fbsReserve ? marketProductInstance.fbsReserve : 0)
+        value=(marketProductInstance.fbsStock)
+        placeholder="FBS + Reserve"
+    )
+
+if(marketProduct)
+    label.label--last-half Резерв:#{" "}
+        input(
+            name="reserved"
+            type="text"
+            value=marketProductInstance.fbsReserve
+            disabled
+        )
+if(marketProduct)
+    case marketType
+        when 'wb'
+        when 'ozon'
+            label FBM:#{" "}
+                input(
+                    name="stock"
+                    type="text"
+                    value=marketProductInstance.fbmStock
+                    disabled
+                )
