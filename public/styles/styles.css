@@ -630,6 +630,11 @@ header a {
   z-index: 3;
 }
 
+#woo .col--identifier {
+    width: 5.5rem;
+}
+
+
 .stocks-table .col--fbs.col--fbs--changing {
   z-index: 4;
 }
