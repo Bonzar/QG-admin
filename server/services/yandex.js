@@ -34,18 +34,28 @@ export class Yandex extends Marketplace {
   }
 
   static async checkIdentifierExistsInApi(newProductData) {
-    let isProductExistsOnMarketplace = true;
-
-    if (newProductData.sku) {
+    if (newProductData.sku || newProductData.article) {
       const allApiOffers = await this.getApiOffers();
 
-      isProductExistsOnMarketplace = allApiOffers.find(
-        (offer) => offer.offer.shopSku === newProductData.sku
-      );
-    }
+      if (
+        !allApiOffers.find(
+          (offer) => offer.offer.shopSku === newProductData.sku
+        )
+      ) {
+        throw new Error(
+          `Идентификатор товара (sku - ${newProductData.sku}) не существует в базе маркетплейса.`
+        );
+      }
 
-    if (!isProductExistsOnMarketplace) {
-      throw new Error("Идентификатор товара не существует в базе маркетплейса");
+      if (
+        !allApiOffers.find(
+          (offer) => offer.offer.vendorCode === newProductData.article
+        )
+      ) {
+        throw new Error(
+          `Идентификатор товара (article - ${newProductData.article}) не существует в базе маркетплейса.`
+        );
+      }
     }
   }
 
@@ -266,8 +276,9 @@ export class Yandex extends Marketplace {
       marketProductData
     );
 
-    if (Number.isFinite(marketProductData.stockFBS)) {
-      marketProductDetails.stockFbs = marketProductData.stockFBS;
+    const stockFbs = +marketProductData.stockFBS;
+    if (Number.isFinite(stockFbs)) {
+      marketProductDetails.stockFbs = stockFbs;
       marketProductDetails.stockFbsUpdateAt = new Date();
     }
 
