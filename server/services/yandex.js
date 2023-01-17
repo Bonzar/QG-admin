@@ -79,6 +79,8 @@ export class Yandex extends Marketplace {
    * @param {[{warehouseId: number, sku, items: [{count, type: string, updatedAt: string}]}]} skus
    */
   static async updateApiStocks(skus) {
+    // no subtract reserve because we save with reserve and subtract it when connect data
+
     return yandexAPI
       .put("v2/campaigns/21938028/offers/stocks.json", { skus })
       .then((response) => {
@@ -208,8 +210,8 @@ export class Yandex extends Marketplace {
     });
   }
 
-  static getApiOrders(options = {}) {
-    let optionsString = Object.entries(options)
+  static getApiOrders(requestOptions = {}, useCache = true) {
+    let optionsString = Object.entries(requestOptions)
       .map(([key, value]) => `${key}=${value}`)
       .join("&");
 
@@ -252,7 +254,8 @@ export class Yandex extends Marketplace {
       getApiOrdersRequest,
       [optionsString],
       "YANDEX-GET-API-ORDERS",
-      60000
+      5 * 60 * 1000,
+      !useCache
     );
 
     return cachedRequest();

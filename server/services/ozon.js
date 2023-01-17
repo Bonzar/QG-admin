@@ -166,67 +166,89 @@ export class Ozon extends Marketplace {
   }
 
   static getApiTodayOrders() {
-    const today = new Date();
-    today.setHours(0, 0, 0);
-    const todayStart = today.toISOString();
-    today.setHours(23, 59, 59, 999);
-    const todayEnd = today.toISOString();
+    const getApiTodayOrdersRequest = () => {
+      const today = new Date();
+      today.setHours(0, 0, 0);
+      const todayStart = today.toISOString();
+      today.setHours(23, 59, 59, 999);
+      const todayEnd = today.toISOString();
 
-    return ozonAPI
-      .post("v3/posting/fbs/unfulfilled/list", {
+      return ozonAPI
+        .post("v3/posting/fbs/unfulfilled/list", {
+          dir: "ASC",
+          filter: {
+            cutoff_from: todayStart,
+            cutoff_to: todayEnd,
+          },
+          limit: 100,
+          offset: 0,
+          with: {},
+        })
+        .then((response) => response.data.result.postings);
+    };
+
+    const getApiTodayOrdersRequestCached = this.makeCachingForTime(
+      getApiTodayOrdersRequest,
+      [],
+      "OZON-GET-API-TODAY-ORDERS",
+      5 * 60 * 1000
+    );
+
+    return getApiTodayOrdersRequestCached();
+  }
+
+  static getApiOverdueOrders() {
+    const getApiOverdueOrdersRequest = async () => {
+      const date = new Date();
+      const today = date.setHours(0, 0, 0, 0);
+
+      date.setHours(23, 59, 59, 999);
+      const dateStart = subFromDate(date, { days: 1 });
+
+      date.setHours(0, 0, 0, 0);
+      const dateEnd = subFromDate(date, { months: 1 });
+
+      let orders = await ozonAPI.post("v3/posting/fbs/list", {
         dir: "ASC",
         filter: {
-          cutoff_from: todayStart,
-          cutoff_to: todayEnd,
+          since: dateStart.toISOString(),
+          to: dateEnd.toISOString(),
         },
         limit: 100,
         offset: 0,
         with: {},
-      })
-      .then((response) => response.data.result.postings);
-  }
+      });
 
-  static async getApiOverdueOrders() {
-    const date = new Date();
-    const today = date.setHours(0, 0, 0, 0);
+      // All overdue orders
+      return orders.data.result.postings.filter((order) => {
+        const orderShipmentDate = new Date(order.shipment_date).setHours(
+          0,
+          0,
+          0,
+          0
+        );
 
-    date.setHours(23, 59, 59, 999);
-    const dateStart = subFromDate(date, { days: 1 });
+        // Is order status in list AND shipment data before today
+        return (
+          [
+            "awaiting_registration",
+            "acceptance_in_progress",
+            "awaiting_approve",
+            "awaiting_packaging",
+            "awaiting_deliver",
+          ].includes(order.status) && orderShipmentDate < today
+        );
+      });
+    };
 
-    date.setHours(0, 0, 0, 0);
-    const dateEnd = subFromDate(date, { months: 1 });
+    const getApiOverdueOrdersRequestCached = this.makeCachingForTime(
+      getApiOverdueOrdersRequest,
+      [],
+      "OZON-GET-API-OVERDUE-ORDERS",
+      5 * 60 * 1000
+    );
 
-    let orders = await ozonAPI.post("v3/posting/fbs/list", {
-      dir: "ASC",
-      filter: {
-        since: dateStart.toISOString(),
-        to: dateEnd.toISOString(),
-      },
-      limit: 100,
-      offset: 0,
-      with: {},
-    });
-
-    // All overdue orders
-    return orders.data.result.postings.filter((order) => {
-      const orderShipmentDate = new Date(order.shipment_date).setHours(
-        0,
-        0,
-        0,
-        0
-      );
-
-      // Is order status in list AND shipment data before today
-      return (
-        [
-          "awaiting_registration",
-          "acceptance_in_progress",
-          "awaiting_approve",
-          "awaiting_packaging",
-          "awaiting_deliver",
-        ].includes(order.status) && orderShipmentDate < today
-      );
-    });
+    return getApiOverdueOrdersRequestCached();
   }
 
   static async getApiShipmentPredict(

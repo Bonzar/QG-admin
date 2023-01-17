@@ -177,13 +177,60 @@ export class Wildberries extends Marketplace {
     yesterday.setDate(yesterday.getDate() - 1);
 
     const getApiProductsFbmStocksRequest = () =>
-      wbStatAPI.get(
-        `api/v1/supplier/stocks?dateFrom=${formatInTimeZone(
-          yesterday,
-          "UTC",
-          "yyyy-MM-dd"
-        )}`
-      );
+      wbStatAPI
+        .get(
+          `api/v1/supplier/stocks?dateFrom=${formatInTimeZone(
+            yesterday,
+            "UTC",
+            "yyyy-MM-dd"
+          )}`
+        )
+        .then((response) => {
+          let fbmStocks = response.data;
+
+          if (skuFilter) {
+            fbmStocks = fbmStocks.filter(
+              (fbmStock) => fbmStock["nmId"] === skuFilter
+            );
+          }
+          let allFbmStocks = 0;
+          let formatFbmStocks = {};
+          for (const fbmStock of fbmStocks) {
+            if (!formatFbmStocks[fbmStock["nmId"]]) {
+              allFbmStocks += fbmStock.quantity;
+              formatFbmStocks[fbmStock["nmId"]] = {
+                nmId: fbmStock["nmId"],
+                quantity: fbmStock.quantity,
+              };
+            } else {
+              formatFbmStocks[fbmStock["nmId"]].quantity += fbmStock.quantity;
+            }
+          }
+
+          if (allFbmStocks === 0) {
+            throw new Error("FBW stocks from API is empty.");
+          }
+
+          const resultFbmStocks = Object.values(formatFbmStocks);
+
+          setTimeout(() => dbService.updateWbStocks(resultFbmStocks), 0);
+
+          return resultFbmStocks;
+        })
+        .catch(async (error) => {
+          if (error.response?.status === 429) {
+            console.error("Ошибка получания остатков FBW");
+          } else {
+            console.error(error);
+          }
+
+          const dbProducts = await Wildberries.getDbProducts(
+            skuFilter ? { sku: skuFilter } : {}
+          );
+          return dbProducts.map((dbProduct) => {
+            return { nmId: dbProduct.sku, quantity: dbProduct.stock };
+          });
+        });
 
     const getApiProductsFbmStocksRequestCached = this.makeCachingForTime(
       getApiProductsFbmStocksRequest,
@@ -192,53 +239,7 @@ export class Wildberries extends Marketplace {
       15 * 60 * 1000
     );
 
-    return getApiProductsFbmStocksRequestCached()
-      .then((response) => {
-        let fbmStocks = response.data;
-
-        if (skuFilter) {
-          fbmStocks = fbmStocks.filter(
-            (fbmStock) => fbmStock["nmId"] === skuFilter
-          );
-        }
-        let allFbmStocks = 0;
-        let formatFbmStocks = {};
-        for (const fbmStock of fbmStocks) {
-          if (!formatFbmStocks[fbmStock["nmId"]]) {
-            allFbmStocks += fbmStock.quantity;
-            formatFbmStocks[fbmStock["nmId"]] = {
-              nmId: fbmStock["nmId"],
-              quantity: fbmStock.quantity,
-            };
-          } else {
-            formatFbmStocks[fbmStock["nmId"]].quantity += fbmStock.quantity;
-          }
-        }
-
-        if (allFbmStocks === 0) {
-          throw new Error("FBW stocks from API is empty.");
-        }
-
-        const resultFbmStocks = Object.values(formatFbmStocks);
-
-        setTimeout(() => dbService.updateWbStocks(resultFbmStocks), 0);
-
-        return resultFbmStocks;
-      })
-      .catch(async (error) => {
-        if (error.response?.status === 429) {
-          console.error("Ошибка получания остатков FBW");
-        } else {
-          console.error(error);
-        }
-
-        const dbProducts = await Wildberries.getDbProducts(
-          skuFilter ? { sku: skuFilter } : {}
-        );
-        return dbProducts.map((dbProduct) => {
-          return { nmId: dbProduct.sku, quantity: dbProduct.stock };
-        });
-      });
+    return getApiProductsFbmStocksRequestCached();
   }
 
   //todo add pagination processing
@@ -364,7 +365,7 @@ export class Wildberries extends Marketplace {
       getNewOrdersRequest,
       [],
       "WB-GET-API-NEW-ORDERS",
-      60000,
+      5 * 60 * 1000,
       !useCache
     );
 

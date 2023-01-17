@@ -180,7 +180,7 @@ export class Woocommerce extends Marketplace {
           getApiProducts,
           [],
           "WOO-GET-API-PRODUCTS",
-          15 * 60 * 1000
+          5 * 60 * 1000
         );
 
         return getApiProductsCached()
@@ -237,23 +237,25 @@ export class Woocommerce extends Marketplace {
   }
 
   static async getApiProduct(productId, productType, variableId = null) {
-    let apiProductRequest;
-
-    switch (productType) {
-      case "simple":
-        apiProductRequest = this.getApiSimpleProductInfo(productId);
-        break;
-      case "variation":
-        apiProductRequest = this.getApiProductVariationInfo(
-          variableId,
-          productId
-        );
-        break;
-    }
+    const getApiProductRequest = (productId, productType, variableId) => {
+      switch (productType) {
+        case "simple":
+          return this.getApiSimpleProductInfo(productId);
+        case "variation":
+          return this.getApiProductVariationInfo(variableId, productId);
+      }
+    };
 
     const apiData = await async.parallel({
       apiProduct: (callback) => {
-        apiProductRequest
+        const getApiProductsCached = this.makeCachingForTime(
+          getApiProductRequest,
+          [productId, productType, variableId],
+          "WOO-GET-API-PRODUCT",
+          5 * 60 * 1000
+        );
+
+        return getApiProductsCached()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
@@ -292,6 +294,11 @@ export class Woocommerce extends Marketplace {
     updateData,
     variableId = null
   ) {
+    // clear cache on product update
+    this.clearCache("WOO-GET-API-PRODUCT");
+    // this one was cleared by previous, here for code readability
+    this.clearCache("WOO-GET-API-PRODUCTS");
+
     switch (productType) {
       case "simple":
         return this.updateApiSimpleProduct(productId, updateData);
@@ -310,7 +317,7 @@ export class Woocommerce extends Marketplace {
     newStock,
     variableId = null
   ) {
-    const processingOrders = await this.getProcessingOrders();
+    const processingOrders = await this.getProcessingOrders(false);
 
     for (const processingOrder of processingOrders) {
       for (const orderProduct of processingOrder.line_items) {
@@ -337,15 +344,26 @@ export class Woocommerce extends Marketplace {
     return WooProductVariable.find(filter);
   }
 
-  static getProcessingOrders() {
-    return woocommerceAPI
-      .get(`orders`, {
-        per_page: 100,
-        status: "processing",
-      })
-      .then((response) => {
-        return response.data;
-      });
+  static getProcessingOrders(useCache = true) {
+    const getProcessingOrdersRequest = () =>
+      woocommerceAPI
+        .get(`orders`, {
+          per_page: 100,
+          status: "processing",
+        })
+        .then((response) => {
+          return response.data;
+        });
+
+    const getProcessingOrdersRequestCached = this.makeCachingForTime(
+      getProcessingOrdersRequest,
+      [],
+      "WOO-GET-PROCESSING-ORDERS",
+      5 * 60 * 1000,
+      !useCache
+    );
+
+    return getProcessingOrdersRequestCached();
   }
 
   static getDbProductById(id) {

@@ -11,7 +11,6 @@ export class Marketplace {
     }
 
     this.search = search;
-    // this.setProductInfoFromDb(search);
   }
 
   /**
@@ -185,17 +184,31 @@ export class Marketplace {
         this.cacheStore[cacheStoreKey]?.cacheEndTime > Date.now() &&
         !forceUpdate
       ) {
-        return this.cacheStore[`${funcCode}-args:${JSON.stringify(argsList)}`]
-          .funcResult;
+        return this.cacheStore[cacheStoreKey].funcResult;
       }
 
       const updatedResult = func(...argsList);
       this.cacheStore[cacheStoreKey] = {
+        funcCode,
         cacheEndTime: Date.now() + cacheTime,
         funcResult: updatedResult,
       };
 
       return updatedResult;
     };
+  }
+
+  /**
+   * @param {string || boolean} cacheKeyToDelete key to delete OR if true then clear all cache
+   */
+  static clearCache(cacheKeyToDelete) {
+    if (cacheKeyToDelete === true) {
+      this.cacheStore = {};
+    } else
+      Object.entries(this.cacheStore).forEach(([cacheKey, cacheValue]) => {
+        if (cacheValue.funcCode === cacheKeyToDelete) {
+          delete this.cacheStore[cacheKey];
+        }
+      });
   }
 }
