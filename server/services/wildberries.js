@@ -30,29 +30,29 @@ export class Wildberries extends Marketplace {
   static marketProductSchema = WbProduct;
 
   // INSTANCE METHODS
-  async getApiFbsStock() {
-    const product = await this.getDbProduct();
+  async #getApiStockFbs() {
+    const product = await this._getDbProduct();
 
-    const result = await Wildberries.getApiProductsFbsStocks(product.barcode);
+    const result = await Wildberries.#getApiProductsStocksFbs(product.barcode);
     return result?.[0].stock;
   }
 
-  async updateApiStock(stock) {
-    const product = await this.getDbProduct();
+  async #updateApiStock(stock) {
+    const product = await this._getDbProduct();
 
-    return Wildberries.updateApiStock(product.barcode, stock);
+    return Wildberries.#updateApiProductStock(product.barcode, stock);
   }
 
   addUpdateProduct(newData) {
     return super.addUpdateProduct(newData, (newStock) =>
-      this.updateApiStock(newStock)
+      this.#updateApiStock(newStock)
     );
   }
 
-  async getApiProduct() {
-    const dbProduct = await this.getDbProduct();
+  async _getApiProduct() {
+    const dbProduct = await this._getDbProduct();
 
-    return Wildberries.getApiProducts(dbProduct.sku);
+    return Wildberries._getApiProducts(dbProduct.sku);
   }
 
   // CLASS METHODS
@@ -60,7 +60,7 @@ export class Wildberries extends Marketplace {
     let isProductExistsOnMarketplace = true;
 
     if (newProductData.sku) {
-      const allApiProducts = await this.getApiProductsInfo();
+      const allApiProducts = await this.#getApiProductsInfo();
 
       const apiProduct = allApiProducts[newProductData.sku];
 
@@ -118,7 +118,7 @@ export class Wildberries extends Marketplace {
     }
   }
 
-  static connectDbApiData(dbProducts, apiProductsData) {
+  static _connectDbApiData(dbProducts, apiProductsData) {
     const {
       productsInfo: apiProducts,
       productsStocks: { fbsStocks, fbmStocks, fbsReserves },
@@ -164,7 +164,7 @@ export class Wildberries extends Marketplace {
     return apiProducts;
   }
 
-  static async getApiProductsFbsStocks(barcodes, warehouse = 206312) {
+  static async #getApiProductsStocksFbs(barcodes, warehouse = 206312) {
     return wbAPI
       .post(`api/v3/stocks/${warehouse}`, { skus: barcodes })
       .then((response) => {
@@ -172,7 +172,7 @@ export class Wildberries extends Marketplace {
       });
   }
 
-  static getApiProductsFbmStocks(skuFilter) {
+  static #getApiProductsStocksFbm(skuFilter) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
@@ -224,7 +224,7 @@ export class Wildberries extends Marketplace {
             console.error(error);
           }
 
-          const dbProducts = await Wildberries.getDbProducts(
+          const dbProducts = await Wildberries._getDbProducts(
             skuFilter ? { sku: skuFilter } : {}
           );
           return dbProducts.map((dbProduct) => {
@@ -232,7 +232,7 @@ export class Wildberries extends Marketplace {
           });
         });
 
-    const getApiProductsFbmStocksRequestCached = this.makeCachingForTime(
+    const getApiProductsFbmStocksRequestCached = this._makeCachingForTime(
       getApiProductsFbmStocksRequest,
       [],
       "WB-GET-API-PRODUCTS-FBM-STOCKS",
@@ -243,7 +243,7 @@ export class Wildberries extends Marketplace {
   }
 
   //todo add pagination processing
-  static getApiProductsInfo(searchValue = null) {
+  static #getApiProductsInfo(searchValue = null) {
     return wbAPI
       .post("content/v1/cards/cursor/list", {
         sort: {
@@ -274,34 +274,34 @@ export class Wildberries extends Marketplace {
       });
   }
 
-  static async getApiProducts(sku) {
+  static async _getApiProducts(sku) {
     return async
       .parallel({
         productsInfo: (callback) => {
-          this.getApiProductsInfo(sku)
+          this.#getApiProductsInfo(sku)
             .then((result) => callback(null, result))
             .catch((error) => callback(error, null));
         },
         fbmStocks: (callback) => {
-          this.getApiProductsFbmStocks(sku)
+          this.#getApiProductsStocksFbm(sku)
             .then((result) => callback(null, result))
             .catch((error) => callback(error, null));
         },
         fbsStocks: (callback) => {
-          this.getDbProducts(sku ? { sku } : {})
+          this._getDbProducts(sku ? { sku } : {})
             .then((dbProducts) => {
               const barcodes = dbProducts.map((dbProduct) =>
                 dbProduct.barcode.toString()
               );
 
-              this.getApiProductsFbsStocks(barcodes).then((result) =>
+              this.#getApiProductsStocksFbs(barcodes).then((result) =>
                 callback(null, result)
               );
             })
             .catch((error) => callback(error, null));
         },
         fbsReserves: (callback) => {
-          this.getApiNewOrders()
+          this.getApiOrdersNew()
             .then((newOrders) => callback(null, newOrders))
             .catch((error) => callback(error, null));
         },
@@ -322,8 +322,10 @@ export class Wildberries extends Marketplace {
    * @param {string} barcode
    * @param {number} stock
    */
-  static updateApiStock(barcode, stock) {
-    return this.updateApiStocks([{ sku: barcode.toString(), amount: +stock }]);
+  static #updateApiProductStock(barcode, stock) {
+    return this.#updateApiProductsStock([
+      { sku: barcode.toString(), amount: +stock },
+    ]);
   }
 
   /**
@@ -331,8 +333,8 @@ export class Wildberries extends Marketplace {
    * @param {number} warehouse
    * @description sku is a barcode (WildBerries API troubles)
    */
-  static async updateApiStocks(stocks, warehouse = 206312) {
-    const newOrders = await this.getApiNewOrders(false);
+  static async #updateApiProductsStock(stocks, warehouse = 206312) {
+    const newOrders = await this.getApiOrdersNew(false);
     for (const newOrder of newOrders) {
       const stock = stocks.find((stock) => stock.sku === newOrder.skus[0]);
       if (!stock) {
@@ -355,13 +357,13 @@ export class Wildberries extends Marketplace {
       });
   }
 
-  static getApiNewOrders(useCache = true) {
+  static getApiOrdersNew(useCache = true) {
     const getNewOrdersRequest = () =>
       wbAPI.get("api/v3/orders/new").then((response) => {
         return response.data.orders;
       });
 
-    const cachedRequest = this.makeCachingForTime(
+    const cachedRequest = this._makeCachingForTime(
       getNewOrdersRequest,
       [],
       "WB-GET-API-NEW-ORDERS",
@@ -372,7 +374,7 @@ export class Wildberries extends Marketplace {
     return cachedRequest();
   }
 
-  static getApiReshipmentOrders() {
+  static getApiOrdersReshipment() {
     return wbAPI.get("api/v3/supplies/orders/reshipment").then((response) => {
       return response.data.orders;
     });
@@ -392,7 +394,7 @@ export class Wildberries extends Marketplace {
       });
   }
 
-  static getApiSellsFromDate(fromDate = 0) {
+  static #getApiSellsFromDate(fromDate = 0) {
     return wbStatAPI
       .get(
         `api/v1/supplier/sales?dateFrom=${formatInTimeZone(
@@ -418,7 +420,7 @@ export class Wildberries extends Marketplace {
 
               const lastSellInDbDate = sellsFromDb[0].date;
 
-              const newSellsFromApi = await this.getApiSellsFromDate(
+              const newSellsFromApi = await this.#getApiSellsFromDate(
                 lastSellInDbDate
               );
 
@@ -456,12 +458,12 @@ export class Wildberries extends Marketplace {
           })();
         },
         dbProducts: (callback) => {
-          this.getDbProducts()
+          this._getDbProducts()
             .then((variations) => callback(null, variations))
             .catch((error) => callback(error, null));
         },
         apiProducts: (callback) => {
-          this.getApiProducts()
+          this._getApiProducts()
             .then((variations) => callback(null, variations))
             .catch((error) => callback(error, null));
         },
@@ -483,7 +485,7 @@ export class Wildberries extends Marketplace {
           (lastSellDate - firstSellDate) / (1000 * 60 * 60 * 24 * 30);
 
         const connectedProducts = Object.values(
-          this.connectDbApiData(dbProducts, apiProducts)
+          this._connectDbApiData(dbProducts, apiProducts)
         );
 
         // Connect products by variation

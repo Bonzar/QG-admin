@@ -59,28 +59,18 @@ export const getProductsList = (req, res) => {
 
 export const updateStock = (req, res) => {
   try {
-    const [productType, productId, variableId] = req.query.updateBy.split("-");
+    // const [productType, productId, variableId] = req.query.updateBy.split("-");
+    const [, productId] = req.query.updateBy.split("-");
 
-    Woocommerce.updateApiStock(
-      productId,
-      productType,
-      +req.query.stock,
-      variableId
-    )
-      .then((result) => {
-        res.json(result);
-      })
-      .catch((error) => {
-        res.status(400).json({
-          error,
-          message: `Error while updating stock of product. - ${error.message}`,
-        });
-      });
+    const wooProduct = new Woocommerce({ id: productId });
+    wooProduct.updateStock(+req.query.stock).then((result) => {
+      res.json(result);
+    });
   } catch (error) {
     console.error(error);
     res.status(400).json({
       error,
-      message: `Error while updating stock of product. - ${error.message}`,
+      message: `Error while update stocks. - ${error.message}`,
     });
   }
 };

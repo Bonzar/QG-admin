@@ -23,16 +23,16 @@ export class Ozon extends Marketplace {
   /**
    * INSTANCE METHODS
    */
-  async updateApiStock(newStock) {
-    const product = await this.getDbProduct();
+  async #updateApiStock(newStock) {
+    const product = await this._getDbProduct();
 
-    return Ozon.updateApiStock(product.article, newStock);
+    return Ozon.#updateApiProductStock(product.article, newStock);
   }
 
-  async getApiStocks() {
-    const product = await this.getDbProduct();
+  async #getApiStocks() {
+    const product = await this._getDbProduct();
 
-    const stocks = await Ozon.getApiProductsStocks({
+    const stocks = await Ozon.#getApiProductsStocks({
       product_id: [product.sku],
       visibility: "ALL",
     });
@@ -40,50 +40,50 @@ export class Ozon extends Marketplace {
     return stocks[0].stocks;
   }
 
-  async getApiProduct() {
-    const dbProduct = await this.getDbProduct();
+  async _getApiProduct() {
+    const dbProduct = await this._getDbProduct();
 
-    return Ozon.getApiProducts({
+    return Ozon._getApiProducts({
       product_id: [dbProduct.sku],
     });
   }
 
   static async checkIdentifierExistsInApi(newProductData) {
-    if (!newProductData.sku && !newProductData.article) {
-      return true;
-    }
+    if (newProductData.sku || newProductData.article) {
+      const allApiProducts = await this.#getApiProductsStocks();
 
-    let isProductExistsOnMarketplace = true;
+      if (
+        !allApiProducts.find(
+          (product) => +product.product_id === +newProductData.sku
+        )
+      ) {
+        throw new Error(
+          `Идентификатор товара (sku - ${newProductData.sku}) не существует в базе маркетплейса.`
+        );
+      }
 
-    const allApiProducts = await this.getApiProductsStocks();
-
-    if (newProductData.sku) {
-      isProductExistsOnMarketplace = !!allApiProducts.find(
-        (product) => +product.product_id === +newProductData.sku
-      );
-    }
-
-    if (newProductData.article) {
-      isProductExistsOnMarketplace = !!allApiProducts.find(
-        (product) => product.offer_id === newProductData.article
-      );
-    }
-
-    if (!isProductExistsOnMarketplace) {
-      throw new Error("Идентификатор товара не существует в базе маркетплейса");
+      if (
+        !allApiProducts.find(
+          (product) => product.offer_id === newProductData.article
+        )
+      ) {
+        throw new Error(
+          `Идентификатор товара (article - ${newProductData.article}) не существует в базе маркетплейса.`
+        );
+      }
     }
   }
 
   addUpdateProduct(newData) {
     return super.addUpdateProduct(newData, (newStock) =>
-      this.updateApiStock(newStock)
+      this.#updateApiStock(newStock)
     );
   }
 
   /**
    * CLASS METHODS
    */
-  static getApiProductsStocks(filter = {}) {
+  static #getApiProductsStocks(filter = {}) {
     return ozonAPI
       .post("v3/product/info/stocks", {
         filter: { visibility: "ALL", ...filter },
@@ -93,7 +93,7 @@ export class Ozon extends Marketplace {
       .then((response) => response.data.result.items);
   }
 
-  static getApiProductsInfo(productIds) {
+  static #getApiProductsInfo(productIds) {
     return ozonAPI
       .post("v2/product/info/list", {
         product_id: productIds,
@@ -111,12 +111,12 @@ export class Ozon extends Marketplace {
   /**
    * @param {{visibility: string}} filter
    */
-  static async getApiProducts(filter) {
-    const productsStocks = await this.getApiProductsStocks(filter);
+  static async _getApiProducts(filter) {
+    const productsStocks = await this.#getApiProductsStocks(filter);
 
     const productsIds = productsStocks.map((product) => product.product_id);
 
-    const productsInfo = await this.getApiProductsInfo(productsIds);
+    const productsInfo = await this.#getApiProductsInfo(productsIds);
 
     setTimeout(
       () => dbService.updateOzonStocks({ productsInfo, productsStocks }),
@@ -129,8 +129,8 @@ export class Ozon extends Marketplace {
   /**
    * @param {[{stock, offer_id}]} stocks
    */
-  static async updateApiStocks(stocks) {
-    const productsStocks = await this.getApiProductsStocks({
+  static async #updateApiProductsStock(stocks) {
+    const productsStocks = await this.#getApiProductsStocks({
       offer_id: stocks.map((stock) => stock.offer_id),
     });
 
@@ -156,8 +156,8 @@ export class Ozon extends Marketplace {
       });
   }
 
-  static updateApiStock(article, newStock) {
-    return this.updateApiStocks([
+  static #updateApiProductStock(article, newStock) {
+    return this.#updateApiProductsStock([
       {
         offer_id: article,
         stock: +newStock,
@@ -165,7 +165,7 @@ export class Ozon extends Marketplace {
     ]);
   }
 
-  static getApiTodayOrders() {
+  static getApiOrdersToday() {
     const getApiTodayOrdersRequest = () => {
       const today = new Date();
       today.setHours(0, 0, 0);
@@ -187,7 +187,7 @@ export class Ozon extends Marketplace {
         .then((response) => response.data.result.postings);
     };
 
-    const getApiTodayOrdersRequestCached = this.makeCachingForTime(
+    const getApiTodayOrdersRequestCached = this._makeCachingForTime(
       getApiTodayOrdersRequest,
       [],
       "OZON-GET-API-TODAY-ORDERS",
@@ -197,7 +197,7 @@ export class Ozon extends Marketplace {
     return getApiTodayOrdersRequestCached();
   }
 
-  static getApiOverdueOrders() {
+  static getApiOrdersOverdue() {
     const getApiOverdueOrdersRequest = async () => {
       const date = new Date();
       const today = date.setHours(0, 0, 0, 0);
@@ -241,7 +241,7 @@ export class Ozon extends Marketplace {
       });
     };
 
-    const getApiOverdueOrdersRequestCached = this.makeCachingForTime(
+    const getApiOverdueOrdersRequestCached = this._makeCachingForTime(
       getApiOverdueOrdersRequest,
       [],
       "OZON-GET-API-OVERDUE-ORDERS",
@@ -316,12 +316,12 @@ export class Ozon extends Marketplace {
       },
       // Product detailed info list and product-id/stock list
       productsFullInfo: (callback) => {
-        this.getApiProducts()
+        this._getApiProducts()
           .then((results) => callback(null, results))
           .catch((error) => callback(error));
       },
       ozonDbProducts: (callback) => {
-        this.getDbProducts()
+        this._getDbProducts()
           .then((products) => callback(null, products))
           .catch((error) => callback(error));
       },
@@ -365,7 +365,7 @@ export class Ozon extends Marketplace {
         allSellsOneYearOneMonthAgoOneMonthData);
 
     const connectedProducts = Object.values(
-      this.connectDbApiData(ozonDbProducts, productsFullInfo)
+      this._connectDbApiData(ozonDbProducts, productsFullInfo)
     );
 
     connectedProducts.forEach((product) => {
@@ -424,7 +424,7 @@ export class Ozon extends Marketplace {
     return products;
   }
 
-  static connectDbApiData(dbProducts, apiProductsData) {
+  static _connectDbApiData(dbProducts, apiProductsData) {
     const { productsInfo: apiProducts, productsStocks: apiStocks } =
       apiProductsData;
 

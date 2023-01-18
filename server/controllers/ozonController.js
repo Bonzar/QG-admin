@@ -56,13 +56,16 @@ export const getProductsListPage = async (req, res) => {
 };
 
 export const updateStock = (req, res) => {
-  Ozon.updateApiStock(req.query.id, req.query.stock)
-    .then((result) => res.json(result))
-    .catch((error) => {
-      console.error(error);
-      res.status(400).json({
-        error,
-        message: `Error while updating product stock. - ${error.message}`,
-      });
+  try {
+    const ozonProduct = new Ozon({ article: req.query.id });
+    ozonProduct.updateStock(+req.query.stock).then((result) => {
+      res.json(result);
     });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      error,
+      message: `Error while update stocks. - ${error.message}`,
+    });
+  }
 };

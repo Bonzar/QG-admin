@@ -32,7 +32,7 @@ router.get("/yandex", yandex_controller.getProductsListPage);
 router.post(
   "/yandex/update_stock",
   authMiddleware,
-  yandex_controller.updateApiStock
+  yandex_controller.updateStock
 );
 
 // const productAddSanitizers = [
@@ -54,7 +54,7 @@ router.post("/ozon/update_stock", authMiddleware, ozon_controller.updateStock);
 router.get("/wb", wb_controller.getProductsListPage);
 
 // Post request for update Wildberries stock info of product
-router.post("/wb/update_stock", authMiddleware, wb_controller.updateApiStock);
+router.post("/wb/update_stock", authMiddleware, wb_controller.updateStock);
 
 // Get request for list of all Woo products
 router.get("/woo", woocommerce_controller.getProductsList);

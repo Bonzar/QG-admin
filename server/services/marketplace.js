@@ -16,16 +16,16 @@ export class Marketplace {
   /**
    * INSTANCE METHODS
    */
-  getDbProduct() {
+  _getDbProduct() {
     if (this.#dbData) {
       return this.#dbData;
     }
 
-    return this.setProductInfoFromDb(this.search);
+    return this.#setProductInfoFromDb(this.search);
   }
 
-  async setProductInfoFromDb(search) {
-    this.#dbData = await this.constructor.getDbProduct(search);
+  async #setProductInfoFromDb(search) {
+    this.#dbData = await this.constructor._getDbProduct(search);
     if (!this.#dbData) {
       const error = new Error("Market product not found in db");
       error.code = "NO-DB-DATA";
@@ -36,14 +36,14 @@ export class Marketplace {
     return this.#dbData;
   }
 
-  async addUpdateDbInfo(marketProductData) {
+  async #addUpdateDbInfo(marketProductData) {
     await this.constructor.checkIdentifierExistsInApi(marketProductData);
 
     const marketProductDetails = await this.constructor.getMarketProductDetails(
       marketProductData
     );
 
-    let product = await this.getDbProduct();
+    let product = await this._getDbProduct();
 
     return dbService.addUpdateDbRecord(
       product,
@@ -60,18 +60,22 @@ export class Marketplace {
           .catch((error) => callback(error, null));
       },
       addUpdateDbInfo: (callback) => {
-        this.addUpdateDbInfo(newData)
+        this.#addUpdateDbInfo(newData)
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
     });
   }
 
-  async getProduct() {
-    const dbProduct = await this.getDbProduct();
-    const apiProduct = await this.getApiProduct();
+  updateStock(newStock, apiStockUpdater) {
+    return this.addUpdateProduct({ stockFBS: newStock }, apiStockUpdater);
+  }
 
-    const connectedApiDbProduct = this.constructor.connectDbApiData(
+  async getProduct() {
+    const dbProduct = await this._getDbProduct();
+    const apiProduct = await this._getApiProduct();
+
+    const connectedApiDbProduct = this.constructor._connectDbApiData(
       [dbProduct],
       apiProduct
     );
@@ -79,7 +83,7 @@ export class Marketplace {
     return Object.values(connectedApiDbProduct)[0];
   }
 
-  async getApiProduct() {
+  async _getApiProduct() {
     throw new Error("Method should be overwritten and run by child class");
   }
 
@@ -124,21 +128,21 @@ export class Marketplace {
     return marketProductDetails;
   }
 
-  static getDbProducts(filter = {}) {
+  static _getDbProducts(filter = {}) {
     return this.marketProductSchema?.find(filter).populate({
       path: "variation",
       populate: { path: "product" },
     });
   }
 
-  static getDbProductById(id) {
+  static _getDbProductById(id) {
     return this.marketProductSchema?.findById(id).populate({
       path: "variation",
       populate: { path: "product" },
     });
   }
 
-  static getDbProduct(filter = {}) {
+  static _getDbProduct(filter = {}) {
     return this.marketProductSchema?.findOne(filter).populate({
       path: "variation",
       populate: { path: "product" },
@@ -148,29 +152,29 @@ export class Marketplace {
   static async getProducts() {
     const data = await async.parallel({
       apiProductsData: (callback) => {
-        this.getApiProducts()
+        this._getApiProducts()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
       dbProducts: (callback) => {
-        this.getDbProducts()
+        this._getDbProducts()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
     });
 
-    return this.connectDbApiData(data.dbProducts, data.apiProductsData);
+    return this._connectDbApiData(data.dbProducts, data.apiProductsData);
   }
 
-  static getApiProducts() {
+  static _getApiProducts() {
     throw new Error("Method should be overwritten and run by child class");
   }
 
-  static connectDbApiData() {
+  static _connectDbApiData() {
     throw new Error("Method should be overwritten and run by child class");
   }
 
-  static makeCachingForTime(
+  static _makeCachingForTime(
     func,
     argsList,
     funcCode,
@@ -201,7 +205,7 @@ export class Marketplace {
   /**
    * @param {string || boolean} cacheKeyToDelete key to delete OR if true then clear all cache
    */
-  static clearCache(cacheKeyToDelete) {
+  static _clearCache(cacheKeyToDelete) {
     if (cacheKeyToDelete === true) {
       this.cacheStore = {};
     } else

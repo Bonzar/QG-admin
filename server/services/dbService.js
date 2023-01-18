@@ -142,7 +142,7 @@ export const updateVariationStock = async (
 
     marketProduct.fbsReserve = marketProduct.marketProductData.fbsReserve ?? 0;
     marketProduct.fbmStock = marketProduct.marketProductData.fbmStock ?? 0;
-    marketProduct.updateStock = 0;
+    marketProduct.newStock = 0;
   });
 
   const variationVolumeDryStockCof = {
@@ -150,15 +150,15 @@ export const updateVariationStock = async (
     "6 мл": 0.3,
   };
 
-  const allUpdateStock = Math.trunc(
+  const allNewStock = Math.trunc(
     readyStock +
       (isNaN(dryStock) ? 0 : dryStock) *
         (variationVolumeDryStockCof[variationVolume] ?? 0)
   );
 
-  const allAvailableStock = allUpdateStock - allFbsReserve;
+  const allAvailableStock = allNewStock - allFbsReserve;
 
-  const calculateUpdateStocks = (availableStocks, marketProducts) => {
+  const calculateNewStocks = (availableStocks, marketProducts) => {
     if (availableStocks <= 0) {
       return;
     }
@@ -166,7 +166,7 @@ export const updateVariationStock = async (
     if (availableStocks < marketProducts.length) {
       marketProducts.forEach((marketProduct) => {
         if (availableStocks > 0 && marketProduct.fbmStock <= 0) {
-          marketProduct.updateStock++;
+          marketProduct.newStock++;
           availableStocks--;
         }
       });
@@ -183,9 +183,9 @@ export const updateVariationStock = async (
       if (marketProduct.fbmStock > 0) {
         const fbmStock = marketProduct.fbmStock;
         if (stockByMarketplace >= fbmStock) {
-          const updateStock = stockByMarketplace - fbmStock;
-          marketProduct.updateStock = updateStock;
-          availableStocks += stockByMarketplace - updateStock;
+          const newStock = stockByMarketplace - fbmStock;
+          marketProduct.newStock = newStock;
+          availableStocks += stockByMarketplace - newStock;
         } else {
           availableStocks += stockByMarketplace;
         }
@@ -193,26 +193,24 @@ export const updateVariationStock = async (
         return;
       }
 
-      marketProduct.updateStock += stockByMarketplace;
+      marketProduct.newStock += stockByMarketplace;
     });
 
-    return calculateUpdateStocks(availableStocks, marketProducts);
+    return calculateNewStocks(availableStocks, marketProducts);
   };
 
-  calculateUpdateStocks(allAvailableStock, marketProducts);
+  calculateNewStocks(allAvailableStock, marketProducts);
 
   const updateRequests = {};
-  marketProducts.forEach(
-    ({ marketProductInstance, fbsReserve, updateStock }) => {
-      updateRequests[marketProductInstance.constructor.name] = (callback) => {
-        let newStock = updateStock + fbsReserve;
-        marketProductInstance
-          .addUpdateProduct({ stockFBS: newStock })
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      };
-    }
-  );
+  marketProducts.forEach(({ marketProductInstance, fbsReserve, newStock }) => {
+    updateRequests[marketProductInstance.constructor.name] = (callback) => {
+      let resultStock = newStock + fbsReserve;
+      marketProductInstance
+        .addUpdateProduct({ stockFBS: resultStock })
+        .then((result) => callback(null, result))
+        .catch((error) => callback(error, null));
+    };
+  });
 
   return async.parallel(updateRequests);
 };
@@ -438,7 +436,7 @@ export const deleteProductVariation = async (id) => {
 
   let isVariationHasConnectedProducts = false;
   for (const Marketplace of Object.values(getMarketplaceClasses())) {
-    const marketProduct = Marketplace.getDbProduct({ variation });
+    const marketProduct = Marketplace._getDbProduct({ variation });
     if (marketProduct) {
       isVariationHasConnectedProducts = true;
     }
@@ -505,7 +503,7 @@ export const deleteMarketProduct = async (marketType, id) => {
 export const updateOzonStocks = async (productsApiList) => {
   try {
     if (!productsApiList) {
-      productsApiList = await Ozon.getApiProducts();
+      productsApiList = await Ozon._getApiProducts();
     }
 
     const { productsInfo, productsStocks } = productsApiList;
@@ -550,7 +548,7 @@ export const updateWbStocks = (fbmStocks) => {
     const productsFormatRequests = fbmStocks.map((fbmStock) => {
       return function (callback) {
         const wbProduct = new Wildberries({ sku: fbmStock.nmId });
-        wbProduct.getDbProduct().then((wbDbProduct) => {
+        wbProduct._getDbProduct().then((wbDbProduct) => {
           if (wbDbProduct.stock === fbmStock.quantity) {
             callback(null, null);
             return;

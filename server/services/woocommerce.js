@@ -18,20 +18,20 @@ export class Woocommerce extends Marketplace {
   static marketProductSchema = WooProduct;
 
   // INSTANCE METHODS
-  async getApiProduct() {
-    const product = await this.getDbProduct();
+  async _getApiProduct() {
+    const product = await this._getDbProduct();
 
-    return Woocommerce.getApiProduct(
+    return Woocommerce.#getApiProductByType(
       product.id,
       product.type,
       product.parentVariable?.id
     );
   }
 
-  async updateApiStock(newStock) {
-    const product = await this.getDbProduct();
+  async #updateApiStock(newStock) {
+    const product = await this._getDbProduct();
 
-    return Woocommerce.updateApiStock(
+    return Woocommerce.#updateApiProductStock(
       product.id,
       product.type,
       +newStock,
@@ -39,20 +39,20 @@ export class Woocommerce extends Marketplace {
     );
   }
 
-  async updateApiProduct(updateData) {
-    const product = await this.getDbProduct();
-
-    return Woocommerce.updateApiProduct(
-      product.id,
-      product.type,
-      updateData,
-      product.parentVariable?.id
-    );
-  }
+  // async updateApiProduct(updateData) {
+  //   const product = await this._getDbProduct();
+  //
+  //   return Woocommerce.updateApiProduct(
+  //     product.id,
+  //     product.type,
+  //     updateData,
+  //     product.parentVariable?.id
+  //   );
+  // }
 
   async addUpdateProduct(newData) {
     return super.addUpdateProduct(newData, (newStock) =>
-      this.updateApiStock(newStock)
+      this.#updateApiStock(newStock)
     );
   }
 
@@ -61,7 +61,7 @@ export class Woocommerce extends Marketplace {
     let isProductExistsOnMarketplace = true;
 
     if (newProductData.id) {
-      const allApiProductsData = await this.getApiProducts();
+      const allApiProductsData = await this._getApiProducts();
 
       isProductExistsOnMarketplace =
         !!allApiProductsData.productsInfo[newProductData.id];
@@ -72,7 +72,7 @@ export class Woocommerce extends Marketplace {
     }
   }
 
-  static connectDbApiData(dbProducts, apiProductsData) {
+  static _connectDbApiData(dbProducts, apiProductsData) {
     const {
       productsInfo: apiProducts,
       productsStocks: { fbsReserves },
@@ -114,7 +114,7 @@ export class Woocommerce extends Marketplace {
     return apiProducts;
   }
 
-  static async getApiProducts() {
+  static async _getApiProducts() {
     // Setup optimal count requests pages
     let totalPages = 25;
 
@@ -176,7 +176,7 @@ export class Woocommerce extends Marketplace {
           return async.parallel(requests);
         };
 
-        const getApiProductsCached = this.makeCachingForTime(
+        const getApiProductsCached = this._makeCachingForTime(
           getApiProducts,
           [],
           "WOO-GET-API-PRODUCTS",
@@ -188,7 +188,7 @@ export class Woocommerce extends Marketplace {
           .catch((error) => callback(error, null));
       },
       newOrders: (callback) => {
-        this.getProcessingOrders()
+        this.getOrdersWithReserveProducts()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
@@ -222,7 +222,7 @@ export class Woocommerce extends Marketplace {
     };
   }
 
-  static getApiProductVariationInfo(variableId, productId) {
+  static #getApiProductVariationInfo(variableId, productId) {
     return woocommerceAPI
       .get(`products/${variableId}/variations/${productId}`)
       .then((response) => {
@@ -230,25 +230,25 @@ export class Woocommerce extends Marketplace {
       });
   }
 
-  static getApiSimpleProductInfo(productId) {
+  static #getApiProductSimpleInfo(productId) {
     return woocommerceAPI.get(`products/${productId}`).then((response) => {
       return response.data;
     });
   }
 
-  static async getApiProduct(productId, productType, variableId = null) {
+  static async #getApiProductByType(productId, productType, variableId = null) {
     const getApiProductRequest = (productId, productType, variableId) => {
       switch (productType) {
         case "simple":
-          return this.getApiSimpleProductInfo(productId);
+          return this.#getApiProductSimpleInfo(productId);
         case "variation":
-          return this.getApiProductVariationInfo(variableId, productId);
+          return this.#getApiProductVariationInfo(variableId, productId);
       }
     };
 
     const apiData = await async.parallel({
       apiProduct: (callback) => {
-        const getApiProductsCached = this.makeCachingForTime(
+        const getApiProductsCached = this._makeCachingForTime(
           getApiProductRequest,
           [productId, productType, variableId],
           "WOO-GET-API-PRODUCT",
@@ -260,7 +260,7 @@ export class Woocommerce extends Marketplace {
           .catch((error) => callback(error, null));
       },
       newOrders: (callback) => {
-        this.getProcessingOrders()
+        this.getOrdersWithReserveProducts()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
@@ -272,7 +272,7 @@ export class Woocommerce extends Marketplace {
     };
   }
 
-  static updateApiSimpleProduct(productId, updateData) {
+  static #updateApiProductSimple(productId, updateData) {
     return woocommerceAPI
       .put(`products/${productId}`, updateData)
       .then((response) => {
@@ -280,7 +280,7 @@ export class Woocommerce extends Marketplace {
       });
   }
 
-  static updateApiProductVariation(productId, variableId, updateData) {
+  static #updateApiProductVariation(productId, variableId, updateData) {
     return woocommerceAPI
       .put(`products/${variableId}/variations/${productId}`, updateData)
       .then((response) => {
@@ -288,22 +288,22 @@ export class Woocommerce extends Marketplace {
       });
   }
 
-  static updateApiProduct(
+  static #updateApiProduct(
     productId,
     productType,
     updateData,
     variableId = null
   ) {
     // clear cache on product update
-    this.clearCache("WOO-GET-API-PRODUCT");
+    this._clearCache("WOO-GET-API-PRODUCT");
     // this one was cleared by previous, here for code readability
-    this.clearCache("WOO-GET-API-PRODUCTS");
+    this._clearCache("WOO-GET-API-PRODUCTS");
 
     switch (productType) {
       case "simple":
-        return this.updateApiSimpleProduct(productId, updateData);
+        return this.#updateApiProductSimple(productId, updateData);
       case "variation":
-        return this.updateApiProductVariation(
+        return this.#updateApiProductVariation(
           productId,
           variableId,
           updateData
@@ -311,13 +311,13 @@ export class Woocommerce extends Marketplace {
     }
   }
 
-  static async updateApiStock(
+  static async #updateApiProductStock(
     productId,
     productType,
     newStock,
     variableId = null
   ) {
-    const processingOrders = await this.getProcessingOrders(false);
+    const processingOrders = await this.getOrdersWithReserveProducts(false);
 
     for (const processingOrder of processingOrders) {
       for (const orderProduct of processingOrder.line_items) {
@@ -332,7 +332,7 @@ export class Woocommerce extends Marketplace {
       }
     }
 
-    return this.updateApiProduct(
+    return this.#updateApiProduct(
       productId,
       productType,
       { stock_quantity: newStock },
@@ -344,18 +344,31 @@ export class Woocommerce extends Marketplace {
     return WooProductVariable.find(filter);
   }
 
-  static getProcessingOrders(useCache = true) {
+  static getOrdersProcessing(useCache = true) {
     const getProcessingOrdersRequest = () =>
       woocommerceAPI
         .get(`orders`, {
           per_page: 100,
-          status: "processing",
+          status: [
+            "processing",
+            "on-hold",
+            "pending",
+            "bonzar-collected",
+            "bonzar-sent",
+          ],
         })
         .then((response) => {
-          return response.data;
+          // filter pending orders with payment_method not after confirm
+          return response.data.filter(
+            (order) =>
+              !(
+                order.status === "pending" &&
+                order.date_created === order.date_modified
+              )
+          );
         });
 
-    const getProcessingOrdersRequestCached = this.makeCachingForTime(
+    const getProcessingOrdersRequestCached = this._makeCachingForTime(
       getProcessingOrdersRequest,
       [],
       "WOO-GET-PROCESSING-ORDERS",
@@ -366,16 +379,45 @@ export class Woocommerce extends Marketplace {
     return getProcessingOrdersRequestCached();
   }
 
-  static getDbProductById(id) {
-    return super.getDbProductById(id).populate("parentVariable");
+  static getOrdersWithReserveProducts(useCache = true) {
+    const getOrdersWithReserveProductsRequest = () =>
+      woocommerceAPI
+        .get(`orders`, {
+          per_page: 100,
+          status: ["processing", "on-hold", "pending"],
+        })
+        .then((response) => {
+          // filter pending orders with payment_method not after confirm
+          return response.data.filter(
+            (order) =>
+              !(
+                order.status === "pending" &&
+                order.date_created === order.date_modified
+              )
+          );
+        });
+
+    const getOrdersWithReserveProductsRequestCached = this._makeCachingForTime(
+      getOrdersWithReserveProductsRequest,
+      [],
+      "WOO-GET-ORDERS-WITH-RESERVE-PRODUCTS",
+      5 * 60 * 1000,
+      !useCache
+    );
+
+    return getOrdersWithReserveProductsRequestCached();
   }
 
-  static getDbProducts(filter = {}) {
-    return super.getDbProducts(filter).populate("parentVariable");
+  static _getDbProductById(id) {
+    return super._getDbProductById(id).populate("parentVariable");
   }
 
-  static getDbProduct(filter = {}) {
-    return super.getDbProduct(filter).populate("parentVariable");
+  static _getDbProducts(filter = {}) {
+    return super._getDbProducts(filter).populate("parentVariable");
+  }
+
+  static _getDbProduct(filter = {}) {
+    return super._getDbProduct(filter).populate("parentVariable");
   }
 
   static async getMarketProductDetails(marketProductData) {

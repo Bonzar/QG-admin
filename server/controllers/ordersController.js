@@ -26,7 +26,7 @@ const formatOzonOrders = (orders) => {
 
     const productsRequests = order.products.map((orderProduct) => {
       return (callback) => {
-        return Ozon.getDbProduct({
+        return Ozon._getDbProduct({
           article: orderProduct.offer_id,
         })
           .then((dbProduct) =>
@@ -58,8 +58,8 @@ const formatOzonOrders = (orders) => {
 };
 
 const getAllOzonOrders = async () => {
-  const todayOrders = await Ozon.getApiTodayOrders();
-  const overdueOrders = await Ozon.getApiOverdueOrders();
+  const todayOrders = await Ozon.getApiOrdersToday();
+  const overdueOrders = await Ozon.getApiOrdersOverdue();
 
   const todayOrdersFormatRequests = formatOzonOrders(todayOrders);
   const overdueOrdersFormatRequests = formatOzonOrders(overdueOrders);
@@ -93,7 +93,7 @@ const getYandexOrders = async () => {
 
     const productsRequests = order.items.map((orderProduct) => {
       return (callback) => {
-        return Yandex.getDbProduct({
+        return Yandex._getDbProduct({
           sku: orderProduct.offerId,
         })
           .then((dbProduct) =>
@@ -125,16 +125,22 @@ const getYandexOrders = async () => {
 };
 
 const getWooOrders = async () => {
-  const wooOrders = await Woocommerce.getProcessingOrders();
+  const wooOrders = await Woocommerce.getOrdersProcessing();
 
   const wooOrdersFormatRequests = wooOrders.map((order) => {
     let order_status = "";
     switch (order.status) {
       case "pending":
-        order_status = "Ожидание";
+        order_status = "Ожидание оплаты";
         break;
       case "processing":
-        order_status = "Обработка";
+        order_status = "Новый";
+        break;
+      case "bonzar-collected":
+        order_status = "Собран";
+        break;
+      case "bonzar-sent":
+        order_status = "Отправлен";
         break;
       case "on-hold":
         order_status = "Удержание";
@@ -162,12 +168,16 @@ const getWooOrders = async () => {
           ? orderProduct.variation_id
           : orderProduct.product_id;
 
-        return Woocommerce.getDbProduct({
+        return Woocommerce._getDbProduct({
           id: productId,
         })
           .then((dbProduct) =>
             callback(null, {
-              name: dbProduct?.variation?.product.name ?? "",
+              name:
+                (dbProduct?.variation?.product.name ?? "") +
+                (["3 мл", "10 мл"].includes(dbProduct?.variation?.volume)
+                  ? ` - ${dbProduct?.variation?.volume}`
+                  : ""),
               article: orderProduct.sku,
               quantity: orderProduct.quantity,
             })
@@ -196,7 +206,7 @@ const getWooOrders = async () => {
 const getWbProductInOrderRequests = (orders) => {
   return orders.map((order) => {
     return (callback) =>
-      Wildberries.getDbProduct({ sku: order.nmId })
+      Wildberries._getDbProduct({ sku: order.nmId })
         .then((dbProduct) =>
           callback(null, {
             order_number: order.id,
@@ -217,14 +227,14 @@ const getWbProductInOrderRequests = (orders) => {
 const getAllWbOrders = () => {
   return async.parallel({
     todayOrders: (callback) => {
-      Wildberries.getApiNewOrders().then((orders) => {
+      Wildberries.getApiOrdersNew().then((orders) => {
         const productInOrderRequests = getWbProductInOrderRequests(orders);
 
         async.parallel(productInOrderRequests, callback);
       });
     },
     overdueOrders: (callback) => {
-      Wildberries.getApiReshipmentOrders().then((orders) => {
+      Wildberries.getApiOrdersReshipment().then((orders) => {
         const productInOrderRequests = getWbProductInOrderRequests(orders);
 
         async.parallel(productInOrderRequests, callback);

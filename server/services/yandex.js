@@ -21,21 +21,21 @@ export class Yandex extends Marketplace {
    * INSTANCE METHODS
    */
 
-  async getApiProduct() {
-    const product = await this.getDbProduct();
+  async _getApiProduct() {
+    const product = await this._getDbProduct();
 
-    return Yandex.getApiProducts([product.sku]);
+    return Yandex._getApiProducts([product.sku]);
   }
 
-  async updateApiStock(newStock) {
-    const product = await this.getDbProduct();
+  async #updateApiStock(newStock) {
+    const product = await this._getDbProduct();
 
-    return Yandex.updateApiStock(product.sku, newStock);
+    return Yandex.#updateApiProductStock(product.sku, newStock);
   }
 
   static async checkIdentifierExistsInApi(newProductData) {
     if (newProductData.sku || newProductData.article) {
-      const allApiOffers = await this.getApiOffers();
+      const allApiOffers = await this.#getApiOffers();
 
       if (
         !allApiOffers.find(
@@ -61,15 +61,15 @@ export class Yandex extends Marketplace {
 
   addUpdateProduct(newData) {
     return super.addUpdateProduct(newData, (newStock) =>
-      this.updateApiStock(newStock)
+      this.#updateApiStock(newStock)
     );
   }
 
   /**
    * CLASS METHODS
    */
-  static updateApiStock(sku, stockCount) {
-    return this.updateApiStocks([
+  static #updateApiProductStock(sku, stockCount) {
+    return this.#updateApiProductsStock([
       {
         sku,
         warehouseId: 52301,
@@ -86,9 +86,9 @@ export class Yandex extends Marketplace {
 
   //todo update fbsStock in Db only on success api update
   /**
-   * @param {[{warehouseId: number, sku, items: [{count, type: string, updatedAt: string}]}]} skus
+   * @param {[{warehouseId: number, sku, items: [{count: number, type: string, updatedAt: string}]}]} skus
    */
-  static async updateApiStocks(skus) {
+  static async #updateApiProductsStock(skus) {
     // no subtract reserve because we save with reserve and subtract it when connect data
 
     return yandexAPI
@@ -98,7 +98,7 @@ export class Yandex extends Marketplace {
       });
   }
 
-  static getApiOffers() {
+  static #getApiOffers() {
     return yandexAPI
       .get("v2/campaigns/21938028/offer-mapping-entries.json?limit=200")
       .then((response) => {
@@ -106,9 +106,9 @@ export class Yandex extends Marketplace {
       });
   }
 
-  static async getApiProducts(skusList = []) {
+  static async _getApiProducts(skusList = []) {
     if (skusList.length <= 0) {
-      const offers = await this.getApiOffers();
+      const offers = await this.#getApiOffers();
       skusList = offers.map((offer) => offer.offer.shopSku);
     }
 
@@ -122,7 +122,7 @@ export class Yandex extends Marketplace {
           .catch((error) => callback(error, null));
       },
       lastMonthOrders: (callback) => {
-        this.getApiOrders()
+        this.#getApiOrders()
           .then((result) => callback(null, result))
           .catch((error) => callback(error, null));
       },
@@ -139,7 +139,7 @@ export class Yandex extends Marketplace {
     };
   }
 
-  static connectDbApiData(dbProducts, apiProductsData) {
+  static _connectDbApiData(dbProducts, apiProductsData) {
     const { productsInfo: apiProducts, lastMonthOrders } = apiProductsData;
 
     for (const dbProduct of dbProducts) {
@@ -207,20 +207,20 @@ export class Yandex extends Marketplace {
   static getApiOrdersToday() {
     const today = format(new Date(), "dd-MM-yyyy");
 
-    return this.getApiOrders({
+    return this.#getApiOrders({
       status: "PROCESSING",
       supplierShipmentDateFrom: today,
       supplierShipmentDateTo: today,
     });
   }
 
-  static getApiOrdersStarted() {
-    return this.getApiOrders({
+  static #getApiOrdersStarted() {
+    return this.#getApiOrders({
       substatus: "STARTED",
     });
   }
 
-  static getApiOrders(requestOptions = {}, useCache = true) {
+  static #getApiOrders(requestOptions = {}, useCache = true) {
     let optionsString = Object.entries(requestOptions)
       .map(([key, value]) => `${key}=${value}`)
       .join("&");
@@ -260,7 +260,7 @@ export class Yandex extends Marketplace {
         });
     };
 
-    const cachedRequest = this.makeCachingForTime(
+    const cachedRequest = this._makeCachingForTime(
       getApiOrdersRequest,
       [optionsString],
       "YANDEX-GET-API-ORDERS",

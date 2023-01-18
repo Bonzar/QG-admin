@@ -56,22 +56,17 @@ export const getProductsListPage = async (req, res) => {
   }
 };
 
-export const updateApiStock = (req, res) => {
-  Wildberries.updateApiStock(req.query.barcode, req.query.stock)
-    .then((result) => {
-      if (result["error"]) {
-        return res
-          .status(400)
-          .json({ message: result["errorText"], result: result });
-      }
+export const updateStock = (req, res) => {
+  try {
+    const wbProduct = new Wildberries({ barcode: req.query.barcode });
+    wbProduct.updateStock(+req.query.stock).then((result) => {
       res.json(result);
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(400).json({
-        message: "Error while updating product stock. Try again later.",
-        code: err.code,
-        status: err.response?.status,
-      });
     });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      error,
+      message: `Error while update stocks. - ${error.message}`,
+    });
+  }
 };

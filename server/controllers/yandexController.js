@@ -54,16 +54,17 @@ export const getProductsListPage = (req, res) => {
     });
 };
 
-export const updateApiStock = (req, res) => {
-  Yandex.updateApiStock(req.query.sku, req.query.stock)
-    .then((response) => {
-      res.json(response.data);
-    })
-    .catch((error) => {
-      console.error(error);
-      res.status(400).json({
-        error,
-        message: `Error while update api stocks. - ${error.message}`,
-      });
+export const updateStock = (req, res) => {
+  try {
+    const yandexProduct = new Yandex({ sku: req.query.sku });
+    yandexProduct.updateStock(+req.query.stock).then((result) => {
+      res.json(result);
     });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      error,
+      message: `Error while update stocks. - ${error.message}`,
+    });
+  }
 };

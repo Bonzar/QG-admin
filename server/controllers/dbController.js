@@ -68,7 +68,7 @@ export const getProductPage = (req, res) => {
           getMarketplaceClasses()
         )) {
           productVariation[`${marketType}Products`] =
-            await Marketplace.getDbProducts({
+            await Marketplace._getDbProducts({
               variation: productVariation._id,
             });
 
