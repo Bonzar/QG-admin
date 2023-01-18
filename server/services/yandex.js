@@ -142,34 +142,42 @@ export class Yandex extends Marketplace {
   static _connectDbApiData(dbProducts, apiProductsData) {
     const { productsInfo: apiProducts, lastMonthOrders } = apiProductsData;
 
+    const connectedProducts = {};
+
+    for (const [apiProductSku, apiProductData] of Object.entries(apiProducts)) {
+      connectedProducts[apiProductSku] = {
+        apiData: { ...apiProductData },
+      };
+    }
+
     for (const dbProduct of dbProducts) {
-      const apiProduct = apiProducts[dbProduct.sku];
-      if (!apiProduct) {
+      const connectedProduct = connectedProducts[dbProduct.sku];
+      if (!connectedProduct) {
         continue;
       }
 
-      apiProduct.fbsStock = dbProduct.stockFbs;
-      apiProduct.dbInfo = dbProduct;
+      connectedProduct.fbsStock = dbProduct.stockFbs;
+      connectedProduct.dbInfo = dbProduct;
     }
 
     for (const order of lastMonthOrders) {
       for (const orderProduct of order.items) {
-        const apiProduct = apiProducts[orderProduct.offerId];
-        if (!apiProduct) {
+        const connectedProduct = connectedProducts[orderProduct.offerId];
+        if (!connectedProduct) {
           continue;
         }
 
         if (order.substatus === "STARTED") {
-          if (!apiProduct.fbsReserve) {
-            apiProduct.fbsReserve = orderProduct.count;
+          if (!connectedProduct.fbsReserve) {
+            connectedProduct.fbsReserve = orderProduct.count;
           } else {
-            apiProduct.fbsReserve += orderProduct.count;
+            connectedProduct.fbsReserve += orderProduct.count;
           }
 
-          if (!apiProduct.fbsStock) {
-            apiProduct.fbsStock = -orderProduct.count;
+          if (!connectedProduct.fbsStock) {
+            connectedProduct.fbsStock = -orderProduct.count;
           } else {
-            apiProduct.fbsStock -= orderProduct.count;
+            connectedProduct.fbsStock -= orderProduct.count;
           }
 
           continue;
@@ -186,22 +194,22 @@ export class Yandex extends Marketplace {
           "dd-MM-yyyy HH:mm:ss",
           new Date()
         );
-        const stockFbsUpdateAt = apiProduct.dbInfo?.stockFbsUpdateAt;
+        const stockFbsUpdateAt = connectedProduct.dbInfo?.stockFbsUpdateAt;
 
         // skip orders earlier that last stock update OR that have not last stock update date
         if (!(orderCreationDate > stockFbsUpdateAt)) {
           continue;
         }
 
-        if (!apiProduct.fbsStock) {
-          apiProduct.fbsStock = -orderProduct.count;
+        if (!connectedProduct.fbsStock) {
+          connectedProduct.fbsStock = -orderProduct.count;
         } else {
-          apiProduct.fbsStock -= orderProduct.count;
+          connectedProduct.fbsStock -= orderProduct.count;
         }
       }
     }
 
-    return apiProducts;
+    return connectedProducts;
   }
 
   static getApiOrdersToday() {

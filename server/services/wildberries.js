@@ -124,32 +124,40 @@ export class Wildberries extends Marketplace {
       productsStocks: { fbsStocks, fbmStocks, fbsReserves },
     } = apiProductsData;
 
+    const connectedProducts = {};
+
+    for (const [apiProductSku, apiProductData] of Object.entries(apiProducts)) {
+      connectedProducts[apiProductSku] = {
+        apiData: { ...apiProductData },
+      };
+    }
+
     for (const fbmStock of fbmStocks) {
-      const apiProduct = apiProducts[fbmStock["nmId"]];
-      if (!apiProduct) {
+      const connectedProduct = connectedProducts[fbmStock["nmId"]];
+      if (!connectedProduct) {
         continue;
       }
 
-      apiProduct.fbmStock = fbmStock.quantity;
+      connectedProduct.fbmStock = fbmStock.quantity;
     }
 
     // fbsReserves contains all new orders in each order by only one product
     for (const fbsReserve of fbsReserves) {
-      const apiProduct = apiProducts[fbsReserve["nmId"]];
-      if (!apiProduct) {
+      const connectedProduct = connectedProducts[fbsReserve["nmId"]];
+      if (!connectedProduct) {
         continue;
       }
 
-      if (!Number.isFinite(apiProduct.fbsReserve)) {
-        apiProduct.fbsReserve = 1;
+      if (!Number.isFinite(connectedProduct.fbsReserve)) {
+        connectedProduct.fbsReserve = 1;
       } else {
-        apiProduct.fbsReserve++;
+        connectedProduct.fbsReserve++;
       }
     }
 
     for (const dbProduct of dbProducts) {
-      const apiProduct = apiProducts[dbProduct.sku];
-      if (!apiProduct) {
+      const connectedProduct = connectedProducts[dbProduct.sku];
+      if (!connectedProduct) {
         continue;
       }
 
@@ -157,11 +165,11 @@ export class Wildberries extends Marketplace {
         (fbsStock) => +fbsStock.sku === dbProduct.barcode
       );
 
-      apiProduct.dbInfo = dbProduct;
-      apiProduct.fbsStock = fbsStock?.amount;
+      connectedProduct.dbInfo = dbProduct;
+      connectedProduct.fbsStock = fbsStock?.amount;
     }
 
-    return apiProducts;
+    return connectedProducts;
   }
 
   static async #getApiProductsStocksFbs(barcodes, warehouse = 206312) {

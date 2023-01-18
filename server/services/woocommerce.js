@@ -78,40 +78,45 @@ export class Woocommerce extends Marketplace {
       productsStocks: { fbsReserves },
     } = apiProductsData;
 
-    for (const apiProduct of Object.values(apiProducts)) {
-      apiProduct.fbsStock = apiProduct.stock_quantity;
+    const connectedProducts = {};
+
+    for (const [apiProductID, apiProductData] of Object.entries(apiProducts)) {
+      connectedProducts[apiProductID] = {
+        apiData: { ...apiProductData },
+        fbsStock: apiProductData.stock_quantity,
+      };
     }
 
     for (const fbsReserve of fbsReserves) {
       for (const fbsReserveProduct of fbsReserve.line_items) {
-        const apiProduct =
-          apiProducts[
+        const connectedProduct =
+          connectedProducts[
             fbsReserveProduct.parent_name
               ? fbsReserveProduct.variation_id
               : fbsReserveProduct.product_id
           ];
-        if (!apiProduct) {
+        if (!connectedProduct) {
           continue;
         }
 
-        if (!Number.isFinite(apiProduct.fbsReserve)) {
-          apiProduct.fbsReserve = fbsReserveProduct.quantity;
+        if (!Number.isFinite(connectedProduct.fbsReserve)) {
+          connectedProduct.fbsReserve = fbsReserveProduct.quantity;
         } else {
-          apiProduct.fbsReserve += fbsReserveProduct.quantity;
+          connectedProduct.fbsReserve += fbsReserveProduct.quantity;
         }
       }
     }
 
     for (const dbProduct of dbProducts) {
-      const apiProduct = apiProducts[dbProduct.id];
-      if (!apiProduct) {
+      const connectedProduct = connectedProducts[dbProduct.id];
+      if (!connectedProduct) {
         continue;
       }
 
-      apiProduct.dbInfo = dbProduct;
+      connectedProduct.dbInfo = dbProduct;
     }
 
-    return apiProducts;
+    return connectedProducts;
   }
 
   static async _getApiProducts() {

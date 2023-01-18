@@ -428,9 +428,18 @@ export class Ozon extends Marketplace {
     const { productsInfo: apiProducts, productsStocks: apiStocks } =
       apiProductsData;
 
+    const connectedProducts = {};
+
+    for (const [apiProductSku, apiProductData] of Object.entries(apiProducts)) {
+      connectedProducts[apiProductSku] = {
+        apiData: { ...apiProductData },
+        fbsStock: apiProductData.stock_quantity,
+      };
+    }
+
     for (const productsStock of apiStocks) {
-      const apiProduct = apiProducts[productsStock.product_id];
-      if (!apiProduct) {
+      const connectedProduct = connectedProducts[productsStock.product_id];
+      if (!connectedProduct) {
         continue;
       }
 
@@ -438,22 +447,22 @@ export class Ozon extends Marketplace {
         (stock) => stock.type === "fbs"
       );
 
-      apiProduct.fbsStock = fbsStocks?.present - fbsStocks?.reserved;
-      apiProduct.fbsReserve = fbsStocks?.reserved;
-      apiProduct.fbmStock = productsStock.stocks.find(
+      connectedProduct.fbsStock = fbsStocks?.present - fbsStocks?.reserved;
+      connectedProduct.fbsReserve = fbsStocks?.reserved;
+      connectedProduct.fbmStock = productsStock.stocks.find(
         (stock) => stock.type === "fbo"
       )?.present;
     }
 
     for (const dbProduct of dbProducts) {
-      const apiProduct = apiProducts[dbProduct.sku];
-      if (!apiProduct) {
+      const connectedProduct = connectedProducts[dbProduct.sku];
+      if (!connectedProduct) {
         continue;
       }
 
-      apiProduct.dbInfo = dbProduct;
+      connectedProduct.dbInfo = dbProduct;
     }
 
-    return apiProducts;
+    return connectedProducts;
   }
 }
