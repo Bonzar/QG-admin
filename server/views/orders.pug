@@ -26,7 +26,7 @@ block section
                                             td.col--status= order.order_status
                                             td.col--products
                                               each product, index  in order.products
-                                                | #{product.name} x #{product.quantity} шт.
+                                                | #{product.name} – #{product.quantity} шт.
                                                 i.product-description #{product.article ? "(" + product.article + ")" : ""}
                                                 if index + 1 !== order.products.length
                                                   hr
