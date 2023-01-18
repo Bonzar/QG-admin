@@ -65,7 +65,7 @@ case marketType
             input(
                 required
                 name="parentVariable"
-                value=marketProductInstance.parentVariable.id
+                value=(marketProductInstance.type === "variation" ? marketProductInstance.parentVariable.id : "Нет")
                 disabled=true
             )
 
