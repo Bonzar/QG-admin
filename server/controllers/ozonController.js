@@ -10,21 +10,21 @@ export const getProductsListPage = async (req, res) => {
       req.query
     );
 
-    const formattedProducts = filtratedProducts.map((apiProduct) => {
+    const formattedProducts = filtratedProducts.map((product) => {
       return {
-        productInnerId: apiProduct.dbInfo?.variation?.product._id,
-        marketProductInnerId: apiProduct.dbInfo?._id,
-        sku: apiProduct.id,
-        article: apiProduct.offer_id,
+        productInnerId: product.dbInfo?.variation?.product._id,
+        marketProductInnerId: product.dbInfo?._id,
+        sku: product.apiInfo.id,
+        article: product.apiInfo.offer_id,
         name:
-          (apiProduct.dbInfo?.variation?.product.name ?? "") +
-          (["3 мл", "10 мл"].includes(apiProduct.dbInfo?.variation?.volume)
-            ? ` - ${apiProduct.dbInfo?.variation?.volume}`
+          (product.dbInfo?.variation?.product.name ?? "") +
+          (["3 мл", "10 мл"].includes(product.dbInfo?.variation?.volume)
+            ? ` - ${product.dbInfo?.variation?.volume}`
             : ""),
-        stockFBO: apiProduct.fbmStock ?? 0,
+        stockFBO: product.fbmStock ?? 0,
         stockFBS: {
-          stock: (apiProduct.fbsStock ?? 0) + (apiProduct.fbsReserve ?? 0),
-          updateBy: apiProduct.offer_id,
+          stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
+          updateBy: product.apiInfo.offer_id,
           marketType: "ozon",
         },
       };

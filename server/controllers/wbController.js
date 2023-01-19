@@ -15,8 +15,8 @@ export const getProductsListPage = async (req, res) => {
         productInnerId: product.dbInfo?.variation?.product._id,
         marketProductInnerId: product.dbInfo?._id,
         barcode: product.dbInfo?.barcode ?? "",
-        articleWb: product["nmID"],
-        article: product["vendorCode"],
+        articleWb: product.apiInfo["nmID"],
+        article: product.apiInfo["vendorCode"],
         name:
           (product.dbInfo?.variation?.product.name ?? "") +
           (["3 мл", "10 мл"].includes(product.dbInfo?.variation?.volume)

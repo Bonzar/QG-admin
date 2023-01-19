@@ -82,7 +82,7 @@ export class Woocommerce extends Marketplace {
 
     for (const [apiProductID, apiProductData] of Object.entries(apiProducts)) {
       connectedProducts[apiProductID] = {
-        apiData: { ...apiProductData },
+        apiInfo: Object.freeze(apiProductData),
         fbsStock: apiProductData.stock_quantity,
       };
     }

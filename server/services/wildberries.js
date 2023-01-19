@@ -128,7 +128,7 @@ export class Wildberries extends Marketplace {
 
     for (const [apiProductSku, apiProductData] of Object.entries(apiProducts)) {
       connectedProducts[apiProductSku] = {
-        apiData: { ...apiProductData },
+        apiInfo: Object.freeze(apiProductData),
       };
     }
 
@@ -515,14 +515,14 @@ export class Wildberries extends Marketplace {
             (sell) =>
               sell.marketProduct?._id.toString() ===
                 product.dbInfo._id.toString() ||
-              sell.productIdentifier === product.nmID
+              sell.productIdentifier === product.apiInfo.nmID
           );
           const dbMonthSells = dbSells.filter(
             (sell) => sell.date >= monthBeforeLastSellDate
           );
 
           const mayakSells = mayakSellsPerYear.find(
-            (mayakProduct) => mayakProduct.sku === product.nmID
+            (mayakProduct) => mayakProduct.sku === product.apiInfo.nmID
           )?.sells;
 
           // length in dbSells used over quantity cause WB order always have only one position within

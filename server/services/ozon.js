@@ -377,7 +377,7 @@ export class Ozon extends Marketplace {
       const stock = product.fbmStock;
 
       const getProductSells = (product, analyticData) => {
-        return product.sources.reduce((total, currentSource) => {
+        return product.apiInfo.sources.reduce((total, currentSource) => {
           total +=
             analyticData.find((productData) => {
               return +productData["dimensions"][0].id === currentSource.sku;
@@ -403,7 +403,7 @@ export class Ozon extends Marketplace {
 
       if (onShipment > 0) {
         products.push({
-          article: product.offer_id,
+          article: product.apiInfo.offer_id,
           name: product.dbInfo?.variation?.product.name,
           stock,
           shiftStocks: Math.round(predictShiftStocks),
@@ -432,7 +432,7 @@ export class Ozon extends Marketplace {
 
     for (const [apiProductSku, apiProductData] of Object.entries(apiProducts)) {
       connectedProducts[apiProductSku] = {
-        apiData: { ...apiProductData },
+        apiInfo: Object.freeze(apiProductData),
         fbsStock: apiProductData.stock_quantity,
       };
     }

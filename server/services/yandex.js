@@ -146,7 +146,7 @@ export class Yandex extends Marketplace {
 
     for (const [apiProductSku, apiProductData] of Object.entries(apiProducts)) {
       connectedProducts[apiProductSku] = {
-        apiData: { ...apiProductData },
+        apiInfo: Object.freeze(apiProductData),
       };
     }
 
