@@ -30,7 +30,7 @@ const logger = winston.createLogger({
   ],
 });
 
-cron.schedule("0 17 * * 0-6/2", () => {
+cron.schedule("45 17 * * 0-6/2", () => {
   redistributeVariationsStock()
     .then(() => {
       logger.log({
