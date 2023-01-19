@@ -108,6 +108,7 @@ export const redistributeVariationsStock = async () => {
           return updateVariationStock(
             variation._id,
             allAvailableStock,
+            0,
             marketProducts
           );
         })
