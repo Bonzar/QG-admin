@@ -129,21 +129,27 @@ const getWooOrders = async () => {
 
   const wooOrdersFormatRequests = wooOrders.map((order) => {
     let order_status = "";
+    let order_sort = 100;
     switch (order.status) {
       case "pending":
         order_status = "Ожидание оплаты";
+        order_sort = 30;
         break;
       case "processing":
         order_status = "Новый";
+        order_sort = 10;
         break;
       case "bonzar-collected":
         order_status = "Собран";
+        order_sort = 20;
         break;
       case "bonzar-sent":
         order_status = "Отправлен";
+        order_sort = 40;
         break;
       case "on-hold":
         order_status = "Удержание";
+        order_sort = 0;
         break;
       case "completed":
         order_status = "Завершен";
@@ -193,6 +199,8 @@ const getWooOrders = async () => {
           callback(null, {
             order_number: order.id,
             order_status,
+            order_sort,
+
             products,
           });
         })
@@ -258,7 +266,15 @@ export const getOrdersList = (req, res) => {
       },
       wooOrders(callback) {
         getWooOrders()
-          .then((result) => callback(null, result))
+          .then((wooOrders) =>
+            callback(
+              null,
+              wooOrders.sort(
+                (wooOrder1, wooOrder2) =>
+                  wooOrder1.order_sort - wooOrder2.order_sort
+              )
+            )
+          )
           .catch((error) => callback(error, null));
       },
       wbOrders(callback) {
