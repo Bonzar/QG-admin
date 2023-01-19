@@ -368,7 +368,7 @@ export class Woocommerce extends Marketplace {
             (order) =>
               !(
                 order.status === "pending" &&
-                order.date_created === order.date_modified
+                order.shipping_lines[0].instance_id !== "23"
               )
           );
         });
@@ -397,7 +397,7 @@ export class Woocommerce extends Marketplace {
             (order) =>
               !(
                 order.status === "pending" &&
-                order.date_created === order.date_modified
+                order.shipping_lines[0].instance_id !== "23"
               )
           );
         });
