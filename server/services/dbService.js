@@ -353,9 +353,9 @@ export const deleteWooProductVariable = (id) => {
     });
 };
 
-export const addUpdateDbRecord = (dbRecord, dbRecordDetails, ProductSchema) => {
+export const addUpdateDbRecord = (dbRecord, dbRecordDetails, dbSchema) => {
   if (!dbRecord) {
-    dbRecord = new ProductSchema(dbRecordDetails);
+    dbRecord = new dbSchema(dbRecordDetails);
   } else {
     for (const [key, value] of Object.entries(dbRecordDetails)) {
       dbRecord[key] = value;
