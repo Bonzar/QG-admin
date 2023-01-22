@@ -353,20 +353,16 @@ export const deleteWooProductVariable = (id) => {
     });
 };
 
-export const addUpdateDbRecord = (
-  marketProduct,
-  marketProductDetails,
-  ProductSchema
-) => {
-  if (!marketProduct) {
-    marketProduct = new ProductSchema(marketProductDetails);
+export const addUpdateDbRecord = (dbRecord, dbRecordDetails, ProductSchema) => {
+  if (!dbRecord) {
+    dbRecord = new ProductSchema(dbRecordDetails);
   } else {
-    for (const [key, value] of Object.entries(marketProductDetails)) {
-      marketProduct[key] = value;
+    for (const [key, value] of Object.entries(dbRecordDetails)) {
+      dbRecord[key] = value;
     }
   }
 
-  return marketProduct.save();
+  return dbRecord.save();
 };
 
 export const addUpdateMarketProduct = async (marketProductData) => {
