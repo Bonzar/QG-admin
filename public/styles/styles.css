@@ -897,7 +897,7 @@ header a {
 
 .delete-button {
   background: url("../images/icon-trash.png") center / 50% no-repeat,
-  rgba(255, 0, 0, 0.34);
+    rgba(255, 0, 0, 0.34);
 }
 
 .navigate-btn:not(.navigate-btn--back) + .delete-button,
