@@ -39,6 +39,8 @@ block content
           each variation in variations
             div.product-variation--cell
                 h2= variation.volume
+                div.btn.btn--round.btn--round--second.variation-stock-status(class=`variation-stock-status--${variation.stockUpdateStatus}`)
+
                 input(required name="variation_id" value=variation._id hidden)
 
                 input.btn.delete-button.delete-button--variation.inline(type="button")
@@ -47,15 +49,37 @@ block content
 
                 div.variation-market-products--block
                   each marketType in ['yandex', 'wb', 'woo', 'ozon']
-                      - marketProducts = variation[`${marketType}Products`]
+                    - marketProducts = variation[`${marketType}Products`]
                       if (marketProducts && marketProducts.length > 0)
                         each marketProduct in marketProducts
-                          div.market-product--form
-                              h3.align--center= marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
+                            div.market-product--form
+                                h3.align--center= marketType[0].toUpperCase() + marketType.slice(1).toLowerCase()
+                                a.btn.btn--round.navigate-btn(href=`/stocks/${marketType}/${marketProduct._id}`)
 
-                              a.btn.navigate-btn(href=`/stocks/${marketType}/${marketProduct._id}`)
-
-                              form
+                              - marketplaceConsoleLinkData = null;
+                              - marketplaceLinkData = null;
+                                case marketType
+                                    when "wb"
+                                      - marketplaceConsoleLinkData = {href: `https://seller.wildberries.ru/new-goods/new-product-card?vendorCode=${marketProduct.article}`, title: "Product on seller.wildberries.ru"}
+                                        if marketProduct.apiInfo
+                                          - marketplaceLinkData = { href: `https://www.wildberries.ru/catalog/${marketProduct.sku}/detail.aspx`, title: "Product on www.wildberries.ru"}
+                                    when "ozon"
+                                      - marketplaceConsoleLinkData = {href: `https://seller.ozon.ru/app/products/${marketProduct.sku}/edit/preview`, title: "Product on seller.ozon.ru"}
+                                        if marketProduct.apiInfo
+                                          - marketplaceLinkData = {href: `https://www.ozon.ru/product/${marketProduct.apiInfo.sources[0].sku}`, title: "Product on www.ozon.ru"}
+                                    when "yandex"
+                                      - marketplaceConsoleLinkData = {href: `https://partner.market.yandex.ru/supplier/21938028/assortment/offer-card?offerId=${marketProduct.sku}`, title: "Product on partner.market.yandex.ru"}
+                                        if marketProduct.apiInfo
+                                          - marketplaceLinkData = {href: `https://market.yandex.ru/search?businessId=959757&text=${encodeURI(marketProduct.apiInfo.name)}`, title: "Search product on market.yandex.ru"}
+                                    when "woo"
+                                      - marketplaceConsoleLinkData = {href: `https://queridosglitters.ru/wp-admin/post.php?post=${marketProduct.type === 'variation' ? marketProduct.parentVariable.id : marketProduct.id}&action=edit`, title: "Product on queridosglitters.ru/wp-admin/"}
+                                        if marketProduct.apiInfo
+                                          - marketplaceLinkData = {href: (marketProduct.apiInfo["permalink"]), title: 'Product on queridosglitters.ru'}
+                                if marketplaceConsoleLinkData
+                                    a.btn.btn--round.btn--round--left.marketplace-console-link(target="_blank" href=marketplaceConsoleLinkData.href title=marketplaceConsoleLinkData.title)
+                                if marketplaceLinkData
+                                    a.btn.btn--round.btn--round--left.btn--round--second.marketplace-link(target="_blank" href=marketplaceLinkData.href title=marketplaceLinkData.title)
+                                form
                                   - isMarketProductInstanceEditMode = false
                                   include marketProductForm
                                   input.btn.submit-button(type="button" value="Обновить" )

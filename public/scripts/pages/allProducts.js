@@ -1,3 +1,5 @@
+import { registerTableFilters } from "../functions/registerTableFilters.js";
+
 const table = document.querySelector(".stocks-table");
 
 table.addEventListener("click", (e) => {
@@ -12,3 +14,10 @@ table.addEventListener("click", (e) => {
     window.location.href = `/stocks/db/product/${cell.getAttribute("ref")}`;
   }
 });
+
+registerTableFilters([
+  {
+    param: "isActual",
+    value: ["notActual", "all"],
+  },
+]);

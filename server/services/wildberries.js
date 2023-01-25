@@ -129,7 +129,23 @@ export class Wildberries extends Marketplace {
     for (const [apiProductSku, apiProductData] of Object.entries(apiProducts)) {
       connectedProducts[apiProductSku] = {
         apiInfo: Object.freeze(apiProductData),
+        fbsStock: 0, //initial value (if product exist in api -> we can set fbs stock)
       };
+    }
+
+    for (const dbProduct of dbProducts) {
+      let connectedProduct = connectedProducts[dbProduct.sku];
+      if (!connectedProduct) {
+        connectedProducts[dbProduct.sku] = {};
+        connectedProduct = connectedProducts[dbProduct.sku];
+      }
+
+      const fbsStock = fbsStocks.find(
+        (fbsStock) => +fbsStock.sku === dbProduct.barcode
+      );
+
+      connectedProduct.dbInfo = dbProduct;
+      connectedProduct.fbsStock = fbsStock?.amount;
     }
 
     for (const fbmStock of fbmStocks) {
@@ -155,20 +171,6 @@ export class Wildberries extends Marketplace {
       }
     }
 
-    for (const dbProduct of dbProducts) {
-      const connectedProduct = connectedProducts[dbProduct.sku];
-      if (!connectedProduct) {
-        continue;
-      }
-
-      const fbsStock = fbsStocks.find(
-        (fbsStock) => +fbsStock.sku === dbProduct.barcode
-      );
-
-      connectedProduct.dbInfo = dbProduct;
-      connectedProduct.fbsStock = fbsStock?.amount;
-    }
-
     return connectedProducts;
   }
 
@@ -184,7 +186,7 @@ export class Wildberries extends Marketplace {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const getApiProductsFbmStocksRequest = () =>
+    const getApiProductsFbmStocksRequest = (skuFilter) =>
       wbStatAPI
         .get(
           `api/v1/supplier/stocks?dateFrom=${formatInTimeZone(
@@ -196,16 +198,19 @@ export class Wildberries extends Marketplace {
         .then((response) => {
           let fbmStocks = response.data;
 
+          const allFbmStocks = fbmStocks.reduce(
+            (total, current) => total + current.quantity,
+            0
+          );
+
           if (skuFilter) {
             fbmStocks = fbmStocks.filter(
               (fbmStock) => fbmStock["nmId"] === skuFilter
             );
           }
-          let allFbmStocks = 0;
           let formatFbmStocks = {};
           for (const fbmStock of fbmStocks) {
             if (!formatFbmStocks[fbmStock["nmId"]]) {
-              allFbmStocks += fbmStock.quantity;
               formatFbmStocks[fbmStock["nmId"]] = {
                 nmId: fbmStock["nmId"],
                 quantity: fbmStock.quantity,
@@ -242,7 +247,7 @@ export class Wildberries extends Marketplace {
 
     const getApiProductsFbmStocksRequestCached = this._makeCachingForTime(
       getApiProductsFbmStocksRequest,
-      [],
+      [skuFilter],
       "WB-GET-API-PRODUCTS-FBM-STOCKS",
       15 * 60 * 1000
     );
@@ -331,9 +336,18 @@ export class Wildberries extends Marketplace {
    * @param {number} stock
    */
   static #updateApiProductStock(barcode, stock) {
-    return this.#updateApiProductsStock([
-      { sku: barcode.toString(), amount: +stock },
-    ]);
+    return (
+      this.#updateApiProductsStock([
+        { sku: barcode.toString(), amount: +stock },
+      ])
+        // always success
+        .then((result) => {
+          return {
+            updated: result.updatedAll,
+            error: result.error ?? null,
+          };
+        })
+    );
   }
 
   /**
@@ -361,7 +375,15 @@ export class Wildberries extends Marketplace {
       .then((response) => {
         this.#processWbApiErrors(response.data);
 
-        return response.data;
+        return { updatedAll: response.status === 204 };
+      })
+      .catch((error) => {
+        console.error(error);
+
+        return {
+          updated: false,
+          error: error.isAxiosError ? error.response?.data : error ?? error,
+        };
       });
   }
 
@@ -423,7 +445,7 @@ export class Wildberries extends Marketplace {
           (async () => {
             try {
               const sellsFromDb = await dbService
-                .getAllSells()
+                .getAllSells({ marketProductRef: "WbProduct" })
                 .sort({ date: -1 });
 
               const lastSellInDbDate = sellsFromDb[0].date;
@@ -513,16 +535,16 @@ export class Wildberries extends Marketplace {
 
           const dbSells = allSells.filter(
             (sell) =>
-              sell.marketProduct?._id.toString() ===
+              sell.marketProduct?.toString() ===
                 product.dbInfo._id.toString() ||
-              sell.productIdentifier === product.apiInfo.nmID
+              sell.productIdentifier === product.apiInfo?.nmID
           );
           const dbMonthSells = dbSells.filter(
             (sell) => sell.date >= monthBeforeLastSellDate
           );
 
           const mayakSells = mayakSellsPerYear.find(
-            (mayakProduct) => mayakProduct.sku === product.apiInfo.nmID
+            (mayakProduct) => mayakProduct.sku === product.apiInfo?.nmID
           )?.sells;
 
           // length in dbSells used over quantity cause WB order always have only one position within

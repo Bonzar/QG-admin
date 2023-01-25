@@ -37,12 +37,17 @@ const deleteMarketProduct = (e) => {
         Authorization: `Bearer ${authToken}`,
       },
     })
-      .then((response) => {
-        if (response.ok) {
-          window.location.href = `/stocks/${marketType.value}`;
-        } else {
-          alert("Продукт маркетплейса не удален.");
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.error) {
+          alert(data.message);
+          const error = new Error(data.message);
+          error.data = data.error;
+          throw error;
         }
+
+        // delete success
+        window.location.href = `/stocks/${marketType.value}`;
       })
       .catch((error) => console.error(error))
       .finally(removeLoading);

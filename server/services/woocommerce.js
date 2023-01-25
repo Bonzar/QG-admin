@@ -87,6 +87,16 @@ export class Woocommerce extends Marketplace {
       };
     }
 
+    for (const dbProduct of dbProducts) {
+      let connectedProduct = connectedProducts[dbProduct.id];
+      if (!connectedProduct) {
+        connectedProducts[dbProduct.id] = {};
+        connectedProduct = connectedProducts[dbProduct.id];
+      }
+
+      connectedProduct.dbInfo = dbProduct;
+    }
+
     for (const fbsReserve of fbsReserves) {
       for (const fbsReserveProduct of fbsReserve.line_items) {
         const connectedProduct =
@@ -105,15 +115,6 @@ export class Woocommerce extends Marketplace {
           connectedProduct.fbsReserve += fbsReserveProduct.quantity;
         }
       }
-    }
-
-    for (const dbProduct of dbProducts) {
-      const connectedProduct = connectedProducts[dbProduct.id];
-      if (!connectedProduct) {
-        continue;
-      }
-
-      connectedProduct.dbInfo = dbProduct;
     }
 
     return connectedProducts;
@@ -301,19 +302,41 @@ export class Woocommerce extends Marketplace {
   ) {
     // clear cache on product update
     this._clearCache("WOO-GET-API-PRODUCT");
-    // this one was cleared by previous, here for code readability
     this._clearCache("WOO-GET-API-PRODUCTS");
 
+    let requestByType;
     switch (productType) {
       case "simple":
-        return this.#updateApiProductSimple(productId, updateData);
+        requestByType = this.#updateApiProductSimple(productId, updateData);
+        break;
       case "variation":
-        return this.#updateApiProductVariation(
+        requestByType = this.#updateApiProductVariation(
           productId,
           variableId,
           updateData
         );
+        break;
+      default:
+        throw new Error(
+          "Не верный тип товара для обновления данных в API по типу товара."
+        );
     }
+
+    return requestByType
+      .then((result) => {
+        return {
+          updated: true,
+          data: result,
+        };
+      })
+      .catch((error) => {
+        console.error(error);
+
+        return {
+          updated: false,
+          error: error.isAxiosError ? error.response?.data : error ?? error,
+        };
+      });
   }
 
   static async #updateApiProductStock(
@@ -338,6 +361,7 @@ export class Woocommerce extends Marketplace {
     }
 
     return this.#updateApiProduct(
+      // always success
       productId,
       productType,
       { stock_quantity: newStock },

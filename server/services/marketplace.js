@@ -1,5 +1,6 @@
 import * as dbService from "./dbService.js";
 import async from "async";
+
 export class Marketplace {
   #dbData;
   static marketProductSchema;
@@ -52,19 +53,38 @@ export class Marketplace {
     );
   }
 
-  addUpdateProduct(newData, apiStockUpdater) {
-    return async.parallel({
-      updateApiStock: (callback) => {
-        apiStockUpdater(newData.stockFBS)
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      addUpdateDbInfo: (callback) => {
-        this.#addUpdateDbInfo(newData)
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-    });
+  /**
+   * CLASS METHODS
+   */
+  static async getMarketProductDetails(marketProductData) {
+    const marketProductDetails = {};
+
+    // Common fields for all marketplaces
+    if (marketProductData.sku) {
+      marketProductDetails.sku = marketProductData.sku;
+    }
+
+    if (marketProductData.article !== undefined) {
+      marketProductDetails.article = marketProductData.article;
+    }
+
+    marketProductDetails.isActual = marketProductData.isActual
+      ? marketProductData.isActual === "true"
+      : true;
+
+    if (marketProductData.variation_volume && marketProductData.product_id) {
+      marketProductDetails.variation = await dbService.getProductVariation({
+        product: marketProductData.product_id,
+        volume: marketProductData.variation_volume,
+      });
+    } else if (
+      marketProductData.variation_volume === "" ||
+      marketProductData.product_id === ""
+    ) {
+      marketProductDetails.variation = null;
+    }
+
+    return marketProductDetails;
   }
 
   updateStock(newStock, apiStockUpdater) {
@@ -91,41 +111,32 @@ export class Marketplace {
     return true;
   }
 
-  /**
-   * CLASS METHODS
-   */
-  static async getMarketProductDetails(marketProductData) {
-    const marketProductDetails = {};
+  addUpdateProduct(newData, apiStockUpdater) {
+    return async
+      .parallel({
+        updateApiStock: (callback) => {
+          apiStockUpdater(newData.stockFBS)
+            .then((result) => callback(null, result))
+            .catch((error) => callback(error, null));
+        },
+        addUpdateDbInfo: (callback) => {
+          this.#addUpdateDbInfo(newData)
+            .then((result) => callback(null, result))
+            .catch((error) => callback(error, null));
+        },
+      })
+      .then(async (results) => {
+        const { updateApiStock, addUpdateDbInfo } = results;
+        if (updateApiStock.updated) {
+          const productVariation = addUpdateDbInfo.variation;
+          if (productVariation) {
+            productVariation.stockUpdateStatus = "updated";
+            await productVariation.save();
+          }
+        }
 
-    // Common fields for all marketplaces
-    if (marketProductData.sku) {
-      marketProductDetails.sku = marketProductData.sku;
-    }
-
-    if (marketProductData.article) {
-      marketProductDetails.article =
-        marketProductData.article !== ""
-          ? marketProductData.article
-          : undefined;
-    }
-
-    marketProductDetails.isActual = marketProductData.isActual
-      ? marketProductData.isActual === "true"
-      : true;
-
-    if (marketProductData.variation_volume && marketProductData.product_id) {
-      marketProductDetails.variation = await dbService.getProductVariation({
-        product: marketProductData.product_id,
-        volume: marketProductData.variation_volume,
+        return results;
       });
-    } else if (
-      marketProductData.variation_volume === "" ||
-      marketProductData.product_id === ""
-    ) {
-      marketProductDetails.variation = null;
-    }
-
-    return marketProductDetails;
   }
 
   static _getDbProducts(filter = {}) {

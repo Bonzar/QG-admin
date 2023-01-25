@@ -6,7 +6,30 @@ append scripts
 block section
     h1= title
         if marketProduct ? marketProduct.variation : false
-            a.btn.navigate-btn.navigate-btn--back(href=`/stocks/db/product/${marketProduct.variation.product._id}`)
+            a.btn.btn--round.btn--round--left.navigate-btn--back(href=`/stocks/db/product/${marketProduct.variation.product._id}`)
+
+      - marketplaceConsoleLinkData = null;
+      - marketplaceLinkData = null;
+        case marketType
+            when "wb"
+              - marketplaceConsoleLinkData = {href: `https://seller.wildberries.ru/new-goods/new-product-card?vendorCode=${marketProduct.article}`, title: "Product on seller.wildberries.ru"}
+              - marketplaceLinkData = { href: `https://www.wildberries.ru/catalog/${marketProduct.sku}/detail.aspx`, title: "Product on www.wildberries.ru"}
+            when "ozon"
+              - marketplaceConsoleLinkData = {href: `https://seller.ozon.ru/app/products/${marketProduct.sku}/edit/preview`, title: "Product on seller.ozon.ru"}
+                if marketProduct.apiInfo
+                  - marketplaceLinkData = {href: `https://www.ozon.ru/product/${marketProduct.apiInfo.sources[0].sku}`, title: "Product on www.ozon.ru"}
+            when "yandex"
+              - marketplaceConsoleLinkData = {href: `https://partner.market.yandex.ru/supplier/21938028/assortment/offer-card?offerId=${marketProduct.sku}`, title: "Product on partner.market.yandex.ru"}
+                if marketProduct.apiInfo
+                  - marketplaceLinkData = {href: `https://market.yandex.ru/search?businessId=959757&text=${encodeURI(marketProduct.apiInfo.name)}`, title: "Search product on market.yandex.ru"}
+            when "woo"
+              - marketplaceConsoleLinkData = {href: `https://queridosglitters.ru/wp-admin/post.php?post=${marketProduct.type === 'variation' ? marketProduct.parentVariable.id : marketProduct.id}&action=edit`, title: "Product on queridosglitters.ru/wp-admin/"}
+                if marketProduct.apiInfo
+                  - marketplaceLinkData = {href: (marketProduct.apiInfo["permalink"]), title: 'Product on queridosglitters.ru'}
+        if marketplaceConsoleLinkData
+            a.btn.btn--round.btn--round--second.marketplace-console-link(target="_blank" href=marketplaceConsoleLinkData.href title=marketplaceConsoleLinkData.title)
+        if marketplaceLinkData
+            a.btn.btn--round.btn--round--third.marketplace-link(target="_blank" href=marketplaceLinkData.href title=marketplaceLinkData.title)
     form.market-product--form
         include marketProductForm
 

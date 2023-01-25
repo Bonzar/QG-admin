@@ -30,24 +30,61 @@ const logger = winston.createLogger({
   ],
 });
 
-cron.schedule("45 17 * * 0-6/2", () => {
-  redistributeVariationsStock()
-    .then(() => {
-      logger.log({
-        level: "info",
-        date: new Date(),
-        message: "Success scheduled redistribute variations stock.",
+cron.schedule(
+  "30 4 * * 0-6/2",
+  () => {
+    redistributeFailedVariationsStocksTask.stop();
+    redistributeVariationsStock()
+      .then((result) => {
+        logger.log({
+          level: "info",
+          date: new Date(),
+          message: "Success scheduled redistribute variations stock.",
+          result,
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+        logger.log({
+          level: "error",
+          date: new Date(),
+          message: "Error while scheduled redistribute variations stock.",
+          error,
+        });
+      })
+      .finally(() => redistributeFailedVariationsStocksTask.start());
+  },
+  { scheduled: process.env.NODE_ENV === "production" }
+);
+
+const redistributeFailedVariationsStocksTask = cron.schedule(
+  "0 * * * *",
+  () => {
+    redistributeFailedVariations()
+      .then((result) => {
+        if (result.some((variation) => variation.error)) {
+          throw new Error("Redistribute failed");
+        }
+
+        logger.log({
+          level: "info",
+          date: new Date(),
+          message: "Success scheduled redistribute failed variations stock.",
+          result,
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+        logger.log({
+          level: "error",
+          date: new Date(),
+          message:
+            "Error while scheduled redistribute failed variations stock.",
+          error,
+        });
       });
-    })
-    .catch((error) => {
-      logger.log({
-        level: "error",
-        date: new Date(),
-        message: "Error while scheduled redistribute variations stock.",
-        error,
-      });
-    });
-});
+  }
+);
 
 /**
  * Returns the market products list for given variation
@@ -87,37 +124,54 @@ const getVariationActualMarketProducts = async (variationId) => {
   return marketProducts.filter((marketProduct) => !!marketProduct);
 };
 
-export const redistributeVariationsStock = async () => {
-  const allVariations = await getProductVariations();
-  const variationUpdateRequests = allVariations.map((variation) => {
+export const redistributeVariationsStock = async (
+  variations,
+  isProcessFailed
+) => {
+  if (!(variations?.length > 0 && isProcessFailed)) {
+    variations = await getProductVariations({}, "product");
+  }
+
+  const variationUpdateRequests = variations.map((variation) => {
     return (callback) => {
       getVariationActualMarketProducts(variation._id)
         .then((marketProducts) => {
-          if (marketProducts.length === 0) {
+          // no need to redistribute with one or zero market product in variation
+          if (marketProducts.length <= 1) {
             return null;
           }
 
-          const allAvailableStock = marketProducts.reduce(
-            (total, marketProduct) =>
-              total +
-              (marketProduct.marketProductData.fbsStock ?? 0) +
-              (marketProduct.marketProductData.fbsReserve ?? 0),
-            0
-          );
+          let updateStock;
+          if (!isProcessFailed) {
+            updateStock = marketProducts.reduce(
+              (total, marketProduct) =>
+                total +
+                (marketProduct.marketProductData.fbsStock ?? 0) +
+                (marketProduct.marketProductData.fbsReserve ?? 0),
+              0
+            );
+          } else {
+            updateStock = variation.readyStock;
+          }
 
           return updateVariationStock(
             variation._id,
-            allAvailableStock,
-            0,
+            updateStock,
+            !isProcessFailed ? 0 : variation.dryStock,
             marketProducts
           );
         })
-        .then((result) => callback(null, result))
-        .catch((error) => callback(error, null));
+        .then((result) => {
+          callback(null, result);
+        })
+        .catch((error) => {
+          console.error(error);
+          callback(null, { error });
+        });
     };
   });
 
-  return async.parallelLimit(variationUpdateRequests, 7);
+  return async.parallelLimit(variationUpdateRequests, 6);
 };
 
 export const updateVariationStock = async (
@@ -135,8 +189,9 @@ export const updateVariationStock = async (
   }
 
   let allFbsReserve = 0;
-  let variationVolume =
-    marketProducts[0].marketProductData.dbInfo.variation.volume;
+  let variation = marketProducts[0].marketProductData.dbInfo.variation;
+  variation.readyStock = readyStock;
+  variation.dryStock = dryStock;
 
   marketProducts.forEach((marketProduct) => {
     allFbsReserve += marketProduct.marketProductData.fbsReserve ?? 0;
@@ -154,7 +209,7 @@ export const updateVariationStock = async (
   const allNewStock = Math.trunc(
     readyStock +
       (isNaN(dryStock) ? 0 : dryStock) *
-        (variationVolumeDryStockCof[variationVolume] ?? 0)
+        (variationVolumeDryStockCof[variation.volume] ?? 0)
   );
 
   const allAvailableStock = allNewStock - allFbsReserve;
@@ -208,12 +263,77 @@ export const updateVariationStock = async (
       let resultStock = newStock + fbsReserve;
       marketProductInstance
         .addUpdateProduct({ stockFBS: resultStock })
-        .then((result) => callback(null, result))
-        .catch((error) => callback(error, null));
+        .then((result) => {
+          if (!result.updateApiStock.updated) {
+            const newErr = new Error(
+              `${marketProductInstance.constructor.name} product api stock update failed`
+            );
+            newErr.classCode = marketProductInstance.constructor.name;
+            newErr.data = result.updateApiStock.error;
+
+            throw newErr;
+          }
+
+          callback(null, result);
+        })
+        .catch((error) => {
+          callback(error, null);
+        });
     };
   });
 
-  return async.parallel(updateRequests);
+  return async.parallel(updateRequests).catch((error) => {
+    console.error(error);
+
+    const revertRequests = {};
+    marketProducts.forEach(
+      ({ marketProductData, marketProductInstance, fbsReserve }) => {
+        // skip market product that wasn't update
+        if (marketProductInstance.constructor.name === error.classCode) {
+          return;
+        }
+
+        revertRequests[marketProductInstance.constructor.name] = (callback) => {
+          let resultStock = (marketProductData.fbsStock ?? 0) + fbsReserve;
+          marketProductInstance
+            .addUpdateProduct({ stockFBS: resultStock })
+            .then((result) => {
+              callback(null, result);
+            })
+            .catch((error) => {
+              callback(error, null);
+            });
+        };
+      }
+    );
+
+    return async.parallel(revertRequests).then(async (results) => {
+      const isRevertSuccess = Object.values(results).every(
+        (product) => product.updateApiStock.updated
+      );
+
+      variation.stockUpdateStatus = isRevertSuccess
+        ? "update-failed-reverted"
+        : "update-failed-revert-failed";
+      await variation.save();
+
+      const revertResultError = new Error(
+        `${
+          error.classCode
+        } product api stock update failed, all variation products stocks ${
+          isRevertSuccess ? "was reverted" : "revert failed"
+        }`
+      );
+
+      revertResultError.code = isRevertSuccess
+        ? "STOCKS-REVERT-SUCCESS"
+        : "STOCKS-REVERT-FAILED";
+      revertResultError.data = error.data;
+      revertResultError.classCode = error.classCode;
+
+      throw revertResultError;
+    });
+  });
 };
 
 export const getProductVariation = (filter, populate) => {
@@ -433,7 +553,7 @@ export const deleteProductVariation = async (id) => {
 
   let isVariationHasConnectedProducts = false;
   for (const Marketplace of Object.values(getMarketplaceClasses())) {
-    const marketProduct = Marketplace._getDbProduct({ variation });
+    const marketProduct = await Marketplace._getDbProduct({ variation });
     if (marketProduct) {
       isVariationHasConnectedProducts = true;
     }
@@ -465,6 +585,14 @@ export const deleteMarketProduct = async (marketType, id) => {
 
   if (!marketProduct) {
     throw new Error(`Продукт - ${id} не найден.`);
+  }
+
+  const connectedSell = await Sells.findOne({
+    marketProduct: marketProduct._id.toString(),
+  });
+
+  if (connectedSell) {
+    throw new Error(`Продукт - ${id} связан с записью о продаже.`);
   }
 
   return marketProduct.delete();
@@ -574,3 +702,52 @@ export const updateWbStocks = (fbmStocks) => {
     console.error({ message: "Wb stocks in db update failed.", e });
   }
 };
+
+const redistributeFailedVariations = async () => {
+  const variationsWithFailedStockUpdate = await getProductVariations(
+    {
+      stockUpdateStatus: [
+        "update-failed-reverted",
+        "update-failed-revert-failed",
+      ],
+    },
+    "product"
+  );
+
+  if (variationsWithFailedStockUpdate.length === 0) {
+    // no variations to be redistributed
+    return [];
+  }
+
+  logger.log({
+    level: "info",
+    date: new Date(),
+    message:
+      "Start redistribute variations for variations with failed stock update",
+  });
+
+  return redistributeVariationsStock(variationsWithFailedStockUpdate, true);
+};
+
+redistributeFailedVariations()
+  .then((result) => {
+    if (result.some((variation) => variation.error)) {
+      throw new Error("Redistribute failed");
+    }
+
+    logger.log({
+      level: "info",
+      date: new Date(),
+      message: "Success initial redistribute failed variations stock.",
+      result,
+    });
+  })
+  .catch((error) => {
+    console.error(error);
+    logger.log({
+      level: "error",
+      date: new Date(),
+      message: "Error while initial redistribute failed variations stock.",
+      error,
+    });
+  });
