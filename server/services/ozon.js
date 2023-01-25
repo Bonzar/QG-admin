@@ -147,22 +147,57 @@ export class Ozon extends Marketplace {
       }
     });
 
-    return ozonAPI
-      .post("v1/product/import/stocks", {
-        stocks,
-      })
-      .then((response) => {
-        return response.data;
-      });
+    return (
+      ozonAPI
+        .post("v1/product/import/stocks", {
+          stocks,
+        })
+        // request errors returns with 200 status and in data info
+        .then((response) => {
+          if (
+            response.data.result.every(
+              (product) =>
+                product.updated ||
+                product.errors.find(
+                  (error) => error.code === "SKU_STOCK_NOT_CHANGE"
+                )
+            )
+          ) {
+            return { updatedAll: true, data: response.data };
+          }
+
+          return { updatedAll: false, data: response.data };
+        })
+        .catch((error) => {
+          console.error(error);
+
+          return {
+            updatedAll: false,
+            error: error.isAxiosError ? error.response?.data : error ?? error,
+          };
+        })
+    );
   }
 
   static #updateApiProductStock(article, newStock) {
-    return this.#updateApiProductsStock([
-      {
-        offer_id: article,
-        stock: +newStock,
-      },
-    ]);
+    return (
+      this.#updateApiProductsStock([
+        {
+          offer_id: article,
+          stock: +newStock,
+        },
+      ])
+        // always success
+        .then((result) => {
+          return {
+            updated: result.updatedAll,
+            error:
+              result.error ?? !result.updatedAll
+                ? result.data[0].errors
+                : null ?? null,
+          };
+        })
+    );
   }
 
   static getApiOrdersToday() {
@@ -433,8 +468,17 @@ export class Ozon extends Marketplace {
     for (const [apiProductSku, apiProductData] of Object.entries(apiProducts)) {
       connectedProducts[apiProductSku] = {
         apiInfo: Object.freeze(apiProductData),
-        fbsStock: apiProductData.stock_quantity,
       };
+    }
+
+    for (const dbProduct of dbProducts) {
+      let connectedProduct = connectedProducts[dbProduct.sku];
+      if (!connectedProduct) {
+        connectedProducts[dbProduct.sku] = {};
+        connectedProduct = connectedProducts[dbProduct.sku];
+      }
+
+      connectedProduct.dbInfo = dbProduct;
     }
 
     for (const productsStock of apiStocks) {
@@ -452,15 +496,6 @@ export class Ozon extends Marketplace {
       connectedProduct.fbmStock = productsStock.stocks.find(
         (stock) => stock.type === "fbo"
       )?.present;
-    }
-
-    for (const dbProduct of dbProducts) {
-      const connectedProduct = connectedProducts[dbProduct.sku];
-      if (!connectedProduct) {
-        continue;
-      }
-
-      connectedProduct.dbInfo = dbProduct;
     }
 
     return connectedProducts;

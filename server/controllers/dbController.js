@@ -30,22 +30,27 @@ const getMarketProductRequest = (
   marketType
 ) => {
   return (callback) => {
-    const marketProductInstance = new Marketplace(marketVariationDbProduct._id);
-    marketProductInstance
-      .getProduct()
-      .then((marketProductData) => {
-        const reserve = marketProductData.fbsReserve ?? 0;
+    const marketProductInstance = new Marketplace(
+      marketVariationDbProduct._id.toString()
+    );
+    marketProductInstance.getProduct().then((marketProductData) => {
+      const reserve = marketProductData.fbsReserve ?? 0;
 
+      marketVariationDbProduct.apiInfo = marketProductData.apiInfo;
+
+      marketVariationDbProduct.fbsReserve = reserve;
+
+      if (marketVariationDbProduct.apiInfo) {
         marketVariationDbProduct.fbsStock =
-          (marketProductData.fbsStock ?? 0) + reserve;
-        marketVariationDbProduct.fbsReserve = reserve;
-        if (["wb", "ozon"].includes(marketType)) {
-          marketVariationDbProduct.fbmStock = marketProductData.fbmStock;
-        }
+          marketProductData.fbsStock + reserve;
+      }
 
-        callback(null, null);
-      })
-      .catch((error) => callback(error, null));
+      if (["wb", "ozon"].includes(marketType)) {
+        marketVariationDbProduct.fbmStock = marketProductData.fbmStock;
+      }
+
+      callback(null, null);
+    });
   };
 };
 
@@ -164,9 +169,12 @@ export const getDbMarketProductPage = async (req, res) => {
       const marketProduct = marketProductData.dbInfo;
       const fbsReserve = marketProductData.fbsReserve ?? 0;
       marketProduct.fbsReserve = fbsReserve;
-      marketProduct.fbsStock = (marketProductData.fbsStock ?? 0) + fbsReserve;
       if (["wb", "ozon"].includes(marketType)) {
         marketProduct.fbmStock = marketProductData.fbmStock;
+      }
+      marketProduct.apiInfo = marketProductData.apiInfo;
+      if (marketProduct.apiInfo) {
+        marketProduct.fbsStock = marketProductData.fbsStock + fbsReserve;
       }
 
       if (marketProduct) {
@@ -401,7 +409,7 @@ export const deleteDbMarketProduct = (req, res) => {
       console.error(error);
       res.status(400).json({
         error,
-        message: `Error while deleting market product from DB. – ${error.message}`,
+        message: `Error while deleting market product from DB.\n${error.message}`,
       });
     });
 };
@@ -496,6 +504,7 @@ export const getAllWooProductVariablesPage = async (req, res) => {
   }
 };
 
+//todo turn filtering from market products to variations
 export const getAllProductsStockPage = async (req, res) => {
   try {
     let allVariationsStockList = [];
@@ -780,13 +789,24 @@ export const getAllVariationsPage = async (req, res) => {
       variation.variationId = variation._id;
     });
 
+    let allVariationsFiltered;
+    // Filtering
+    if (req.query["stock-update-status"] === "not-updated") {
+      allVariationsFiltered = allVariations.filter(
+        (variation) => variation.stockUpdateStatus !== "updated"
+      );
+    } else {
+      allVariationsFiltered = allVariations;
+    }
+
     // Sorting
-    allVariations.sort((variation1, variation2) =>
-      variation1.name.localeCompare(variation2.name, "ru")
+    const allVariationsSorted = allVariationsFiltered.sort(
+      (variation1, variation2) =>
+        variation1.name.localeCompare(variation2.name, "ru")
     );
 
     const splitTables = {};
-    allVariations.forEach((variation) => {
+    allVariationsSorted.forEach((variation) => {
       if (!variation.volume) return;
       if (!splitTables[variation.volume]) {
         splitTables[variation.volume] = [];
@@ -837,7 +857,7 @@ export const updateVariationStock = async (req, res) => {
     const result = await dbService.updateVariationStock(
       req.body.variationId,
       +req.body.readyStock,
-      +req.body.dryStock
+      +(req.body.dryStock ?? 0)
     );
     res.json(result);
   } catch (error) {

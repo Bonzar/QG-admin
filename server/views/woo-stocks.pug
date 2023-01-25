@@ -2,13 +2,13 @@ extends stocks-table
 
 append scripts
     script(src="/scripts/functions/registerMarketplaceStockUpdateListener.js" type="module" defer)
-    script(src="/scripts/functions/registerTableFilters.js" defer)
+    script(src="/scripts/pages/wooStocksPage.js" type="module" defer)
 
 block filters
     div(class="table-filters")
         a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--all") Все по актуальности
         a(class="btn table-filter--btn table-filter-name--isActual table-filter-value--notActual") Не актуальные
-        a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--outofstock") Нет в наличии
+        a(class="btn table-filter--btn table-filter-name--stock_status table-filter-value--outofstockFBS") Нет в наличии
 
 block after-table
     p

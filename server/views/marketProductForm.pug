@@ -93,13 +93,14 @@ fieldset
             required
             checked=(marketProduct ? !marketProductInstance.isActual : false)
         )
-label.label--first-half FBS:#{" "}
+label.label--first-half(class=(marketProductInstance.fbsStock === undefined ? "warning-banner warning-banner--api-error" : "")) FBS:#{" "}
     input(
         name="stockFBS"
         type="number"
         min=(marketProductInstance.fbsReserve ? marketProductInstance.fbsReserve : 0)
         value=(marketProductInstance.fbsStock)
         placeholder="FBS + Reserve"
+        disabled=(marketProductInstance.fbsStock === undefined)
     )
 
 if(marketProduct)

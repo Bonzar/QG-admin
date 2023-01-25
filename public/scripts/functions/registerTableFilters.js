@@ -1,53 +1,44 @@
-// Обработка кнопок-фильтров
-const urlParams = new URLSearchParams(window.location.search.slice(1));
+/**
+ * @param {[{param: string, value: string[]}]} filters
+ */
+export const registerTableFilters = (filters) => {
+  // Обработка кнопок-фильтров
+  const urlParams = new URLSearchParams(window.location.search.slice(1));
 
-for (const { param, value } of [
-  {
-    param: "stock_status",
-    value: [
-      "outofstock",
-      "outofstockFBS",
-      "outofstockFBM",
-      "instockFBS",
-      "instockFBM",
-      "instockSome",
-    ],
-  },
-  {
-    param: "isActual",
-    value: ["notActual", "all"],
-  },
-]) {
-  const filterBtns = document.querySelectorAll(`.table-filter-name--${param}`);
-
-  for (let i = 0; i < filterBtns.length; i++) {
-    const filterBtn = document.querySelector(
-      `.table-filter-value--${value[i]}`
+  for (const { param, value } of filters) {
+    const filterBtns = document.querySelectorAll(
+      `.table-filter-name--${param}`
     );
 
-    if (
-      urlParams.get(param) === value[i] &&
-      !filterBtn.classList.contains("table-filter--btn-active")
-    ) {
-      const oldValue = urlParams.get(param);
-      urlParams.delete(param);
-      filterBtn.classList.add("table-filter--btn-active");
-      filterBtn["href"] = urlParams.toString()
-        ? `?${urlParams.toString()}`
-        : window.location.pathname;
-      urlParams.set(param, oldValue);
-    } else {
-      filterBtn.classList.remove("table-filter--btn-active");
+    for (let i = 0; i < filterBtns.length; i++) {
+      const filterBtn = document.querySelector(
+        `.table-filter-value--${value[i]}`
+      );
 
-      const oldValue = urlParams.get(param);
-
-      urlParams.set(param, value[i]);
-      filterBtn["href"] = `?${urlParams.toString()}`;
-      urlParams.delete(param);
-
-      if (oldValue) {
+      if (
+        urlParams.get(param) === value[i] &&
+        !filterBtn.classList.contains("table-filter--btn-active")
+      ) {
+        const oldValue = urlParams.get(param);
+        urlParams.delete(param);
+        filterBtn.classList.add("table-filter--btn-active");
+        filterBtn["href"] = urlParams.toString()
+          ? `?${urlParams.toString()}`
+          : window.location.pathname;
         urlParams.set(param, oldValue);
+      } else {
+        filterBtn.classList.remove("table-filter--btn-active");
+
+        const oldValue = urlParams.get(param);
+
+        urlParams.set(param, value[i]);
+        filterBtn["href"] = `?${urlParams.toString()}`;
+        urlParams.delete(param);
+
+        if (oldValue) {
+          urlParams.set(param, oldValue);
+        }
       }
     }
   }
-}
+};

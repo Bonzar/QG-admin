@@ -81,7 +81,13 @@ export class Yandex extends Marketplace {
           },
         ],
       },
-    ]);
+      // always success
+    ]).then((result) => {
+      return {
+        updated: result.updatedAll,
+        error: result.error ?? null,
+      };
+    });
   }
 
   //todo update fbsStock in Db only on success api update
@@ -94,7 +100,18 @@ export class Yandex extends Marketplace {
     return yandexAPI
       .put("v2/campaigns/21938028/offers/stocks.json", { skus })
       .then((response) => {
-        return response.data;
+        return {
+          updatedAll: response.data.status === "OK",
+          error: response.data.status === "ERROR" ? response.data.errors : null,
+        };
+      })
+      .catch((error) => {
+        console.error(error);
+
+        return {
+          updatedAll: false,
+          error: error.isAxiosError ? error.response?.data : error ?? error,
+        };
       });
   }
 
@@ -151,9 +168,10 @@ export class Yandex extends Marketplace {
     }
 
     for (const dbProduct of dbProducts) {
-      const connectedProduct = connectedProducts[dbProduct.sku];
+      let connectedProduct = connectedProducts[dbProduct.sku];
       if (!connectedProduct) {
-        continue;
+        connectedProducts[dbProduct.sku] = {};
+        connectedProduct = connectedProducts[dbProduct.sku];
       }
 
       connectedProduct.fbsStock = dbProduct.stockFbs;

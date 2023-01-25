@@ -53,18 +53,31 @@ export class Marketplace {
   }
 
   addUpdateProduct(newData, apiStockUpdater) {
-    return async.parallel({
-      updateApiStock: (callback) => {
-        apiStockUpdater(newData.stockFBS)
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-      addUpdateDbInfo: (callback) => {
-        this.#addUpdateDbInfo(newData)
-          .then((result) => callback(null, result))
-          .catch((error) => callback(error, null));
-      },
-    });
+    return async
+      .parallel({
+        updateApiStock: (callback) => {
+          apiStockUpdater(newData.stockFBS)
+            .then((result) => callback(null, result))
+            .catch((error) => callback(error, null));
+        },
+        addUpdateDbInfo: (callback) => {
+          this.#addUpdateDbInfo(newData)
+            .then((result) => callback(null, result))
+            .catch((error) => callback(error, null));
+        },
+      })
+      .then(async (results) => {
+        const { updateApiStock, addUpdateDbInfo } = results;
+        if (updateApiStock.updated) {
+          const productVariation = addUpdateDbInfo.variation;
+          if (productVariation) {
+            productVariation.stockUpdateStatus = "updated";
+            await productVariation.save();
+          }
+        }
+
+        return results;
+      });
   }
 
   updateStock(newStock, apiStockUpdater) {
@@ -102,11 +115,8 @@ export class Marketplace {
       marketProductDetails.sku = marketProductData.sku;
     }
 
-    if (marketProductData.article) {
-      marketProductDetails.article =
-        marketProductData.article !== ""
-          ? marketProductData.article
-          : undefined;
+    if (marketProductData.article !== undefined) {
+      marketProductDetails.article = marketProductData.article;
     }
 
     marketProductDetails.isActual = marketProductData.isActual

@@ -1,9 +1,11 @@
 import { addLoading } from "../functions/addLoadingIcon.js";
 import { FetchWrapper } from "../functions/fetchWrapper.js";
+import { registerTableFilters } from "../functions/registerTableFilters.js";
 
 const API = new FetchWrapper("/stocks/db/variation/");
 
 const tableCells = document.querySelectorAll(".stocks-tables--cell");
+const stocksTables = document.querySelector(".stocks-tables");
 const header = document.querySelector(".header--body");
 
 const getMobileInputFocusListener = (tableInner, tableCell) => {
@@ -12,7 +14,7 @@ const getMobileInputFocusListener = (tableInner, tableCell) => {
     const form = event.currentTarget.closest(".update-variation-stock--form");
 
     form.closest("tr").classList.add("snap-scroll-stop--center");
-    tableInner.classList.add("update-variation-stock--mobile-small-table");
+    stocksTables.classList.add("update-variation-stock--mobile-small-table");
     header.classList.add("disabled");
     tableCell.classList.replace(
       "snap-scroll-stop--center",
@@ -27,7 +29,7 @@ const getMobileInputBlurListener = (tableInner, tableCell) => {
     const form = event.currentTarget.closest(".update-variation-stock--form");
 
     form.closest("tr").classList.remove("snap-scroll-stop--center");
-    tableInner.classList.remove("update-variation-stock--mobile-small-table");
+    stocksTables.classList.remove("update-variation-stock--mobile-small-table");
     header.classList.remove("disabled");
     tableCell.classList.replace(
       "snap-scroll-stop--start",
@@ -67,17 +69,18 @@ tableCells.forEach((tableCell) => {
         updateProps[key] = value;
       });
 
+      //todo add disable for three dots btn for update time
       const removeLoading = addLoading(form);
-      API.post("updateStock", updateProps)
+      API.post("updateStock/", updateProps)
         .then(() => form.classList.add("disabled"))
         .catch((error) => console.error(error))
         .finally(removeLoading);
     }
 
     if (event.target.classList.contains("update-variation-stock--btn")) {
-      const form = event.target.parentElement.querySelector(
-        ".update-variation-stock--form"
-      );
+      const form = event.target
+        .closest("tr")
+        .querySelector(".update-variation-stock--form");
 
       form.classList.toggle("disabled");
 
@@ -113,3 +116,10 @@ redistributeVariationsStockBtn.addEventListener("click", (event) => {
     .catch((error) => console.error(error))
     .finally(removeLoading);
 });
+
+registerTableFilters([
+  {
+    param: "stock-update-status",
+    value: ["not-updated"],
+  },
+]);
