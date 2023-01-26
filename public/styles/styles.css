@@ -29,6 +29,10 @@ body {
   margin: 0;
 }
 
+html.scroll-snap--vertical body {
+  margin-bottom: 20vh;
+}
+
 @media (pointer: fine) {
   body {
     overflow-y: scroll;
