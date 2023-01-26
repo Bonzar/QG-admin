@@ -8,21 +8,23 @@ export default async (cell, skuUpdate, newStockValue, oldValue, authToken) => {
       },
     }
   )
-    .then(async (response) => {
-      const responseData = await response.json();
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.updateApiStock.updated !== true) {
+        cell.textContent = oldValue;
 
-      if (responseData.result[0].updated === true) {
-        cell.textContent = newStockValue;
-      } else {
-        if (responseData.result[0].errors?.[0].code === "TOO_MANY_REQUESTS") {
+        if (data.updateApiStock.error?.[0].code === "TOO_MANY_REQUESTS") {
           alert("Товар уже был недавно обновлен. Попоробуйте позже.");
         }
-
-        cell.textContent = oldValue;
+        const error = new Error("Ошибка при обновлении остатка Ozon");
+        error.data = data.updateApiStock.error;
+        throw error;
       }
-      return response;
+      cell.textContent = newStockValue;
+
+      return data;
     })
     .catch((error) => {
-      console.log({ error });
+      console.error({ error });
     });
 };

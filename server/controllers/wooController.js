@@ -15,7 +15,7 @@ export const getProductsList = (req, res) => {
         return {
           productInnerId: product.dbInfo?.variation?.product._id,
           marketProductInnerId: product.dbInfo?._id,
-          id: product.apiInfo.id,
+          id: product.apiInfo?.id,
           name:
             (variation?.product.name ?? "") +
             (["3 мл", "10 мл"].includes(variation?.volume)
@@ -24,9 +24,9 @@ export const getProductsList = (req, res) => {
           inStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             updateBy:
-              product.apiInfo.type === "simple"
-                ? `simple-${product.apiInfo.id}`
-                : `variation-${product.apiInfo.id}-${product.apiInfo.parentId}`,
+              product.apiInfo?.type === "simple"
+                ? `simple-${product.apiInfo?.id}`
+                : `variation-${product.apiInfo?.id}-${product.apiInfo?.parentId}`,
             marketType: "woo",
           },
         };

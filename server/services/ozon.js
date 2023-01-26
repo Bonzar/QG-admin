@@ -191,9 +191,10 @@ export class Ozon extends Marketplace {
         .then((result) => {
           return {
             updated: result.updatedAll,
+            data: result.data.result[0],
             error:
               result.error ?? !result.updatedAll
-                ? result.data[0].errors
+                ? result.data.result[0].errors
                 : null ?? null,
           };
         })

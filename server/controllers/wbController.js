@@ -15,8 +15,8 @@ export const getProductsListPage = async (req, res) => {
         productInnerId: product.dbInfo?.variation?.product._id,
         marketProductInnerId: product.dbInfo?._id,
         barcode: product.dbInfo?.barcode ?? "",
-        articleWb: product.apiInfo["nmID"],
-        article: product.apiInfo["vendorCode"],
+        articleWb: product.apiInfo?.["nmID"],
+        article: product.apiInfo?.["vendorCode"],
         name:
           (product.dbInfo?.variation?.product.name ?? "") +
           (["3 мл", "10 мл"].includes(product.dbInfo?.variation?.volume)
@@ -25,7 +25,9 @@ export const getProductsListPage = async (req, res) => {
         stockFBW: product.fbmStock ?? 0,
         stockFBS: {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
-          updateBy: product.dbInfo?.barcode ?? "",
+          updateBy:
+            product.apiInfo?.sizes.find((size) => size.techSize === "0")
+              .skus[0] ?? "",
           marketType: "wb",
         },
       };

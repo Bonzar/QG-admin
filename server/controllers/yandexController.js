@@ -15,7 +15,7 @@ export const getProductsListPage = (req, res) => {
         return {
           productInnerId: product.dbInfo?.variation?.product._id,
           marketProductInnerId: product.dbInfo?._id,
-          productSku: product.apiInfo.shopSku,
+          productSku: product.apiInfo?.shopSku,
           productName:
             (variation?.product.name ?? "") +
             (["3 мл", "10 мл"].includes(variation?.volume)
@@ -23,7 +23,7 @@ export const getProductsListPage = (req, res) => {
               : ""),
           productStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
-            updateBy: product.apiInfo.shopSku,
+            updateBy: product.apiInfo?.shopSku,
             marketType: "yandex",
           },
         };

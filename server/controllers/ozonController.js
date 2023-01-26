@@ -14,8 +14,8 @@ export const getProductsListPage = async (req, res) => {
       return {
         productInnerId: product.dbInfo?.variation?.product._id,
         marketProductInnerId: product.dbInfo?._id,
-        sku: product.apiInfo.id,
-        article: product.apiInfo.offer_id,
+        sku: product.apiInfo?.id,
+        article: product.apiInfo?.offer_id,
         name:
           (product.dbInfo?.variation?.product.name ?? "") +
           (["3 мл", "10 мл"].includes(product.dbInfo?.variation?.volume)
@@ -24,7 +24,7 @@ export const getProductsListPage = async (req, res) => {
         stockFBO: product.fbmStock ?? 0,
         stockFBS: {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
-          updateBy: product.apiInfo.offer_id,
+          updateBy: product.apiInfo?.offer_id,
           marketType: "ozon",
         },
       };

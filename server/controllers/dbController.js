@@ -522,7 +522,7 @@ export const getAllProductsStockPage = async (req, res) => {
         variationStock.yandexStock = {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
           reserve: product.fbsReserve ?? 0,
-          updateBy: product.shopSku,
+          updateBy: product.apiInfo?.shopSku,
           marketType: "yandex",
         };
       } else {
@@ -534,7 +534,7 @@ export const getAllProductsStockPage = async (req, res) => {
           yandexStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             reserve: product.fbsReserve ?? 0,
-            updateBy: product.shopSku,
+            updateBy: product.apiInfo?.shopSku,
             marketType: "yandex",
           },
         });
@@ -555,9 +555,9 @@ export const getAllProductsStockPage = async (req, res) => {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
           reserve: product.fbsReserve ?? 0,
           updateBy:
-            product.type === "simple"
-              ? `simple-${product.id}`
-              : `variation-${product.id}-${product.parentId}`,
+            product.apiInfo?.type === "simple"
+              ? `simple-${product.apiInfo?.id}`
+              : `variation-${product.apiInfo?.id}-${product.apiInfo?.parentId}`,
           marketType: "woo",
         };
       } else {
@@ -570,9 +570,9 @@ export const getAllProductsStockPage = async (req, res) => {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             reserve: product.fbsReserve ?? 0,
             updateBy:
-              product.type === "simple"
-                ? `simple-${product.id}`
-                : `variation-${product.id}-${product.parentId}`,
+              product.apiInfo?.type === "simple"
+                ? `simple-${product.apiInfo?.id}`
+                : `variation-${product.apiInfo?.id}-${product.apiInfo?.parentId}`,
             marketType: "woo",
           },
         });
@@ -593,7 +593,9 @@ export const getAllProductsStockPage = async (req, res) => {
         variationStock.wbStock = {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
           reserve: product.fbsReserve ?? 0,
-          updateBy: product.dbInfo?.barcode ?? "",
+          updateBy:
+            product.apiInfo?.sizes.find((size) => size.techSize === "0")
+              .skus[0] ?? "",
           marketType: "wb",
         };
 
@@ -607,7 +609,9 @@ export const getAllProductsStockPage = async (req, res) => {
           wbStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             reserve: product.fbsReserve ?? 0,
-            updateBy: product.dbInfo?.barcode ?? "",
+            updateBy:
+              product.apiInfo?.sizes.find((size) => size.techSize === "0")
+                .skus[0] ?? "",
             marketType: "wb",
           },
           FBW: product.fbmStock ?? 0,
@@ -629,7 +633,7 @@ export const getAllProductsStockPage = async (req, res) => {
         variationStock.ozonStock = {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
           reserve: product.fbsReserve ?? 0,
-          updateBy: product.offer_id,
+          updateBy: product.apiInfo?.offer_id,
           marketType: "ozon",
         };
         variationStock.FBO = product.fbmStock ?? 0;
@@ -642,7 +646,7 @@ export const getAllProductsStockPage = async (req, res) => {
           ozonStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             reserve: product.fbsReserve ?? 0,
-            updateBy: product.offer_id,
+            updateBy: product.apiInfo?.offer_id,
             marketType: "ozon",
           },
           FBO: product.fbmStock ?? 0,
