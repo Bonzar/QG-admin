@@ -27,7 +27,23 @@ export class Marketplace {
       marketProductDetails.article = marketProductData.article;
     }
 
-    return this.#setProductInfoFromDb(this.search);
+    marketProductDetails.isActual = marketProductData.isActual
+      ? marketProductData.isActual === "true"
+      : true;
+
+    if (marketProductData.variation_volume && marketProductData.product_id) {
+      marketProductDetails.variation = await dbService.getProductVariation({
+        product: marketProductData.product_id,
+        volume: marketProductData.variation_volume,
+      });
+    } else if (
+      marketProductData.variation_volume === "" ||
+      marketProductData.product_id === ""
+    ) {
+      marketProductDetails.variation = null;
+    }
+
+    return marketProductDetails;
   }
 
   async #setProductInfoFromDb(search) {
@@ -200,32 +216,8 @@ export class Marketplace {
     throw new Error("Method should be overwritten and run by child class");
   }
 
-  static _makeCachingForTime(
-    func,
-    argsList,
-    funcCode,
-    cacheTime,
-    forceUpdate = false
-  ) {
-    return () => {
-      const cacheStoreKey = `${funcCode}-args:${JSON.stringify(argsList)}`;
-
-      if (
-        this.cacheStore[cacheStoreKey]?.cacheEndTime > Date.now() &&
-        !forceUpdate
-      ) {
-        return this.cacheStore[cacheStoreKey].funcResult;
-      }
-
-      const updatedResult = func(...argsList);
-      this.cacheStore[cacheStoreKey] = {
-        funcCode,
-        cacheEndTime: Date.now() + cacheTime,
-        funcResult: updatedResult,
-      };
-
-      return updatedResult;
-    };
+  async _getApiProduct() {
+    throw new Error("Method should be overwritten and run by child class");
   }
 
   /**
