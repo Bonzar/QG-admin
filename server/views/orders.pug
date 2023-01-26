@@ -5,7 +5,7 @@ prepend html
 
 block section
     h1= title
-  each market in allOrders
+    each market in allOrders
       if market.today.status || market.overdue.status
           h2= market.name
           each table in ['today', 'overdue']
