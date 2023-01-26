@@ -885,3 +885,16 @@ export const redistributeVariationsStock = async (req, res) => {
     });
   }
 };
+
+export const redistributeVariationStock = async (req, res) => {
+  try {
+    const result = await dbService.redistributeVariationStock(req.params.id);
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      error,
+      message: `Error while updating variation stock. - ${error.message}`,
+    });
+  }
+};

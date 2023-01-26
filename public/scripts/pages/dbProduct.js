@@ -144,6 +144,50 @@ if (productSubmitButton)
 const variationBlocks = document.querySelectorAll(".product-variation--cell");
 for (const variationBlock of variationBlocks) {
   variationBlock.addEventListener("click", addUpdateMarketProduct);
+
+  const variationStockStatus = variationBlock.querySelector(
+    ".variation-stock-status"
+  );
+  variationStockStatus.addEventListener("click", (event) => {
+    const statusMessageDict = {
+      updated: "Остатки вариации успешно обновлены.",
+      "update-failed-reverted":
+        "При обновлении остатков вариации произошла ошибка, все остатки возвращены в предыдущее состояние.",
+      "update-failed-revert-failed":
+        "При обновлении остатков вариации произошла ошибка, востановление не удалось.",
+    };
+    if (
+      confirm(
+        `${
+          statusMessageDict[event.currentTarget.dataset.variationStockStatus]
+        }\nХотите перераспределить остатки?`
+      )
+    ) {
+      const authToken = authCheck();
+
+      const variationId = variationBlock.querySelector(
+        "input[name='variation_id']"
+      )?.value;
+
+      const removeLoading = addLoading(variationStockStatus);
+      fetch(`/stocks/db/variation/${variationId}/redistribute-stock`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data);
+        })
+        .catch((error) => console.error(error))
+        .finally(() => {
+          removeLoading();
+          window.location = "";
+        });
+    }
+  });
 }
 
 const marketProductForms = document.querySelectorAll(".market-product--form");

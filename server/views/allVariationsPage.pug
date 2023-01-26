@@ -14,7 +14,7 @@ append tableCellName
 append tableCells
     td.col--actions
         div.update-variation-stock--btn
-            div.btn.btn--round.variation-stock-status(class=`variation-stock-status--${product.stockUpdateStatus}`)
+            div.btn.btn--round.variation-stock-status(data-variation-stock-status=product.stockUpdateStatus)
             include three-dots-icon.pug
 
 append table-stock-headers

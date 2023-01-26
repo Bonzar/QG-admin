@@ -39,7 +39,7 @@ block content
           each variation in variations
             div.product-variation--cell
                 h2= variation.volume
-                div.btn.btn--round.btn--round--second.variation-stock-status(class=`variation-stock-status--${variation.stockUpdateStatus}`)
+                div.btn.btn--round.btn--round--second.variation-stock-status(data-variation-stock-status=variation.stockUpdateStatus)
 
                 input(required name="variation_id" value=variation._id hidden)
 

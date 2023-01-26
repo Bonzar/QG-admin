@@ -124,11 +124,17 @@ const getVariationActualMarketProducts = async (variationId) => {
   return marketProducts.filter((marketProduct) => !!marketProduct);
 };
 
+export const redistributeVariationStock = (variationId) => {
+  return getProductVariationById(variationId, ["product"]).then((variation) =>
+    redistributeVariationsStock([variation])
+  );
+};
+
 export const redistributeVariationsStock = async (
   variations,
   isProcessFailed
 ) => {
-  if (!(variations?.length > 0 && isProcessFailed)) {
+  if (!(variations?.length > 0) && !isProcessFailed) {
     variations = await getProductVariations({}, "product");
   }
 
@@ -282,58 +288,66 @@ export const updateVariationStock = async (
     };
   });
 
-  return async.parallel(updateRequests).catch((error) => {
-    console.error(error);
+  return async
+    .parallel(updateRequests)
+    .then(async (result) => {
+      await variation.save(); // saving ready and dry stock
+      return result;
+    })
+    .catch((error) => {
+      console.error(error);
 
-    const revertRequests = {};
-    marketProducts.forEach(
-      ({ marketProductData, marketProductInstance, fbsReserve }) => {
-        // skip market product that wasn't update
-        if (marketProductInstance.constructor.name === error.classCode) {
-          return;
+      const revertRequests = {};
+      marketProducts.forEach(
+        ({ marketProductData, marketProductInstance, fbsReserve }) => {
+          // skip market product that wasn't update
+          if (marketProductInstance.constructor.name === error.classCode) {
+            return;
+          }
+
+          revertRequests[marketProductInstance.constructor.name] = (
+            callback
+          ) => {
+            let resultStock = (marketProductData.fbsStock ?? 0) + fbsReserve;
+            marketProductInstance
+              .addUpdateProduct({ stockFBS: resultStock })
+              .then((result) => {
+                callback(null, result);
+              })
+              .catch((error) => {
+                callback(error, null);
+              });
+          };
         }
-
-        revertRequests[marketProductInstance.constructor.name] = (callback) => {
-          let resultStock = (marketProductData.fbsStock ?? 0) + fbsReserve;
-          marketProductInstance
-            .addUpdateProduct({ stockFBS: resultStock })
-            .then((result) => {
-              callback(null, result);
-            })
-            .catch((error) => {
-              callback(error, null);
-            });
-        };
-      }
-    );
-
-    return async.parallel(revertRequests).then(async (results) => {
-      const isRevertSuccess = Object.values(results).every(
-        (product) => product.updateApiStock.updated
       );
 
-      variation.stockUpdateStatus = isRevertSuccess
-        ? "update-failed-reverted"
-        : "update-failed-revert-failed";
-      await variation.save();
+      return async.parallel(revertRequests).then(async (results) => {
+        const isRevertSuccess = Object.values(results).every(
+          (product) => product.updateApiStock.updated
+        );
 
-      const revertResultError = new Error(
-        `${
-          error.classCode
-        } product api stock update failed, all variation products stocks ${
-          isRevertSuccess ? "was reverted" : "revert failed"
-        }`
-      );
+        variation.stockUpdateStatus = isRevertSuccess
+          ? "update-failed-reverted"
+          : "update-failed-revert-failed";
+        await variation.save();
 
-      revertResultError.code = isRevertSuccess
-        ? "STOCKS-REVERT-SUCCESS"
-        : "STOCKS-REVERT-FAILED";
-      revertResultError.data = error.data;
-      revertResultError.classCode = error.classCode;
+        const revertResultError = new Error(
+          `${
+            error.classCode
+          } product api stock update failed, all variation products stocks ${
+            isRevertSuccess ? "was reverted" : "revert failed"
+          }`
+        );
 
-      throw revertResultError;
+        revertResultError.code = isRevertSuccess
+          ? "STOCKS-REVERT-SUCCESS"
+          : "STOCKS-REVERT-FAILED";
+        revertResultError.data = error.data;
+        revertResultError.classCode = error.classCode;
+
+        throw revertResultError;
+      });
     });
-  });
 };
 
 export const getProductVariation = (filter, populate) => {

@@ -72,6 +72,11 @@ router.get("/db/products", dbController.getAllProductsPage);
 // Get request for list of all DB products
 router.get("/db/variations", dbController.getAllVariationsPage);
 
+router.post(
+  "/db/variation/:id/redistribute-stock",
+  dbController.redistributeVariationStock
+);
+
 // Post request for update variation stocks
 router.post(
   "/db/variation/updateStock",

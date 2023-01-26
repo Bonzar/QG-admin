@@ -1075,17 +1075,17 @@ header a {
   -webkit-backdrop-filter: none;
 }
 
-.variation-stock-status--update-failed-reverted {
+.variation-stock-status[data-variation-stock-status='update-failed-reverted'] {
   background-image: url("../images/warning-icon.svg");
   background-color: rgba(255, 182, 43, 0.35);
 }
 
-.variation-stock-status--update-failed-revert-failed {
+.variation-stock-status[data-variation-stock-status='update-failed-revert-failed'] {
   background-image: url("../images/error-icon.svg");
   background-color: rgba(255, 0, 0, 0.12);
 }
 
-.variation-stock-status--updated {
+.variation-stock-status[data-variation-stock-status='updated'] {
   background-image: url("../images/success-icon.svg");
   background-color: rgba(85, 204, 68, 0.22);
 }
