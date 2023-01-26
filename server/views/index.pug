@@ -1,5 +1,6 @@
 extends layout
 append scripts
+    script(src="/scripts/pages/shipmentsPage.js" type="module" defer)
     if authToken
         script.
           localStorage.setItem("authToken", "#{authToken}");
@@ -21,7 +22,7 @@ block section
         a.btn.nav-links--btn(href="/orders/all") Все заказы
     h2 Поставки
     nav.nav-links--block
-        a.btn.nav-links--btn(href="/shipments/ozon") Создать поставку Ozon
+        a.btn.nav-links--btn#get-ozon-shipment-button Создать поставку Ozon
         a.btn.nav-links--btn#get-wb-shipment-button Создать поставку Wb
     h2 Добавить товар
     nav.nav-links--block
