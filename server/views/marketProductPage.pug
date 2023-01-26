@@ -21,7 +21,7 @@ block section
               when "yandex"
                 - marketplaceConsoleLinkData = {href: `https://partner.market.yandex.ru/supplier/21938028/assortment/offer-card?offerId=${marketProduct.sku}`, title: "Product on partner.market.yandex.ru"}
                 if marketProduct.apiInfo
-                - marketplaceLinkData = {href: `https://market.yandex.ru/search?businessId=959757&text=${encodeURI(marketProduct.apiInfo.name)}`, title: "Search product on market.yandex.ru"}
+                  - marketplaceLinkData = {href: `https://market.yandex.ru/search?businessId=959757&text=${encodeURI(marketProduct.apiInfo.name)}`, title: "Search product on market.yandex.ru"}
               when "woo"
                 - marketplaceConsoleLinkData = {href: `https://queridosglitters.ru/wp-admin/post.php?post=${marketProduct.type === 'variation' ? marketProduct.parentVariable.id : marketProduct.id}&action=edit`, title: "Product on queridosglitters.ru/wp-admin/"}
                   if marketProduct.apiInfo
