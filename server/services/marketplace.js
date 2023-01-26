@@ -14,12 +14,17 @@ export class Marketplace {
     this.search = search;
   }
 
-  /**
-   * INSTANCE METHODS
-   */
-  _getDbProduct() {
-    if (this.#dbData) {
-      return this.#dbData;
+  // CLASS METHODS
+  static async getMarketProductDetails(marketProductData) {
+    const marketProductDetails = {};
+
+    // Common fields for all marketplaces
+    if (marketProductData.sku) {
+      marketProductDetails.sku = marketProductData.sku;
+    }
+
+    if (marketProductData.article !== undefined) {
+      marketProductDetails.article = marketProductData.article;
     }
 
     return this.#setProductInfoFromDb(this.search);
@@ -53,62 +58,52 @@ export class Marketplace {
     );
   }
 
-  /**
-   * CLASS METHODS
-   */
-  static async getMarketProductDetails(marketProductData) {
-    const marketProductDetails = {};
+  static _makeCachingForTime(
+    func,
+    argsList,
+    funcCode,
+    cacheTime,
+    forceUpdate = false
+  ) {
+    return () => {
+      const cacheStoreKey = `${funcCode}-args:${JSON.stringify(argsList)}`;
 
-    // Common fields for all marketplaces
-    if (marketProductData.sku) {
-      marketProductDetails.sku = marketProductData.sku;
+      if (
+        this.cacheStore[cacheStoreKey]?.cacheEndTime > Date.now() &&
+        !forceUpdate
+      ) {
+        console.log(
+          `Returned cached ${cacheStoreKey} - caching remain time: ${Math.trunc(
+            (this.cacheStore[cacheStoreKey].cacheEndTime - Date.now()) / 1000
+          )} seconds`
+        );
+
+        return this.cacheStore[cacheStoreKey].funcResult;
+      }
+
+      console.log(
+        `Returned actual ${cacheStoreKey} and cached for - ${Math.trunc(
+          cacheTime / 1000
+        )} seconds`
+      );
+      const updatedResult = func(...argsList);
+      this.cacheStore[cacheStoreKey] = {
+        funcCode,
+        cacheEndTime: Date.now() + cacheTime,
+        funcResult: updatedResult,
+      };
+
+      return updatedResult;
+    };
+  }
+
+  // INSTANCE METHODS
+  _getDbProduct() {
+    if (this.#dbData) {
+      return this.#dbData;
     }
 
-    if (marketProductData.article !== undefined) {
-      marketProductDetails.article = marketProductData.article;
-    }
-
-    marketProductDetails.isActual = marketProductData.isActual
-      ? marketProductData.isActual === "true"
-      : true;
-
-    if (marketProductData.variation_volume && marketProductData.product_id) {
-      marketProductDetails.variation = await dbService.getProductVariation({
-        product: marketProductData.product_id,
-        volume: marketProductData.variation_volume,
-      });
-    } else if (
-      marketProductData.variation_volume === "" ||
-      marketProductData.product_id === ""
-    ) {
-      marketProductDetails.variation = null;
-    }
-
-    return marketProductDetails;
-  }
-
-  updateStock(newStock, apiStockUpdater) {
-    return this.addUpdateProduct({ stockFBS: newStock }, apiStockUpdater);
-  }
-
-  async getProduct() {
-    const dbProduct = await this._getDbProduct();
-    const apiProduct = await this._getApiProduct();
-
-    const connectedApiDbProduct = this.constructor._connectDbApiData(
-      [dbProduct],
-      apiProduct
-    );
-
-    return Object.values(connectedApiDbProduct)[0];
-  }
-
-  async _getApiProduct() {
-    throw new Error("Method should be overwritten and run by child class");
-  }
-
-  static async checkIdentifierExistsInApi() {
-    return true;
+    return this.#setProductInfoFromDb(this.search);
   }
 
   addUpdateProduct(newData, apiStockUpdater) {
@@ -137,6 +132,26 @@ export class Marketplace {
 
         return results;
       });
+  }
+
+  updateStock(newStock, apiStockUpdater) {
+    return this.addUpdateProduct({ stockFBS: newStock }, apiStockUpdater);
+  }
+
+  async getProduct() {
+    const dbProduct = await this._getDbProduct();
+    const apiProduct = await this._getApiProduct();
+
+    const connectedApiDbProduct = this.constructor._connectDbApiData(
+      [dbProduct],
+      apiProduct
+    );
+
+    return Object.values(connectedApiDbProduct)[0];
+  }
+
+  static async checkIdentifierExistsInApi() {
+    return true;
   }
 
   static _getDbProducts(filter = {}) {
