@@ -88,20 +88,8 @@ export class Marketplace {
         this.cacheStore[cacheStoreKey]?.cacheEndTime > Date.now() &&
         !forceUpdate
       ) {
-        console.log(
-          `Returned cached ${cacheStoreKey} - caching remain time: ${Math.trunc(
-            (this.cacheStore[cacheStoreKey].cacheEndTime - Date.now()) / 1000
-          )} seconds`
-        );
-
         return this.cacheStore[cacheStoreKey].funcResult;
       }
-
-      console.log(
-        `Returned actual ${cacheStoreKey} and cached for - ${Math.trunc(
-          cacheTime / 1000
-        )} seconds`
-      );
       const updatedResult = func(...argsList);
       this.cacheStore[cacheStoreKey] = {
         funcCode,
