@@ -1033,7 +1033,7 @@ header a {
   margin: 0;
 }
 
-.update-variation-stock--form input[type="number"] {
+.update-variation-stock--form input[type="tel"] {
   width: 9rem;
 }
 

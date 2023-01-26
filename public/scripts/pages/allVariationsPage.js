@@ -5,21 +5,28 @@ import { registerTableFilters } from "../functions/registerTableFilters.js";
 const API = new FetchWrapper("/stocks/db/variation/");
 
 const tableCells = document.querySelectorAll(".stocks-tables--cell");
-const stocksTables = document.querySelector(".stocks-tables");
 const header = document.querySelector(".header--body");
 
 const getMobileInputFocusListener = (tableInner, tableCell) => {
-  return (event) => {
+  return async (event) => {
     event.stopPropagation();
     const form = event.currentTarget.closest(".update-variation-stock--form");
 
-    form.closest("tr").classList.add("snap-scroll-stop--center");
-    stocksTables.classList.add("update-variation-stock--mobile-small-table");
     header.classList.add("disabled");
+
     tableCell.classList.replace(
       "snap-scroll-stop--center",
       "snap-scroll-stop--start"
     );
+
+    tableCell.classList.add("update-variation-stock--mobile-small-table");
+
+    for (const tableCellToDisableSnap of tableCells) {
+      if (tableCellToDisableSnap !== tableCell)
+        tableCellToDisableSnap.classList.remove("snap-scroll-stop--center");
+    }
+
+    form.closest("tr").classList.add("snap-scroll-stop--center");
   };
 };
 
@@ -27,14 +34,20 @@ const getMobileInputBlurListener = (tableInner, tableCell) => {
   return (event) => {
     event.stopPropagation();
     const form = event.currentTarget.closest(".update-variation-stock--form");
-
     form.closest("tr").classList.remove("snap-scroll-stop--center");
-    stocksTables.classList.remove("update-variation-stock--mobile-small-table");
-    header.classList.remove("disabled");
+
+    tableCell.classList.remove("update-variation-stock--mobile-small-table");
+
     tableCell.classList.replace(
       "snap-scroll-stop--start",
       "snap-scroll-stop--center"
     );
+
+    for (const tableCell of tableCells) {
+      tableCell.classList.add("snap-scroll-stop--center");
+    }
+
+    header.classList.remove("disabled");
   };
 };
 
@@ -84,23 +97,25 @@ tableCells.forEach((tableCell) => {
 
       form.classList.toggle("disabled");
 
-      // code below only for mobile
-      if (!window.matchMedia("(pointer:coarse)").matches) {
-        return;
-      }
-
-      const inputs = form.querySelectorAll('input[type="number"]');
+      const inputs = form.querySelectorAll('input[type="tel"]');
 
       if (!form.classList.contains("disabled")) {
-        inputs.forEach((input) => {
-          input.addEventListener("focus", mobileInputFocusListener);
-          input.addEventListener("blur", mobileInputBlurListener);
-        });
+        // code below only for mobile
+        if (window.matchMedia("(pointer:coarse)").matches) {
+          inputs.forEach((input) => {
+            input.addEventListener("focus", mobileInputFocusListener);
+            input.addEventListener("blur", mobileInputBlurListener);
+          });
+        }
+
+        inputs[0]?.focus();
       } else {
-        inputs.forEach((input) => {
-          input.removeEventListener("focus", mobileInputFocusListener);
-          input.removeEventListener("blur", mobileInputBlurListener);
-        });
+        if (window.matchMedia("(pointer:coarse)").matches) {
+          inputs.forEach((input) => {
+            input.removeEventListener("focus", mobileInputFocusListener);
+            input.removeEventListener("blur", mobileInputBlurListener);
+          });
+        }
       }
     }
   });

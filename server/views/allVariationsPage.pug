@@ -5,9 +5,9 @@ append scripts
 
 append tableCellName
     form.update-variation-stock--form.disabled
-        input(name="readyStock" type="number" min=0 placeholder='Готовые' required)
+        input(name="readyStock" type="tel" min=0 placeholder='Готовые' required)
         if product.volume === '3 мл' || product.volume === '6 мл'
-            input(name="dryStock" type="number" min=0  placeholder='Сухие')
+            input(name="dryStock" type="tel" min=0  placeholder='Сухие')
         input.btn.update-variation-stock--submit-button(type='submit' value="OK")
         input(type="text" value=product.variationId hidden name="variationId" required)
 
