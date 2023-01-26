@@ -16,7 +16,7 @@ block section
                 - marketplaceLinkData = { href: `https://www.wildberries.ru/catalog/${marketProduct.sku}/detail.aspx`, title: "Product on www.wildberries.ru"}
               when "ozon"
                 - marketplaceConsoleLinkData = {href: `https://seller.ozon.ru/app/products/${marketProduct.sku}/edit/preview`, title: "Product on seller.ozon.ru"}
-                if marketProduct.apiInfo
+                if marketProduct.apiInfo && marketProduct.apiInfo.sources[0]
                   - marketplaceLinkData = {href: `https://www.ozon.ru/product/${marketProduct.apiInfo.sources[0].sku}`, title: "Product on www.ozon.ru"}
               when "yandex"
                 - marketplaceConsoleLinkData = {href: `https://partner.market.yandex.ru/supplier/21938028/assortment/offer-card?offerId=${marketProduct.sku}`, title: "Product on partner.market.yandex.ru"}
