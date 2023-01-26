@@ -1,10 +1,14 @@
 extends layout
+
+prepend html
+  - setHtmlScrollSnap = true
+
 block main
     main(class=mainClass)
         block content
             section
                 block headerSection
-                    h1.snap-scroll-stop--end= title
+                    h1= title
             block beforeTables
             section.section--wide
                 div.stocks-tables
