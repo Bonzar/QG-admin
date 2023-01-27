@@ -1004,7 +1004,7 @@ header a {
   flex-flow: column;
   width: 2rem;
   height: 3rem;
-  padding: 0.5rem;
+  padding: 0.5rem 1.375rem;
   align-items: center;
   justify-content: space-around;
   pointer-events: none;
