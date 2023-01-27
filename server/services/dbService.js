@@ -756,25 +756,25 @@ const redistributeFailedVariations = async () => {
   return redistributeVariationsStock(variationsWithFailedStockUpdate, true);
 };
 
-redistributeFailedVariations()
-  .then((result) => {
-    if (result.some((variation) => variation.error)) {
-      throw new Error("Redistribute failed");
-    }
-
-    logger.log({
-      level: "info",
-      date: new Date(),
-      message: "Success initial redistribute failed variations stock.",
-      result,
-    });
-  })
-  .catch((error) => {
-    console.error(error);
-    logger.log({
-      level: "error",
-      date: new Date(),
-      message: "Error while initial redistribute failed variations stock.",
-      error,
-    });
-  });
+// redistributeFailedVariations()
+//   .then((result) => {
+//     if (result.some((variation) => variation.error)) {
+//       throw new Error("Redistribute failed");
+//     }
+//
+//     logger.log({
+//       level: "info",
+//       date: new Date(),
+//       message: "Success initial redistribute failed variations stock.",
+//       result,
+//     });
+//   })
+//   .catch((error) => {
+//     console.error(error);
+//     logger.log({
+//       level: "error",
+//       date: new Date(),
+//       message: "Error while initial redistribute failed variations stock.",
+//       error,
+//     });
+//   });
