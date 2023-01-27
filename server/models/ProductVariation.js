@@ -9,6 +9,7 @@ const ProductVariation = new Schema({
   },
   readyStock: { type: Number, required: true, default: 0 },
   dryStock: { type: Number, required: true, default: 0 },
+  stockOnError: { type: Number },
   stockUpdateStatus: {
     type: String,
     enum: ["updated", "update-failed-reverted", "update-failed-revert-failed"],

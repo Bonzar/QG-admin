@@ -888,7 +888,10 @@ export const redistributeVariationsStock = async (req, res) => {
 
 export const redistributeVariationStock = async (req, res) => {
   try {
-    const result = await dbService.redistributeVariationStock(req.params.id);
+    const result = await dbService.redistributeVariationStock(
+      req.params.id,
+      req.body.isProcessFailed
+    );
     res.json(result);
   } catch (error) {
     console.error(error);

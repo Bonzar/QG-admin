@@ -124,9 +124,9 @@ const getVariationActualMarketProducts = async (variationId) => {
   return marketProducts.filter((marketProduct) => !!marketProduct);
 };
 
-export const redistributeVariationStock = (variationId) => {
+export const redistributeVariationStock = (variationId, isProcessFailed) => {
   return getProductVariationById(variationId, ["product"]).then((variation) =>
-    redistributeVariationsStock([variation])
+    redistributeVariationsStock([variation], isProcessFailed)
   );
 };
 
@@ -147,22 +147,20 @@ export const redistributeVariationsStock = async (
             return null;
           }
 
-          let updateStock;
-          if (!isProcessFailed) {
-            updateStock = marketProducts.reduce(
-              (total, marketProduct) =>
-                total +
-                (marketProduct.marketProductData.fbsStock ?? 0) +
-                (marketProduct.marketProductData.fbsReserve ?? 0),
-              0
-            );
-          } else {
-            updateStock = variation.readyStock;
-          }
+          const currentFbsStock = marketProducts.reduce(
+            (total, marketProduct) =>
+              total +
+              (marketProduct.marketProductData.fbsStock ?? 0) +
+              (marketProduct.marketProductData.fbsReserve ?? 0),
+            0
+          );
 
           return updateVariationStock(
             variation._id,
-            updateStock,
+            !isProcessFailed
+              ? currentFbsStock
+              : variation.readyStock -
+                  (variation.stockOnError - currentFbsStock),
             !isProcessFailed ? 0 : variation.dryStock,
             marketProducts
           );
@@ -192,6 +190,10 @@ export const updateVariationStock = async (
 
   if (marketProducts.length <= 0) {
     throw new Error("Не найдены продукты для обновления");
+  }
+
+  if (isNaN(+readyStock)) {
+    throw new Error("Неверно указаны готовые остатки.");
   }
 
   let allFbsReserve = 0;
@@ -322,6 +324,10 @@ export const updateVariationStock = async (
       );
 
       return async.parallel(revertRequests).then(async (results) => {
+        const actualMarketProducts = await getVariationActualMarketProducts(
+          variationId
+        );
+
         const isRevertSuccess = Object.values(results).every(
           (product) => product.updateApiStock.updated
         );
@@ -329,6 +335,13 @@ export const updateVariationStock = async (
         variation.stockUpdateStatus = isRevertSuccess
           ? "update-failed-reverted"
           : "update-failed-revert-failed";
+        variation.stockOnError = actualMarketProducts.reduce(
+          (total, marketProduct) =>
+            total +
+            (marketProduct.marketProductData.fbsStock ?? 0) +
+            (marketProduct.marketProductData.fbsReserve ?? 0),
+          0
+        );
         await variation.save();
 
         const revertResultError = new Error(

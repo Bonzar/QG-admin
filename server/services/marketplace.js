@@ -128,8 +128,12 @@ export class Marketplace {
         const { updateApiStock, addUpdateDbInfo } = results;
         if (updateApiStock.updated) {
           const productVariation = addUpdateDbInfo.variation;
-          if (productVariation) {
+          if (
+            productVariation &&
+            productVariation.stockUpdateStatus !== "updated"
+          ) {
             productVariation.stockUpdateStatus = "updated";
+            productVariation.stockOnError = undefined;
             await productVariation.save();
           }
         }

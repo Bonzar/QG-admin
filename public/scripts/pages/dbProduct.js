@@ -149,20 +149,29 @@ for (const variationBlock of variationBlocks) {
     ".variation-stock-status"
   );
   variationStockStatus.addEventListener("click", (event) => {
-    const statusMessageDict = {
-      updated: "Остатки вариации успешно обновлены.",
-      "update-failed-reverted":
-        "При обновлении остатков вариации произошла ошибка, все остатки возвращены в предыдущее состояние.",
-      "update-failed-revert-failed":
-        "При обновлении остатков вариации произошла ошибка, востановление не удалось.",
-    };
-    if (
-      confirm(
-        `${
-          statusMessageDict[event.currentTarget.dataset.variationStockStatus]
-        }\nХотите перераспределить остатки?`
-      )
-    ) {
+    const requestOptions = {};
+    let actionAccept = false;
+
+    switch (event.currentTarget.dataset.variationStockStatus) {
+      case "updated":
+        actionAccept = confirm(
+          "Остатки вариации успешно обновлены.\nХотите перераспределить остатки?"
+        );
+        break;
+      case "update-failed-reverted":
+        actionAccept = confirm(
+          "При обновлении остатков вариации произошла ошибка, все остатки возвращены в предыдущее состояние.\nХотите попробовать обновить остатки снова?"
+        );
+        requestOptions.isProcessFailed = true;
+        break;
+      case "update-failed-revert-failed":
+        actionAccept = confirm(
+          "При обновлении остатков вариации произошла ошибка, востановление не удалось.\nХотите попробовать обновить остатки снова?"
+        );
+        requestOptions.isProcessFailed = true;
+        break;
+    }
+    if (actionAccept) {
       const authToken = authCheck();
 
       const variationId = variationBlock.querySelector(
@@ -176,6 +185,7 @@ for (const variationBlock of variationBlocks) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
+        body: JSON.stringify(requestOptions),
       })
         .then((response) => response.json())
         .then((data) => {
