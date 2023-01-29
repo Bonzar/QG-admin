@@ -100,4 +100,8 @@ registerTableFilters([
     param: "stock-update-status",
     value: ["not-updated"],
   },
+  {
+    param: "isActual",
+    value: ["notActual", "all"],
+  },
 ]);

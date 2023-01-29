@@ -5,10 +5,7 @@ import { Ozon } from "../services/ozon.js";
 import { Wildberries } from "../services/wildberries.js";
 import { Yandex } from "../services/yandex.js";
 import { Woocommerce } from "../services/woocommerce.js";
-import {
-  filterMarketProducts,
-  getMarketplaceClasses,
-} from "../services/helpers.js";
+import { getMarketplaceClasses } from "../services/helpers.js";
 
 const isValidationPass = (req, res) => {
   let errors = validationResult(req);
@@ -793,15 +790,31 @@ export const getAllVariationsPage = async (req, res) => {
       variation.variationId = variation._id;
     });
 
-    let allVariationsFiltered;
     // Filtering
-    if (req.query["stock-update-status"] === "not-updated") {
-      allVariationsFiltered = allVariations.filter(
-        (variation) => variation.stockUpdateStatus !== "updated"
-      );
-    } else {
-      allVariationsFiltered = allVariations;
-    }
+    let allVariationsFiltered = allVariations.filter((variation) => {
+      const isProductPassingFilterList = [];
+
+      // By stock update status
+      if (req.query["stock-update-status"] === "not-updated") {
+        isProductPassingFilterList.push(
+          variation.stockUpdateStatus !== "updated"
+        );
+      }
+
+      // By actual
+      switch (req.query.isActual) {
+        case "notActual":
+          isProductPassingFilterList.push(variation.product.isActual === false);
+          break;
+        case "all":
+          break;
+        // Only actual by default
+        default:
+          isProductPassingFilterList.push(variation.product.isActual !== false);
+      }
+
+      return isProductPassingFilterList.every((flag) => flag);
+    });
 
     // Sorting
     const allVariationsSorted = allVariationsFiltered.sort(
