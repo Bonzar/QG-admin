@@ -19,10 +19,19 @@ attributes:
       # (Required) the name of the environment variable
       # that will be available in the dev environment
       # - name: USERNAME
-      # description: 'Space username'
-    # requiredSecrets:
-      # - name: PASSWORD
-      # description: 'Space permanent token'
+      #   description: 'Space username'
+    requiredSecrets:
+       - name: JWT_SECRET
+       - name: MONGODB_URI
+         description: 'Mongo connect url (by user)'
+       - name: OZON_APIKEY
+       - name: OZON_CLIENTID
+       - name: WB_APIKEY
+       - name: WB_APISTATKEY
+       - name: WOO_APIKEY
+       - name: WOO_CLIENTID
+       - name: YANDEX_CLIENTID
+       - name: YANDEX_OAUTHTOKEN
 components:
   - name: dev-container
     # Dev environment container config
