@@ -1,7 +1,7 @@
 {
-  "name": "my-first-website",
+  "name": "qg-admin",
   "version": "1.0.0",
-  "description": "first web project to learn",
+  "description": "Console to manage Queridos Glitters business",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "parcel serve index.html",
