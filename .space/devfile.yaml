@@ -15,9 +15,11 @@ attributes:
       updateChannel: Release
     # Parameters and secretes required by a dev environment
     # e.g., credentials to an external service
-    # requiredParameters:
+    requiredParameters:
       # (Required) the name of the environment variable
       # that will be available in the dev environment
+      - name: TZ
+        description: 'Time zone'
       # - name: USERNAME
       #   description: 'Space username'
     requiredSecrets:
@@ -32,13 +34,3 @@ attributes:
        - name: WOO_CLIENTID
        - name: YANDEX_CLIENTID
        - name: YANDEX_OAUTHTOKEN
-components:
-  - name: dev-container
-    # Dev environment container config
-    container:
-      # use image from a Space Packages registry
-      image: bonzar.registry.jetbrains.space/p/qg/dev-container/myimage:latest
-      # environment variables
-      env:
-        - name: TZ
-          value: 'Europe/Moscow'
