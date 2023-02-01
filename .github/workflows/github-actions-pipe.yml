@@ -1,18 +1,30 @@
 name: GitHub Actions Deploy on server
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [ push ]
+run-name: ${{ github.actor }} is deploying on server 🚀
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 jobs:
-  Explore-GitHub-Actions:
+  init:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 16.x ]
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v3
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+      - uses: actions/checkout@v3
+      - # Setup ssh key
+      - name: Setup key
+        run: set -eu && mkdir "$HOME/.ssh" && echo "$" > "$HOME/.ssh/SSH_PRIVATE_KEY" && chmod 600 "$HOME/.ssh/SSH_PRIVATE_KEY"
+      - name: Staring Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+        # Install modules
+      - name: Install modules
+        run: npm ci
+      - name: install server modules
+        run: cd ./server && npm ci && cd ..
+        # Deploy
+      - name: Deploying to server
+        run: rsync -e "ssh -p 20022 -i $HOME/.ssh/SSH_PRIVATE_KEY -o StrictHostKeyChecking=no" --archive --compress --delete . donaros4@donaros4.beget.tech/home/d/donaros4/donaros4.beget.tech/QG-admin
