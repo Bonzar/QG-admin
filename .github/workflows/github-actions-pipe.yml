@@ -27,4 +27,4 @@ jobs:
         run: cd ./server && npm ci && cd ..
       # Deploy
       - name: Deploying to server
-        run: rsync -e "ssh -p 20022 -i $HOME/.ssh/SSH_PRIVATE_KEY -o StrictHostKeyChecking=no" --archive --compress --delete . donaros4@donaros4.beget.tech/home/d/donaros4/donaros4.beget.tech/QG-admin
+        run: rsync -e "ssh -p 20022 -i $HOME/.ssh/SSH_PRIVATE_KEY -o StrictHostKeyChecking=no" --archive --compress --delete . donaros4@donaros4.beget.tech:/home/d/donaros4/donaros4.beget.tech/QG-admin
