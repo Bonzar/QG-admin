@@ -13,18 +13,18 @@ jobs:
         node-version: [ 16.x ]
     steps:
       - uses: actions/checkout@v3
-      - # Setup ssh key
+      # Setup ssh key
       - name: Setup key
         run: set -eu && mkdir "$HOME/.ssh" && echo "$" > "$HOME/.ssh/SSH_PRIVATE_KEY" && chmod 600 "$HOME/.ssh/SSH_PRIVATE_KEY"
       - name: Staring Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-        # Install modules
+      # Install modules
       - name: Install modules
         run: npm ci
       - name: install server modules
         run: cd ./server && npm ci && cd ..
-        # Deploy
+      # Deploy
       - name: Deploying to server
         run: rsync -e "ssh -p 20022 -i $HOME/.ssh/SSH_PRIVATE_KEY -o StrictHostKeyChecking=no" --archive --compress --delete . donaros4@donaros4.beget.tech/home/d/donaros4/donaros4.beget.tech/QG-admin
