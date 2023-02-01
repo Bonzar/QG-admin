@@ -41,6 +41,7 @@ jobs:
           user: ${{secrets.SSH_USER}}
           private_key: ${{secrets.SSH_PRIVATE_KEY}}
           command: |
+            ssh localhost -p 222
             cd ${{ secrets.PROJECT_FOLDER }};
             git checkout main;
             git pull;
