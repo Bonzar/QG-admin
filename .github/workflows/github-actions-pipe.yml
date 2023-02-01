@@ -40,4 +40,5 @@ jobs:
           host: ${{secrets.SSH_HOST}}
           user: ${{secrets.SSH_USER}}
           private_key: ${{secrets.SSH_PRIVATE_KEY}}
-          command: ssh localhost -p 222 && cd ${{ secrets.PROJECT_FOLDER }} && git checkout production && git pull && npm i && cd server && npm i && touch ./tmp/restart.txt
+          command: ssh localhost -p 222 && cd ${{ secrets.PROJECT_FOLDER }} && ls -la
+#          git checkout production && git pull && npm i && cd server && npm i && touch ./tmp/restart.txt
