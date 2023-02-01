@@ -1,0 +1,41 @@
+name: GitHub Actions Deploy on server
+run-name: ${{ github.actor }} is deploying on server 🚀
+on:
+  push:
+    branches: [ main ]
+jobs:
+#  init:
+  #    runs-on: ubuntu-latest
+  #    strategy:
+  #      matrix:
+  #        node-version: [ 16.x ]
+  #    steps:
+  #      - uses: actions/checkout@v3
+  #      # Setup ssh key
+  #      - name: Setup key
+  #        run: set -eu && mkdir "$HOME/.ssh" && echo "$" > "$HOME/.ssh/SSH_PRIVATE_KEY" && chmod 600 "$HOME/.ssh/SSH_PRIVATE_KEY"
+  #      - name: Staring Node.js ${{ matrix.node-version }}
+  #        uses: actions/setup-node@v3
+  #        with:
+  #          node-version: ${{ matrix.node-version }}
+  #      # Install modules
+  #      - name: Install modules
+  #        run: npm ci
+  #      - name: install server modules
+  #        run: cd ./server && npm ci && cd ..
+  #      # Deploy
+  #      - name: Deploying to server
+  #        run: rsync -e "ssh -p 20022 -i $HOME/.ssh/SSH_PRIVATE_KEY -o StrictHostKeyChecking=no" --archive --compress --delete . donaros4@donaros4.beget.tech:/home/d/donaros4/donaros4.beget.tech/QG-admin
+  deploy:
+    #    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run command on remote server
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{secrets.SSH_HOST}}
+          user: ${{secrets.SSH_USER}}
+          private_key: ${{secrets.SSH_PRIVATE_KEY}}
+          command: ssh localhost -p 222 "cd ${{ secrets.PROJECT_FOLDER }} && ls -la && git pull && npm install && cd server && npm install && touch ./tmp/restart.txt"

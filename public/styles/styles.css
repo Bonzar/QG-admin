@@ -29,10 +29,6 @@ body {
   margin: 0;
 }
 
-html.scroll-snap--vertical body {
-  margin-bottom: 20vh;
-}
-
 @media (pointer: fine) {
   body {
     overflow-y: scroll;
@@ -480,6 +476,10 @@ header a {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(40rem, 90vw), 1fr));
   gap: 2rem;
+}
+
+.stocks-tables--cell.snap-scroll-stop--center:last-of-type {
+  scroll-snap-align: end;
 }
 
 .stocks-table--wrapper {

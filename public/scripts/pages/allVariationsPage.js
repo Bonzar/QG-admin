@@ -5,51 +5,12 @@ import { registerTableFilters } from "../functions/registerTableFilters.js";
 const API = new FetchWrapper("/stocks/db/variation/");
 
 const tableCells = document.querySelectorAll(".stocks-tables--cell");
-const header = document.querySelector(".header--body");
 
-const getMobileInputFocusListener = (tableInner, tableCell) => {
-  return async (event) => {
-    event.stopPropagation();
-    const form = event.currentTarget.closest(".update-variation-stock--form");
+const getMobileInputFocusListener = () => () =>
+  document.documentElement.classList.remove("scroll-snap--vertical");
 
-    header.classList.add("disabled");
-
-    tableCell.classList.replace(
-      "snap-scroll-stop--center",
-      "snap-scroll-stop--start"
-    );
-
-    tableCell.classList.add("update-variation-stock--mobile-small-table");
-
-    for (const tableCellToDisableSnap of tableCells) {
-      if (tableCellToDisableSnap !== tableCell)
-        tableCellToDisableSnap.classList.remove("snap-scroll-stop--center");
-    }
-
-    form.closest("tr").classList.add("snap-scroll-stop--center");
-  };
-};
-
-const getMobileInputBlurListener = (tableInner, tableCell) => {
-  return (event) => {
-    event.stopPropagation();
-    const form = event.currentTarget.closest(".update-variation-stock--form");
-    form.closest("tr").classList.remove("snap-scroll-stop--center");
-
-    tableCell.classList.remove("update-variation-stock--mobile-small-table");
-
-    tableCell.classList.replace(
-      "snap-scroll-stop--start",
-      "snap-scroll-stop--center"
-    );
-
-    for (const tableCell of tableCells) {
-      tableCell.classList.add("snap-scroll-stop--center");
-    }
-
-    header.classList.remove("disabled");
-  };
-};
+const getMobileInputBlurListener = () => () =>
+  document.documentElement.classList.add("scroll-snap--vertical");
 
 tableCells.forEach((tableCell) => {
   const tableInner = tableCell.querySelector(".stocks-table--inner");
@@ -102,6 +63,8 @@ tableCells.forEach((tableCell) => {
       if (!form.classList.contains("disabled")) {
         // code below only for mobile
         if (window.matchMedia("(pointer:coarse)").matches) {
+          document.documentElement.classList.remove("scroll-snap--vertical");
+
           inputs.forEach((input) => {
             input.addEventListener("focus", mobileInputFocusListener);
             input.addEventListener("blur", mobileInputBlurListener);
@@ -136,5 +99,9 @@ registerTableFilters([
   {
     param: "stock-update-status",
     value: ["not-updated"],
+  },
+  {
+    param: "isActual",
+    value: ["notActual", "all"],
   },
 ]);

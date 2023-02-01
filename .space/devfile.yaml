@@ -1,0 +1,36 @@
+schemaVersion: 2.2.0
+metadata:
+  name: 'Main env configuration'
+attributes:
+  space:
+    # regular, large, xlarge
+    instanceType: regular
+    # a default IDE for the project
+    editor:
+      # (Required) IDE type: Idea, WebStorm, PyCharm,
+      # RubyMine, CLion, Fleet, GoLand, PhpStorm
+      type: WebStorm
+      # Space uses JetBrains Toolbox App to install IDEs to a dev environment.
+      # updateChannel defines IDE version release stage: Release, EAP
+      updateChannel: Release
+    # Parameters and secretes required by a dev environment
+    # e.g., credentials to an external service
+    requiredParameters:
+      # (Required) the name of the environment variable
+      # that will be available in the dev environment
+      - name: TZ
+        description: 'Time zone'
+      # - name: USERNAME
+      #   description: 'Space username'
+    requiredSecrets:
+       - name: JWT_SECRET
+       - name: MONGODB_URI
+         description: 'Mongo connect url (by user)'
+       - name: OZON_APIKEY
+       - name: OZON_CLIENTID
+       - name: WB_APIKEY
+       - name: WB_APISTATKEY
+       - name: WOO_APIKEY
+       - name: WOO_CLIENTID
+       - name: YANDEX_CLIENTID
+       - name: YANDEX_OAUTHTOKEN
