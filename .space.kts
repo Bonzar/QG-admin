@@ -14,7 +14,7 @@ job("Warmup data for IDEA") {
 
     warmup(ide = Ide.WebStorm) {
         // path to the warm-up script
-        scriptLocation = "./dev-env-warmup.sh"
+        // scriptLocation = "./dev-env-warmup.sh"
         // use image specified in the devfile
         devfile = ".space/devfile.yaml"
     }
