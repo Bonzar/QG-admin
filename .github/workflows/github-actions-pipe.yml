@@ -3,8 +3,6 @@ run-name: ${{ github.actor }} is deploying on server 🚀
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 jobs:
 #  init:
   #    runs-on: ubuntu-latest
@@ -40,4 +38,4 @@ jobs:
           host: ${{secrets.SSH_HOST}}
           user: ${{secrets.SSH_USER}}
           private_key: ${{secrets.SSH_PRIVATE_KEY}}
-          command: ssh localhost -p 222 "cd ${{ secrets.PROJECT_FOLDER }} && ls -la && git pull origin production && npm install && cd server && npm install"
+          command: ssh localhost -p 222 "cd ${{ secrets.PROJECT_FOLDER }} && ls -la && git pull && npm install && cd server && npm install && touch ./tmp/restart.txt"
