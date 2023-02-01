@@ -31,29 +31,13 @@ jobs:
   deploy:
     #    needs: test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [ 16.x ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      # Install modules
-      - name: Staring Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - name: Run command on remote server
+        uses: D3rHase/ssh-command-action@v0.2.2
         with:
-          node-version: ${{ matrix.node-version }}
-      - name: Install modules
-        run: npm ci
-      - name: install server modules
-        run: cd ./server && npm ci && cd ..
-      - name: view files structured
-        run: ls -la
-      # Copy a folder recursively to a remote server
-      - name: Copy folder content recursively to remote
-        uses: garygrossgarten/github-action-scp@release
-        with:
-          local: .
-          remote: ~/donaros4.beget.tech/QG-admin/test
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          privateKey: ${{secrets.SSH_PRIVATE_KEY}}
+          host: ${{secrets.SSH_HOST}}
+          user: ${{secrets.SSH_USER}}
+          private_key: ${{secrets.SSH_PRIVATE_KEY}}
+          command: ssh localhost -p 222 "cd ${{ secrets.PROJECT_FOLDER }} && git pull origin production && npm install && cd server && npm install"
