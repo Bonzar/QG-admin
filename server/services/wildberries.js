@@ -438,6 +438,18 @@ export class Wildberries extends Marketplace {
       });
   }
 
+  static #getApiShipments(dateFrom = 0) {
+    return wbStatAPI
+      .get(
+        `api/v1/supplier/incomes?dateFrom=${formatInTimeZone(
+          dateFrom,
+          "UTC",
+          "yyyy-MM-dd"
+        )}`
+      )
+      .then((response) => response.data);
+  }
+
   static async getApiShipmentPredict(mayakSellsPerYear) {
     return async
       .parallel({
