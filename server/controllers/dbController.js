@@ -21,37 +21,43 @@ const isValidationPass = (req, res) => {
   return true;
 };
 
-const getMarketProductRequest = (
-  Marketplace,
-  marketVariationDbProduct,
-  marketType
-) => {
-  return (callback) => {
-    const marketProductInstance = new Marketplace(
-      marketVariationDbProduct._id.toString()
-    );
-    marketProductInstance.getProduct().then((marketProductData) => {
-      const reserve = marketProductData.fbsReserve ?? 0;
-
-      marketVariationDbProduct.apiInfo = marketProductData.apiInfo;
-
-      marketVariationDbProduct.fbsReserve = reserve;
-
-      if (marketVariationDbProduct.apiInfo) {
-        marketVariationDbProduct.fbsStock =
-          marketProductData.fbsStock + reserve;
-      }
-
-      if (["wb", "ozon"].includes(marketType)) {
-        marketVariationDbProduct.fbmStock = marketProductData.fbmStock;
-      }
-
-      callback(null, null);
-    });
-  };
-};
-
 export const getProductPage = (req, res) => {
+  const getMarketProductRequest = (
+    Marketplace,
+    marketVariationDbProduct,
+    marketType
+  ) => {
+    return (callback) => {
+      const marketProductInstance = new Marketplace(
+        marketVariationDbProduct._id.toString()
+      );
+
+      marketProductInstance
+        .getProduct()
+        .then((marketProductData) => {
+          const reserve = marketProductData.fbsReserve ?? 0;
+
+          marketVariationDbProduct.apiInfo = marketProductData.apiInfo;
+
+          marketVariationDbProduct.fbsReserve = reserve;
+
+          if (marketVariationDbProduct.apiInfo) {
+            marketVariationDbProduct.fbsStock =
+              marketProductData.fbsStock + reserve;
+          }
+
+          if (["wb", "ozon"].includes(marketType)) {
+            marketVariationDbProduct.fbmStock = marketProductData.fbmStock;
+          }
+
+          callback(null, null);
+        })
+        .catch((error) => {
+          callback(error, null);
+        });
+    };
+  };
+
   dbService
     .getProductById(req.params.id)
     .then(async (product) => {

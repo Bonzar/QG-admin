@@ -31,6 +31,23 @@ import("dotenv")
 
       server.listen(port);
       server.on("error", onError);
+      process.on("uncaughtException", (error) => {
+        import("./services/helpers.js")
+          .then((module) => {
+            const logger = module.getLogger('www.cjs');
+            //fixme set to === production
+            if (process.env.NODE_ENV !== "production") {
+              logger.log({
+                level: "error",
+                date: new Date(),
+                message: error.message,
+                error,
+              });
+            } else {
+              console.error(error);
+            }
+          })
+      });
 
       /**
        * Normalize a port into a number, string, or false.
