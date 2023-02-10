@@ -2,6 +2,7 @@ import { Wildberries } from "./wildberries.js";
 import { Woocommerce } from "./woocommerce.js";
 import { Yandex } from "./yandex.js";
 import { Ozon } from "./ozon.js";
+import winston from "winston";
 
 export const filterMarketProducts = (products, filters) => {
   let filtratedProducts = products;
@@ -67,3 +68,22 @@ export const filterMarketProducts = (products, filters) => {
 export const getMarketplaceClasses = () => {
   return { woo: Woocommerce, wb: Wildberries, ozon: Ozon, yandex: Yandex };
 };
+
+export const getLogger = (serviceName) => {
+  return winston.createLogger({
+    level: "info",
+    format: winston.format.json(),
+    defaultMeta: { service: serviceName },
+    transports: [
+      //
+      // - Write all logs with importance level of `error` or less to `error.log`
+      // - Write all logs with importance level of `info` or less to `combined.log`
+      //
+      new winston.transports.File({
+        filename: "error.log",
+        level: "error",
+      }),
+      new winston.transports.File({ filename: "combined.log" }),
+    ],
+  });
+}

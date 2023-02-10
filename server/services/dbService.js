@@ -14,21 +14,10 @@ import { Wildberries } from "./wildberries.js";
 import { getMarketplaceClasses } from "./helpers.js";
 
 import cron from "node-cron";
-import winston from "winston";
 
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.json(),
-  defaultMeta: { service: "db-service" },
-  transports: [
-    //
-    // - Write all logs with importance level of `error` or less to `error.log`
-    // - Write all logs with importance level of `info` or less to `combined.log`
-    //
-    new winston.transports.File({ filename: "error.log", level: "error" }),
-    new winston.transports.File({ filename: "combined.log" }),
-  ],
-});
+import {getLogger} from "./helpers";
+
+const logger = getLogger('db-service');
 
 cron.schedule(
   "30 4 * * 0-6/2",
