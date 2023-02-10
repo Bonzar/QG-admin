@@ -567,7 +567,6 @@ export const getAllProductsStockPage = async (req, res) => {
           if (!product.dbInfo.isActual) return;
       }
 
-
       const variation = product.dbInfo?.variation;
 
       // skip products not connected to variation
@@ -621,7 +620,6 @@ export const getAllProductsStockPage = async (req, res) => {
         default:
           if (!product.dbInfo.isActual) return;
       }
-
 
       const variation = product.dbInfo?.variation;
 
@@ -773,9 +771,9 @@ export const getAllProductsStockPage = async (req, res) => {
       if (req.query["stock_status"] === "outofstock") {
         isProductPassingFilterList.push(
           variation.ozonStock?.stock + variation.FBO === 0 ||
-          variation.wbStock?.stock + variation.FBW === 0 ||
-          variation.yandexStock?.stock === 0 ||
-          variation.wooStock?.stock === 0
+            variation.wbStock?.stock + variation.FBW === 0 ||
+            variation.yandexStock?.stock === 0 ||
+            variation.wooStock?.stock === 0
         );
       }
 
@@ -795,8 +793,9 @@ export const getAllProductsStockPage = async (req, res) => {
     });
 
     // Sorting
-    const allVariationsSorted = allVariationsFiltered.sort((variation1, variation2) =>
-      variation1.productName.localeCompare(variation2.productName, "ru")
+    const allVariationsSorted = allVariationsFiltered.sort(
+      (variation1, variation2) =>
+        variation1.productName.localeCompare(variation2.productName, "ru")
     );
 
     const splitTables = {};

@@ -4,12 +4,12 @@
  * Module dependencies.
  */
 import("dotenv")
-  .then(module => {
+  .then((module) => {
     const dotenv = module["default"];
-    dotenv.config()
+    dotenv.config();
   })
   .then(() => {
-    Promise.all([import("./app.js"), import("http"),]).then((results) => {
+    Promise.all([import("./app.js"), import("http")]).then((results) => {
       const [app, http] = results;
 
       /**
@@ -78,4 +78,4 @@ import("dotenv")
         }
       }
     });
-  })
+  });
