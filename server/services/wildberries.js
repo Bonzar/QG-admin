@@ -439,15 +439,25 @@ export class Wildberries extends Marketplace {
   }
 
   static #getApiShipments(dateFrom = 0) {
-    return wbStatAPI
-      .get(
-        `api/v1/supplier/incomes?dateFrom=${formatInTimeZone(
-          dateFrom,
-          "UTC",
-          "yyyy-MM-dd"
-        )}`
-      )
-      .then((response) => response.data);
+    const getApiShipmentsRequest = (dateFrom) =>
+      wbStatAPI
+        .get(
+          `api/v1/supplier/incomes?dateFrom=${formatInTimeZone(
+            dateFrom,
+            "UTC",
+            "yyyy-MM-dd"
+          )}`
+        )
+        .then((response) => response.data);
+
+    const apiShipmentsRequestCached = this._makeCachingForTime(
+      getApiShipmentsRequest,
+      [dateFrom],
+      "WB-GET-API-SHIPMENTS",
+      60 * 60 * 1000
+    );
+
+    return apiShipmentsRequestCached();
   }
 
   static async getApiShipmentPredict(mayakSellsPerYear) {
