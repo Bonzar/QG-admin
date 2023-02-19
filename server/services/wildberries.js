@@ -121,7 +121,7 @@ export class Wildberries extends Marketplace {
   static _connectDbApiData(dbProducts, apiProductsData) {
     const {
       productsInfo: apiProducts,
-      productsStocks: { fbsStocks, fbmStocks, fbsReserves },
+      productsStocks: { fbsStocks, fbmStocks, fbmShipments, fbsReserves },
     } = apiProductsData;
 
     const connectedProducts = {};
@@ -155,6 +155,23 @@ export class Wildberries extends Marketplace {
       }
 
       connectedProduct.fbmStock = fbmStock.quantity;
+    }
+
+    for (const fbmShipment of fbmShipments) {
+      if (fbmShipment.status !== "Принято") {
+        continue;
+      }
+
+      const connectedProduct = connectedProducts[fbmShipment["nmId"]];
+      if (!connectedProduct) {
+        continue;
+      }
+
+      if (!connectedProduct.fbmShipments) {
+        connectedProduct.fbmShipments = [];
+      }
+
+      connectedProduct.fbmShipments.push(fbmShipment);
     }
 
     // fbsReserves contains all new orders in each order by only one product
@@ -318,12 +335,18 @@ export class Wildberries extends Marketplace {
             .then((newOrders) => callback(null, newOrders))
             .catch((error) => callback(error, null));
         },
+        fbmShipments: (callback) => {
+          this.#getApiShipments()
+            .then((result) => callback(null, result))
+            .catch((error) => callback(error, null));
+        },
       })
       .then((results) => {
         return {
           productsInfo: results.productsInfo,
           productsStocks: {
             fbmStocks: results.fbmStocks,
+            fbmShipments: results.fbmShipments,
             fbsStocks: results.fbsStocks,
             fbsReserves: results.fbsReserves,
           },
@@ -448,7 +471,16 @@ export class Wildberries extends Marketplace {
             "yyyy-MM-dd"
           )}`
         )
-        .then((response) => response.data);
+        .then((response) => {
+          const shipments = response.data.map((shipment) => {
+            shipment.date = new Date(shipment.date)
+            return shipment
+          })
+          shipments.sort(
+            (shipment1, shipment2) => shipment1.date - shipment2.date
+          );
+          return shipments
+        });
 
     const apiShipmentsRequestCached = this._makeCachingForTime(
       getApiShipmentsRequest,
