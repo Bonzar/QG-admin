@@ -11,13 +11,11 @@ import WooProductVariable from "../models/WooProductVariable.js";
 
 import { Ozon } from "./ozon.js";
 import { Wildberries } from "./wildberries.js";
-import { getMarketplaceClasses } from "./helpers.js";
+import { getMarketplaceClasses, getLogger } from "./helpers.js";
 
 import cron from "node-cron";
 
-import {getLogger} from "./helpers";
-
-const logger = getLogger('db-service');
+const logger = getLogger("db-service");
 
 cron.schedule(
   "30 4 * * 0-6/2",
