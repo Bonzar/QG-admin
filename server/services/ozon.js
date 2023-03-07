@@ -287,12 +287,9 @@ export class Ozon extends Marketplace {
     return getApiOverdueOrdersRequestCached();
   }
 
-  static async getApiShipmentPredict(
-    dateShiftDays = 13,
-    predictPeriodDays = 30
-  ) {
-    const getAnalyticData = (date_from, date_to) => {
-      return ozonAPI
+  static getAnalyticData(date_from, date_to) {
+    const getAnalyticDataRequest = (date_from, date_to) =>
+      ozonAPI
         .request({
           method: "post",
           url: "v1/analytics/data",
@@ -309,8 +306,22 @@ export class Ozon extends Marketplace {
         .then((response) => {
           return response.data.result.data;
         });
-    };
 
+    const getAnalyticDataRequestCached = this._makeCachingForTime(
+      getAnalyticDataRequest,
+      [date_from, date_to],
+      "OZON-GET-ANALYTIC-DATA",
+      30 * 60 * 1000
+    );
+
+    return getAnalyticDataRequestCached();
+  }
+
+  static async getApiShipmentPredict(
+    dateShiftDays = 13,
+    predictPeriodDays = 30,
+    minStockCount = 5
+  ) {
     const yesterday = subFromDate(new Date(), { days: 1 });
     const oneMonthAgo = subFromDate(yesterday, { months: 1 });
     const oneYearAgo = subFromDate(yesterday, { years: 1 });
@@ -327,23 +338,28 @@ export class Ozon extends Marketplace {
 
     const requestsData = await async.parallel({
       oneMonthAgoOneMonthData: (callback) => {
-        getAnalyticData(oneMonthAgo, yesterday)
+        this.getAnalyticData(oneMonthAgo, yesterday)
           .then((results) => callback(null, results))
           .catch((error) => callback(error));
       },
       oneYearOneMonthAgoOneMonthData: (callback) => {
-        getAnalyticData(oneYearOneMonthAgo, oneYearAgo)
+        this.getAnalyticData(oneYearOneMonthAgo, oneYearAgo)
           .then((results) => callback(null, results))
           .catch((error) => callback(error));
       },
       oneYearAgoShiftDaysData: (callback) => {
-        getAnalyticData(oneYearAgo, oneYearWithShiftAgo)
+        this.getAnalyticData(oneYearAgo, oneYearWithShiftAgo)
+          .then((results) => callback(null, results))
+          .catch((error) => callback(error));
+      },
+      oneYearAgoOneYearData: (callback) => {
+        this.getAnalyticData(oneYearAgo, yesterday)
           .then((results) => callback(null, results))
           .catch((error) => callback(error));
       },
       //
       oneYearWithShiftAgoPredictPeriodData: (callback) => {
-        getAnalyticData(
+        this.getAnalyticData(
           oneYearWithShiftAgo,
           oneYearWithShiftAndPredictPeriodAgo
         )
@@ -368,6 +384,7 @@ export class Ozon extends Marketplace {
       oneYearOneMonthAgoOneMonthData,
       oneYearAgoShiftDaysData,
       oneYearWithShiftAgoPredictPeriodData,
+      oneYearAgoOneYearData,
       productsFullInfo,
       ozonDbProducts,
     } = requestsData;
@@ -391,11 +408,16 @@ export class Ozon extends Marketplace {
     const allSellsOneYearWithShiftAgoPredictPeriodData = getAllSells(
       oneYearWithShiftAgoPredictPeriodData
     );
+    const allSellsOneYearAgoOneYearData = getAllSells(oneYearAgoOneYearData);
 
-    const shiftRise =
+    const shiftPeriodByPrevYearRise =
       allSellsOneYearAgoShiftDaysData / allSellsOneYearOneMonthAgoOneMonthData;
 
-    const predictPeriodRise =
+    const predictPeriodByYearMedianRise =
+      allSellsOneYearWithShiftAgoPredictPeriodData /
+      allSellsOneYearAgoOneYearData;
+
+    const predictPeriodByPrevYearRise =
       allSellsOneYearWithShiftAgoPredictPeriodData /
       (allSellsOneYearAgoShiftDaysData +
         allSellsOneYearOneMonthAgoOneMonthData);
@@ -428,30 +450,40 @@ export class Ozon extends Marketplace {
         oneMonthAgoOneMonthData
       );
 
-      const predictShiftSells = productSellsOneMonthAgoOneMonthData * shiftRise;
+      const productSellsOneYearAgoOneYearData = getProductSells(
+        product,
+        oneYearAgoOneYearData
+      );
+
+      const predictShiftSells =
+        productSellsOneMonthAgoOneMonthData * shiftPeriodByPrevYearRise;
+
       const predictPeriodAfterShiftSells =
         (productSellsOneMonthAgoOneMonthData + predictShiftSells) *
-        predictPeriodRise;
+        predictPeriodByPrevYearRise;
 
-      const predictShiftStocks = stock - predictShiftSells;
+      const predictPeriodSellsByYearMedianRise =
+        productSellsOneYearAgoOneYearData * predictPeriodByYearMedianRise;
 
-      const onShipment = predictPeriodAfterShiftSells - predictShiftStocks;
+      const onShipmentByPrevYearRise =
+        predictPeriodAfterShiftSells + predictShiftSells - stock;
+      const onShipmentByYearMedian = predictPeriodSellsByYearMedianRise - stock;
+      const onShipmentByMinStockCount = minStockCount - stock;
+
+      const onShipment = Math.max(
+        onShipmentByPrevYearRise,
+        onShipmentByYearMedian,
+        onShipmentByMinStockCount
+      );
 
       if (onShipment > 0) {
         products.push({
           article: product.apiInfo.offer_id,
           name: product.dbInfo?.variation?.product.name,
           stock,
-          shiftStocks: Math.round(predictShiftStocks),
-          productSellsOneMonthAgoOneMonthData: Math.round(
-            productSellsOneMonthAgoOneMonthData
-          ),
-          shiftRise: Math.round(shiftRise * 100),
-          predictPeriodRise: Math.round(predictPeriodRise * 100),
-          predictShiftSells: Math.round(predictShiftSells),
-          predictPeriodAfterShiftSells: Math.round(
-            predictPeriodAfterShiftSells
-          ),
+          onShipmentByPrevYearRise: Math.round(onShipmentByPrevYearRise),
+          onShipmentByYearMedian: Math.round(onShipmentByYearMedian),
+          onShipmentByMinStockCount: Math.round(onShipmentByMinStockCount),
           onShipment: Math.round(onShipment),
         });
       }
