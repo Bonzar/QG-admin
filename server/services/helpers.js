@@ -87,3 +87,13 @@ export const getLogger = (serviceName) => {
     ],
   });
 }
+
+export const volumeSortRating = {
+  "3 мл": 70,
+  "6 мл": 60,
+  "10 мл": 50,
+  "60 мл": 40,
+  "120 мл": 30,
+  Набор: 20,
+  Стикеры: 10,
+};
