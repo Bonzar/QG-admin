@@ -476,15 +476,19 @@ export class Ozon extends Marketplace {
         onShipmentByMinStockCount
       );
 
-      if (onShipment > 0) {
+      // take only available in warehouse count of products
+      const onShipmentOnlyAvailable = Math.min(Math.round(onShipment), product.fbsStock);
+
+      if (onShipmentOnlyAvailable > 0) {
         products.push({
           article: product.apiInfo.offer_id,
           name: product.dbInfo?.variation?.product.name,
           stock,
+          fbsStock: product.fbsStock,
           onShipmentByPrevYearRise: Math.round(onShipmentByPrevYearRise),
           onShipmentByYearMedian: Math.round(onShipmentByYearMedian),
           onShipmentByMinStockCount: Math.round(onShipmentByMinStockCount),
-          onShipment: Math.round(onShipment),
+          onShipment: onShipmentOnlyAvailable,
         });
       }
     });
