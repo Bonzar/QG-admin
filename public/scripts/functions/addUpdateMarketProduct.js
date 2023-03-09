@@ -29,6 +29,11 @@ export default (event) => {
     FD.set("variation_volume", variationVolume);
   }
 
+  const productUpdateId = form.querySelector('input[name="_id"]');
+  if (!productUpdateId) {
+    FD.set("isNewProduct", 'true');
+  }
+
   let updateProps = {};
   FD.forEach((value, key) => {
     updateProps[key] = value;
@@ -37,7 +42,7 @@ export default (event) => {
   if (!updateProps.marketType)
     return alert("Неверный параметр названия маркетплейса.");
 
-  const productUpdateId = form.querySelector('input[name="_id"]');
+
   // Set request url for Update or Add Market product dependence on existing _id prop
   let requestUrl = `/stocks/${updateProps.marketType.toLowerCase()}/${
     productUpdateId ? productUpdateId.value : "new"

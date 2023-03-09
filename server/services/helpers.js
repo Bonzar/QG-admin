@@ -50,7 +50,7 @@ export const filterMarketProducts = (products, filters) => {
   switch (filters.isActual) {
     case "notActual":
       filtratedProducts = filtratedProducts.filter(
-        (product) => product.dbInfo.isActual === false
+        (product) => product.dbInfo?.isActual === false
       );
       break;
     case "all":
@@ -58,7 +58,7 @@ export const filterMarketProducts = (products, filters) => {
     // Only actual or not specified by default
     default:
       filtratedProducts = filtratedProducts.filter(
-        (product) => product.dbInfo.isActual !== false
+        (product) => product.dbInfo?.isActual !== false
       );
   }
 

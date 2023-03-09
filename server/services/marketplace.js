@@ -7,7 +7,7 @@ export class Marketplace {
   static cacheStore = {};
 
   constructor(search) {
-    if (typeof search !== "object") {
+    if (search !== "NEW" && typeof search !== "object") {
       search = { _id: search };
     }
 
@@ -15,6 +15,10 @@ export class Marketplace {
   }
 
   // CLASS METHODS
+  static createNewMarketProduct() {
+    return new this.marketProductSchema();
+  }
+
   static async getMarketProductDetails(marketProductData) {
     const marketProductDetails = {};
 
@@ -105,6 +109,10 @@ export class Marketplace {
   _getDbProduct() {
     if (this.#dbData) {
       return this.#dbData;
+    }
+
+    if (this.search === 'NEW') {
+      return this.constructor.createNewMarketProduct()
     }
 
     return this.#setProductInfoFromDb(this.search);

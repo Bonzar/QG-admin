@@ -18,9 +18,9 @@ export const getProductsList = (req, res) => {
           id: product.apiInfo?.id,
           name:
             (variation?.product.name ?? "") +
-            (["3 мл", "10 мл"].includes(variation?.volume)
-              ? ` - ${variation?.volume}`
-              : ""),
+            (["Набор", "Стикеры"].includes(variation?.volume)
+              ? ""
+              : ` - ${variation?.volume}`),
           inStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             updateBy:

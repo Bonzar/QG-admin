@@ -181,9 +181,9 @@ const getWooOrders = async () => {
             callback(null, {
               name:
                 (dbProduct?.variation?.product.name ?? "") +
-                (["3 мл", "10 мл"].includes(dbProduct?.variation?.volume)
-                  ? ` - ${dbProduct?.variation?.volume}`
-                  : ""),
+                (["Набор", "Стикеры"].includes(dbProduct?.variation?.volume)
+                  ? ""
+                  : ` - ${dbProduct?.variation?.volume}`),
               article: orderProduct.sku,
               quantity: orderProduct.quantity,
             })

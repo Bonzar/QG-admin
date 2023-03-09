@@ -11,11 +11,9 @@ import WooProductVariable from "../models/WooProductVariable.js";
 
 import { Ozon } from "./ozon.js";
 import { Wildberries } from "./wildberries.js";
-import { getMarketplaceClasses } from "./helpers.js";
+import { getMarketplaceClasses, getLogger } from "./helpers.js";
 
 import cron from "node-cron";
-
-import {getLogger} from "./helpers";
 
 const logger = getLogger('db-service');
 
@@ -131,6 +129,8 @@ export const redistributeVariationsStock = async (
     return (callback) => {
       getVariationActualMarketProducts(variation._id)
         .then((marketProducts) => {
+          console.log({marketProducts})
+
           // no need to redistribute with one or zero market product in variation
           if (marketProducts.length <= 1) {
             return null;
@@ -507,7 +507,11 @@ export const addUpdateMarketProduct = async (marketProductData) => {
     throw new Error("Wrong market type.");
   }
 
-  const marketProduct = new Marketplace(marketProductData._id);
+  console.log({marketProductData})
+
+  let searchQuery = marketProductData.isNewProduct ? "NEW" : marketProductData._id;
+
+  const marketProduct = new Marketplace(searchQuery);
   return marketProduct.addUpdateProduct(marketProductData);
 };
 

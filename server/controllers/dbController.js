@@ -511,13 +511,13 @@ export const getAllProductsStockPage = async (req, res) => {
       // Filtrating by actual
       switch (req.query.isActual) {
         case "notActual":
-          if (product.dbInfo.isActual) return;
+          if (product.dbInfo?.isActual) return;
           break;
         case "all":
           break;
         // Only actual by default
         default:
-          if (!product.dbInfo.isActual) return;
+          if (!product.dbInfo?.isActual) return;
       }
 
       const variation = product.dbInfo?.variation;
@@ -559,13 +559,13 @@ export const getAllProductsStockPage = async (req, res) => {
       // Filtrating by actual
       switch (req.query.isActual) {
         case "notActual":
-          if (product.dbInfo.isActual) return;
+          if (product.dbInfo?.isActual) return;
           break;
         case "all":
           break;
         // Only actual by default
         default:
-          if (!product.dbInfo.isActual) return;
+          if (!product.dbInfo?.isActual) return;
       }
 
       const variation = product.dbInfo?.variation;
@@ -613,13 +613,13 @@ export const getAllProductsStockPage = async (req, res) => {
       // Filtrating by actual
       switch (req.query.isActual) {
         case "notActual":
-          if (product.dbInfo.isActual) return;
+          if (product.dbInfo?.isActual) return;
           break;
         case "all":
           break;
         // Only actual by default
         default:
-          if (!product.dbInfo.isActual) return;
+          if (!product.dbInfo?.isActual) return;
       }
 
       const variation = product.dbInfo?.variation;
@@ -669,13 +669,13 @@ export const getAllProductsStockPage = async (req, res) => {
       // Filtrating by actual
       switch (req.query.isActual) {
         case "notActual":
-          if (product.dbInfo.isActual) return;
+          if (product.dbInfo?.isActual) return;
           break;
         case "all":
           break;
         // Only actual by default
         default:
-          if (!product.dbInfo.isActual) return;
+          if (!product.dbInfo?.isActual) return;
       }
 
       const variation = product.dbInfo?.variation;
