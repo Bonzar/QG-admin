@@ -100,7 +100,7 @@ export class Wildberries extends Marketplace {
     );
 
     if (marketProductData.barcode) {
-      marketProductDetails.barcode = marketProductData.barcode;
+      marketProductDetails.barcode = +marketProductData.barcode;
     }
 
     return marketProductDetails;

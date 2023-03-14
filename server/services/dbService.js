@@ -509,7 +509,7 @@ export const addUpdateMarketProduct = async (marketProductData) => {
 
   console.log({marketProductData})
 
-  let searchQuery = marketProductData.isNewProduct ? "NEW" : marketProductData._id;
+  let searchQuery = marketProductData.isNewProduct === 'true' ? "NEW" : marketProductData._id;
 
   const marketProduct = new Marketplace(searchQuery);
   return marketProduct.addUpdateProduct(marketProductData);
