@@ -507,8 +507,6 @@ export const addUpdateMarketProduct = async (marketProductData) => {
     throw new Error("Wrong market type.");
   }
 
-  console.log({marketProductData})
-
   let searchQuery = marketProductData.isNewProduct === 'true' ? "NEW" : marketProductData._id;
 
   const marketProduct = new Marketplace(searchQuery);

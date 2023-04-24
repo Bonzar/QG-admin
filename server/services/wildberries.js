@@ -94,8 +94,8 @@ export class Wildberries extends Marketplace {
     }
   }
 
-  static getMarketProductDetails(marketProductData) {
-    const marketProductDetails = super.getMarketProductDetails(
+  static async getMarketProductDetails(marketProductData) {
+    const marketProductDetails = await super.getMarketProductDetails(
       marketProductData
     );
 

@@ -111,8 +111,8 @@ export class Marketplace {
       return this.#dbData;
     }
 
-    if (this.search === 'NEW') {
-      return this.constructor.createNewMarketProduct()
+    if (this.search === "NEW") {
+      return this.constructor.createNewMarketProduct();
     }
 
     return this.#setProductInfoFromDb(this.search);
@@ -122,6 +122,11 @@ export class Marketplace {
     return async
       .parallel({
         updateApiStock: (callback) => {
+          if (!newData.stockFBS) {
+            callback(null, {});
+            return;
+          }
+
           apiStockUpdater(newData.stockFBS)
             .then((result) => callback(null, result))
             .catch((error) => callback(error, null));
