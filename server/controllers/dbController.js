@@ -5,7 +5,10 @@ import { Ozon } from "../services/ozon.js";
 import { Wildberries } from "../services/wildberries.js";
 import { Yandex } from "../services/yandex.js";
 import { Woocommerce } from "../services/woocommerce.js";
-import { getMarketplaceClasses } from "../services/helpers.js";
+import {
+  getMarketplaceClasses,
+  volumeSortRating,
+} from "../services/helpers.js";
 
 const isValidationPass = (req, res) => {
   let errors = validationResult(req);
@@ -109,14 +112,6 @@ export const getProductPage = (req, res) => {
       await async.parallel(productRequests);
 
       productVariations.sort((variation1, variation2) => {
-        const volumeSortRating = {
-          "3 мл": 50,
-          "6 мл": 40,
-          "10 мл": 30,
-          Набор: 20,
-          Стикеры: 10,
-        };
-
         return (
           volumeSortRating[variation2.volume] -
           volumeSortRating[variation1.volume]
@@ -516,13 +511,13 @@ export const getAllProductsStockPage = async (req, res) => {
       // Filtrating by actual
       switch (req.query.isActual) {
         case "notActual":
-          if (product.dbInfo.isActual) return;
+          if (product.dbInfo?.isActual) return;
           break;
         case "all":
           break;
         // Only actual by default
         default:
-          if (!product.dbInfo.isActual) return;
+          if (!product.dbInfo?.isActual) return;
       }
 
       const variation = product.dbInfo?.variation;
@@ -564,13 +559,13 @@ export const getAllProductsStockPage = async (req, res) => {
       // Filtrating by actual
       switch (req.query.isActual) {
         case "notActual":
-          if (product.dbInfo.isActual) return;
+          if (product.dbInfo?.isActual) return;
           break;
         case "all":
           break;
         // Only actual by default
         default:
-          if (!product.dbInfo.isActual) return;
+          if (!product.dbInfo?.isActual) return;
       }
 
       const variation = product.dbInfo?.variation;
@@ -618,13 +613,13 @@ export const getAllProductsStockPage = async (req, res) => {
       // Filtrating by actual
       switch (req.query.isActual) {
         case "notActual":
-          if (product.dbInfo.isActual) return;
+          if (product.dbInfo?.isActual) return;
           break;
         case "all":
           break;
         // Only actual by default
         default:
-          if (!product.dbInfo.isActual) return;
+          if (!product.dbInfo?.isActual) return;
       }
 
       const variation = product.dbInfo?.variation;
@@ -674,13 +669,13 @@ export const getAllProductsStockPage = async (req, res) => {
       // Filtrating by actual
       switch (req.query.isActual) {
         case "notActual":
-          if (product.dbInfo.isActual) return;
+          if (product.dbInfo?.isActual) return;
           break;
         case "all":
           break;
         // Only actual by default
         default:
-          if (!product.dbInfo.isActual) return;
+          if (!product.dbInfo?.isActual) return;
       }
 
       const variation = product.dbInfo?.variation;
@@ -819,14 +814,6 @@ export const getAllProductsStockPage = async (req, res) => {
       products: splitTables[tableName],
     }));
 
-    const volumeSortRating = {
-      "3 мл": 50,
-      "6 мл": 40,
-      "10 мл": 30,
-      Набор: 20,
-      Стикеры: 10,
-    };
-
     tablesArray.sort(
       (table1, table2) =>
         volumeSortRating[table2.tableName] - volumeSortRating[table1.tableName]
@@ -912,14 +899,6 @@ export const getAllVariationsPage = async (req, res) => {
       tableName,
       products: splitTables[tableName],
     }));
-
-    const volumeSortRating = {
-      "3 мл": 50,
-      "6 мл": 40,
-      "10 мл": 30,
-      Набор: 20,
-      Стикеры: 10,
-    };
 
     tablesArray.sort(
       (table1, table2) =>

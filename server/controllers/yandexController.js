@@ -18,9 +18,9 @@ export const getProductsListPage = (req, res) => {
           productSku: product.apiInfo?.shopSku,
           productName:
             (variation?.product.name ?? "") +
-            (["3 мл", "10 мл"].includes(variation?.volume)
-              ? ` - ${variation?.volume}`
-              : ""),
+            (["Набор", "Стикеры"].includes(variation?.volume)
+              ? ""
+              : ` - ${variation?.volume}`),
           productStock: {
             stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
             updateBy: product.apiInfo?.shopSku,

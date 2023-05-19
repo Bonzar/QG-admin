@@ -19,9 +19,9 @@ export const getProductsListPage = async (req, res) => {
         article: product.apiInfo?.["vendorCode"],
         name:
           (product.dbInfo?.variation?.product.name ?? "") +
-          (["3 мл", "10 мл"].includes(product.dbInfo?.variation?.volume)
-            ? ` - ${product.dbInfo?.variation?.volume}`
-            : ""),
+          (["Набор", "Стикеры"].includes(product.dbInfo?.variation?.volume)
+            ? ""
+            : ` - ${product.dbInfo?.variation?.volume}`),
         stockFBW: product.fbmStock ?? 0,
         stockFBS: {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
@@ -58,12 +58,12 @@ export const getProductsListPage = async (req, res) => {
   }
 };
 
-export const updateStock = (req, res) => {
+export const updateStock = async (req, res) => {
   try {
     const wbProduct = new Wildberries({ barcode: req.query.barcode });
-    wbProduct.updateStock(+req.query.stock).then((result) => {
-      res.json(result);
-    });
+    const result = await wbProduct.updateStock(+req.query.stock);
+
+    res.json(result);
   } catch (error) {
     console.error(error);
     res.status(400).json({
