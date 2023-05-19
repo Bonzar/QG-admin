@@ -4,7 +4,7 @@ const ProductVariation = new Schema({
   product: { type: Schema.ObjectId, ref: "Product", required: true },
   volume: {
     type: String,
-    enum: ["3 мл", "6 мл", "10 мл", "Набор", "Стикеры"],
+    enum: ["3 мл", "6 мл", "10 мл", "60 мл", "120 мл", "Набор", "Стикеры"],
     required: true,
   },
   readyStock: { type: Number, required: true, default: 0 },

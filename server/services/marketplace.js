@@ -7,7 +7,7 @@ export class Marketplace {
   static cacheStore = {};
 
   constructor(search) {
-    if (typeof search !== "object") {
+    if (search !== "NEW" && typeof search !== "object") {
       search = { _id: search };
     }
 
@@ -15,6 +15,10 @@ export class Marketplace {
   }
 
   // CLASS METHODS
+  static createNewMarketProduct() {
+    return new this.marketProductSchema();
+  }
+
   static async getMarketProductDetails(marketProductData) {
     const marketProductDetails = {};
 
@@ -107,6 +111,10 @@ export class Marketplace {
       return this.#dbData;
     }
 
+    if (this.search === "NEW") {
+      return this.constructor.createNewMarketProduct();
+    }
+
     return this.#setProductInfoFromDb(this.search);
   }
 
@@ -114,6 +122,11 @@ export class Marketplace {
     return async
       .parallel({
         updateApiStock: (callback) => {
+          if (typeof newData.stockFBS !== "number") {
+            callback(null, {});
+            return;
+          }
+
           apiStockUpdater(newData.stockFBS)
             .then((result) => callback(null, result))
             .catch((error) => callback(error, null));

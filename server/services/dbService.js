@@ -11,24 +11,11 @@ import WooProductVariable from "../models/WooProductVariable.js";
 
 import { Ozon } from "./ozon.js";
 import { Wildberries } from "./wildberries.js";
-import { getMarketplaceClasses } from "./helpers.js";
+import { getMarketplaceClasses, getLogger } from "./helpers.js";
 
 import cron from "node-cron";
-import winston from "winston";
 
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.json(),
-  defaultMeta: { service: "db-service" },
-  transports: [
-    //
-    // - Write all logs with importance level of `error` or less to `error.log`
-    // - Write all logs with importance level of `info` or less to `combined.log`
-    //
-    new winston.transports.File({ filename: "error.log", level: "error" }),
-    new winston.transports.File({ filename: "combined.log" }),
-  ],
-});
+const logger = getLogger("db-service");
 
 cron.schedule(
   "30 4 * * 0-6/2",
@@ -142,6 +129,8 @@ export const redistributeVariationsStock = async (
     return (callback) => {
       getVariationActualMarketProducts(variation._id)
         .then((marketProducts) => {
+          console.log({ marketProducts });
+
           // no need to redistribute with one or zero market product in variation
           if (marketProducts.length <= 1) {
             return null;
@@ -244,7 +233,14 @@ export const updateVariationStock = async (
     availableStocks -= stockByMarketplace * marketProducts.length;
 
     marketProducts.forEach((marketProduct) => {
-      if (marketProduct.fbmStock > 0) {
+      if (
+        marketProduct.fbmStock > 0 &&
+        marketProduct.marketProductInstance instanceof Wildberries
+      ) {
+        // marketProduct.newStock = 0;
+        availableStocks += stockByMarketplace;
+        return;
+      } else if (marketProduct.fbmStock > 0) {
         const fbmStock = marketProduct.fbmStock;
         if (stockByMarketplace >= fbmStock) {
           const newStock = stockByMarketplace - fbmStock;
@@ -291,7 +287,7 @@ export const updateVariationStock = async (
   });
 
   return async
-    .parallel(updateRequests)
+    .parallelLimit(updateRequests, 1)
     .then(async (result) => {
       await variation.save(); // saving ready and dry stock
       return result;
@@ -518,7 +514,10 @@ export const addUpdateMarketProduct = async (marketProductData) => {
     throw new Error("Wrong market type.");
   }
 
-  const marketProduct = new Marketplace(marketProductData._id);
+  let searchQuery =
+    marketProductData.isNewProduct === "true" ? "NEW" : marketProductData._id;
+
+  const marketProduct = new Marketplace(searchQuery);
   return marketProduct.addUpdateProduct(marketProductData);
 };
 

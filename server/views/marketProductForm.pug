@@ -1,7 +1,8 @@
 - marketProductInstance = marketProduct ? marketProduct : {}
 - isMarketProductInstanceEdit = isMarketProductInstanceEditMode !== undefined ? isMarketProductInstanceEditMode : true
 input(required name="marketType" value=marketType hidden)
-input(required name="_id" value=marketProductInstance._id hidden)
+if marketProduct
+    input(required name="_id" value=marketProductInstance._id hidden)
 
 case marketType
     when 'wb'

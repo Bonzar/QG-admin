@@ -18,9 +18,7 @@ export const getProductsListPage = async (req, res) => {
         article: product.apiInfo?.offer_id,
         name:
           (product.dbInfo?.variation?.product.name ?? "") +
-          (["3 мл", "10 мл"].includes(product.dbInfo?.variation?.volume)
-            ? ` - ${product.dbInfo?.variation?.volume}`
-            : ""),
+          (["Набор", "Стикеры"].includes(product.dbInfo?.variation?.volume) ? "" : ` - ${product.dbInfo?.variation?.volume}`),
         stockFBO: product.fbmStock ?? 0,
         stockFBS: {
           stock: (product.fbsStock ?? 0) + (product.fbsReserve ?? 0),
