@@ -15,7 +15,7 @@ import { getMarketplaceClasses, getLogger } from "./helpers.js";
 
 import cron from "node-cron";
 
-const logger = getLogger('db-service');
+const logger = getLogger("db-service");
 
 cron.schedule(
   "30 4 * * 0-6/2",
@@ -129,7 +129,7 @@ export const redistributeVariationsStock = async (
     return (callback) => {
       getVariationActualMarketProducts(variation._id)
         .then((marketProducts) => {
-          console.log({marketProducts})
+          console.log({ marketProducts });
 
           // no need to redistribute with one or zero market product in variation
           if (marketProducts.length <= 1) {
@@ -233,7 +233,14 @@ export const updateVariationStock = async (
     availableStocks -= stockByMarketplace * marketProducts.length;
 
     marketProducts.forEach((marketProduct) => {
-      if (marketProduct.fbmStock > 0) {
+      if (
+        marketProduct.fbmStock > 0 &&
+        marketProduct.marketProductInstance instanceof Wildberries
+      ) {
+        // marketProduct.newStock = 0;
+        availableStocks += stockByMarketplace;
+        return;
+      } else if (marketProduct.fbmStock > 0) {
         const fbmStock = marketProduct.fbmStock;
         if (stockByMarketplace >= fbmStock) {
           const newStock = stockByMarketplace - fbmStock;
@@ -280,7 +287,7 @@ export const updateVariationStock = async (
   });
 
   return async
-    .parallel(updateRequests)
+    .parallelLimit(updateRequests, 1)
     .then(async (result) => {
       await variation.save(); // saving ready and dry stock
       return result;
@@ -507,7 +514,8 @@ export const addUpdateMarketProduct = async (marketProductData) => {
     throw new Error("Wrong market type.");
   }
 
-  let searchQuery = marketProductData.isNewProduct === 'true' ? "NEW" : marketProductData._id;
+  let searchQuery =
+    marketProductData.isNewProduct === "true" ? "NEW" : marketProductData._id;
 
   const marketProduct = new Marketplace(searchQuery);
   return marketProduct.addUpdateProduct(marketProductData);

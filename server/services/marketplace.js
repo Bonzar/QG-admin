@@ -122,7 +122,7 @@ export class Marketplace {
     return async
       .parallel({
         updateApiStock: (callback) => {
-          if (!newData.stockFBS) {
+          if (typeof newData.stockFBS !== "number") {
             callback(null, {});
             return;
           }

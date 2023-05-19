@@ -335,10 +335,32 @@ export class Wildberries extends Marketplace {
    * @param {string} barcode
    * @param {number} stock
    */
-  static #updateApiProductStock(barcode, stock) {
+  static async #updateApiProductStock(barcode, stock) {
+    const newOrders = await this.getApiOrdersNew(false);
+    for (const newOrder of newOrders) {
+      if (barcode.toString() !== newOrder.skus[0] || stock <= 0) {
+        continue;
+      }
+
+      stock--;
+    }
+
+    // if (stock <= 0) {
+    //   return (
+    //     this.#deleteApiProductsStock([barcode.toString()])
+    //       // always success
+    //       .then((result) => {
+    //         return {
+    //           updated: result.updatedAll,
+    //           error: result.error ?? null,
+    //         };
+    //       })
+    //   );
+    // }
+
     return (
       this.#updateApiProductsStock([
-        { sku: barcode.toString(), amount: +stock },
+        { sku: barcode.toString(), amount: +stock >= 0 ? +stock : 0 },
       ])
         // always success
         .then((result) => {
@@ -351,25 +373,34 @@ export class Wildberries extends Marketplace {
   }
 
   /**
+   * @param {[string]} skus
+   * @param {number} warehouse
+   * @description skus is a barcodes (WildBerries API troubles)
+   */
+  static async #deleteApiProductsStock(skus, warehouse = 206312) {
+    return wbAPI
+      .delete(`api/v3/stocks/${warehouse}`, { data: { skus } })
+      .then((response) => {
+        this.#processWbApiErrors(response.data);
+
+        return { updatedAll: response.status === 204 };
+      })
+      .catch((error) => {
+        console.error(error);
+
+        return {
+          updated: false,
+          error: error.isAxiosError ? error.response?.data : error ?? error,
+        };
+      });
+  }
+
+  /**
    * @param {[{amount: number, sku: string}]} stocks
    * @param {number} warehouse
    * @description sku is a barcode (WildBerries API troubles)
    */
   static async #updateApiProductsStock(stocks, warehouse = 206312) {
-    const newOrders = await this.getApiOrdersNew(false);
-    for (const newOrder of newOrders) {
-      const stock = stocks.find((stock) => stock.sku === newOrder.skus[0]);
-      if (!stock) {
-        continue;
-      }
-
-      if (stock.amount <= 0) {
-        continue;
-      }
-
-      stock.amount--;
-    }
-
     return wbAPI
       .put(`api/v3/stocks/${warehouse}`, { stocks })
       .then((response) => {

@@ -58,12 +58,12 @@ export const getProductsListPage = async (req, res) => {
   }
 };
 
-export const updateStock = (req, res) => {
+export const updateStock = async (req, res) => {
   try {
     const wbProduct = new Wildberries({ barcode: req.query.barcode });
-    wbProduct.updateStock(+req.query.stock).then((result) => {
-      res.json(result);
-    });
+    const result = await wbProduct.updateStock(+req.query.stock);
+
+    res.json(result);
   } catch (error) {
     console.error(error);
     res.status(400).json({
