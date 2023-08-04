@@ -183,14 +183,14 @@ export class Wildberries extends Marketplace {
   }
 
   static #getApiProductsStocksFbm(skuFilter) {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const timestampStart = new Date(0);
+    // yesterday.setDate(yesterday.getDate() - 1);
 
     const getApiProductsFbmStocksRequest = (skuFilter) =>
       wbStatAPI
         .get(
           `api/v1/supplier/stocks?dateFrom=${formatInTimeZone(
-            yesterday,
+            timestampStart,
             "UTC",
             "yyyy-MM-dd"
           )}`
